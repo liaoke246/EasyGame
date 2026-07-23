@@ -1,0 +1,3 @@
+# EasyGame
+
+Game project workspace.
