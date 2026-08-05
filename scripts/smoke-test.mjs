@@ -55,6 +55,17 @@ async function runMultiplayerCheck() {
       onceEvent(first, "welcome"),
       onceEvent(second, "welcome"),
     ]);
+    const probe = { sequence: 7, clientSentAt: Date.now() };
+    const pongPromise = onceEvent(first, "network:pong");
+    first.emit("network:ping", probe);
+    const pong = await pongPromise;
+    if (
+      pong.sequence !== probe.sequence ||
+      pong.clientSentAt !== probe.clientSentAt ||
+      !Number.isFinite(pong.serverTime)
+    ) {
+      throw new Error("Network latency probe returned invalid data");
+    }
     const twoPlayerSnapshot = await waitForSnapshot(
       first,
       (snapshot) => snapshot.players.length === 2,
@@ -128,7 +139,7 @@ async function runMultiplayerCheck() {
     process.stdout.write(
       `Smoke test passed: two players synchronized; movement ${initialPlayer.x.toFixed(
         1,
-      )} → ${movedPlayer.x.toFixed(1)}; attack damage synchronized.\n`,
+      )} → ${movedPlayer.x.toFixed(1)}; latency probe and attack damage synchronized.\n`,
     );
   } finally {
     first.disconnect();

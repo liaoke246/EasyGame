@@ -58,6 +58,20 @@ export class WorldScene extends Phaser.Scene {
       this.network.onSnapshot((snapshot) => this.applySnapshot(snapshot)),
       this.network.onAttack((event) => this.showAttack(event)),
       this.network.onNotification((event) => this.showNotification(event)),
+      this.network.onNetworkStats((stats) => {
+        setText(
+          "#latency-value",
+          stats.latencyMs === null ? "--" : String(stats.latencyMs),
+        );
+        setText(
+          "#packet-loss-value",
+          stats.samples === 0 ? "--" : String(stats.packetLossPercent),
+        );
+        const dot = document.querySelector<HTMLElement>("#connection-dot");
+        if (dot) {
+          dot.dataset.state = stats.connected ? "connected" : "offline";
+        }
+      }),
     );
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -69,11 +83,14 @@ export class WorldScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const deltaSeconds = Math.min(delta / 1_000, 0.05);
+    const input = this.currentInput();
+    const localEntity = this.entities.get(this.welcome.playerId);
+    localEntity?.predictMovement(input, deltaSeconds, this.welcome.world);
+
     for (const entity of this.entities.values()) {
       entity.update(deltaSeconds, time);
     }
 
-    const localEntity = this.entities.get(this.welcome.playerId);
     if (localEntity && !this.cameraFollowing) {
       this.cameras.main.startFollow(
         localEntity.container,
@@ -84,7 +101,7 @@ export class WorldScene extends Phaser.Scene {
       this.cameraFollowing = true;
     }
 
-    this.sendCurrentInput(time);
+    this.sendCurrentInput(time, input);
   }
 
   private drawWorld(): void {
@@ -369,8 +386,7 @@ export class WorldScene extends Phaser.Scene {
     };
   }
 
-  private sendCurrentInput(time: number): void {
-    const input = this.currentInput();
+  private sendCurrentInput(time: number, input: MovementInput): void {
     const serialized = JSON.stringify(input);
     if (serialized !== this.previousInput || time - this.lastInputSentAt > 500) {
       this.previousInput = serialized;

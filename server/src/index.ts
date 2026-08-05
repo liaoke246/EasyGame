@@ -106,6 +106,20 @@ io.on("connection", async (socket) => {
     }
   });
 
+  socket.on("network:ping", (payload) => {
+    if (
+      !Number.isSafeInteger(payload.sequence) ||
+      !Number.isFinite(payload.clientSentAt)
+    ) {
+      return;
+    }
+    socket.emit("network:pong", {
+      sequence: payload.sequence,
+      clientSentAt: payload.clientSentAt,
+      serverTime: Date.now(),
+    });
+  });
+
   socket.on("disconnect", () => {
     players.delete(socket.id);
     io.emit("notification", {
