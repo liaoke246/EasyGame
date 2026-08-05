@@ -87,6 +87,11 @@ assert.doesNotMatch(
 );
 assert.match(atlasSource, /HERO_WALK_ATLAS_KEY/);
 assert.match(atlasSource, /WEAPON_OVERLAY_ATLAS_KEY/);
+assert.match(
+  atlasSource,
+  /easygame-hero-body-armless-v1/,
+  "The body layer must not contain a second pair of arms",
+);
 
 const playerViewSource = await readFile("client/src/player-view.ts", "utf8");
 assert.doesNotMatch(
@@ -126,8 +131,9 @@ assert.doesNotMatch(
 );
 
 const runtimeAssets = await readdir("client/public/assets");
-assert.ok(runtimeAssets.includes("easygame-hero-walk-v3.webp"));
+assert.ok(runtimeAssets.includes("easygame-hero-body-armless-v1.webp"));
 assert.ok(runtimeAssets.includes("easygame-weapon-overlay-v2.webp"));
+assert.equal(runtimeAssets.includes("easygame-hero-walk-v3.webp"), false);
 assert.equal(
   runtimeAssets.some((name) => /hero-(smg|shotgun|rocket)-walk/.test(name)),
   false,
