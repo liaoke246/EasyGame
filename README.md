@@ -32,6 +32,20 @@ npm start
 
 构建完成后访问 `http://localhost:3001`。
 
+## 自动部署
+
+推送到 `main` 分支后，GitHub Actions 会构建、运行联机检查，并通过 SSH
+发布到生产服务器。工作流需要以下 GitHub Environment Secrets：
+
+- `SERVER_HOST`
+- `SERVER_PORT`
+- `SERVER_USER`
+- `SERVER_SSH_KEY`
+- `SERVER_HOST_KEY`
+
+服务器由 systemd 运行 Node.js 进程，并通过支持 WebSocket 的 Nginx 反向代理
+对外提供游戏。部署脚本会在健康检查失败时自动切回上一个版本。
+
 ## 自动化联机检查
 
 ```bash
