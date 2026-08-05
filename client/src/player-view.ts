@@ -20,10 +20,15 @@ interface PredictionWorld {
   obstacles: Obstacle[];
 }
 
-const PLAYER_SPEED = 190;
+const PLAYER_SPEED = 205;
 const PLAYER_RADIUS = 15;
-const MAX_EXTRAPOLATION_SECONDS = 0.16;
-const LOCAL_SNAP_DISTANCE = 120;
+const MOVE_ACCELERATION = 2_600;
+const TURN_ACCELERATION = 4_200;
+const STOP_DECELERATION = 3_600;
+const MAX_EXTRAPOLATION_SECONDS = 0.14;
+const LOCAL_SNAP_DISTANCE = 170;
+const LOCAL_MOVING_CORRECTION_RADIUS = 44;
+const LOCAL_IDLE_CORRECTION_RADIUS = 1.5;
 
 export class PlayerView {
   readonly container: Phaser.GameObjects.Container;
@@ -40,11 +45,21 @@ export class PlayerView {
   private targetY: number;
   private velocityX = 0;
   private velocityY = 0;
+  private serverVelocityX = 0;
+  private serverVelocityY = 0;
   private health = 100;
   private maxHealth = 100;
   private respawning = false;
   private lastSnapshotAt = performance.now();
   private localMoving = false;
+  private localInputChangedAt = performance.now();
+  private estimatedLatencyMs = 0;
+  private previousRenderX: number;
+  private previousRenderY: number;
+  private walkDistance = 0;
+  private motionBlend = 0;
+  private currentFrame = "";
+  private lastFootstepAt = 0;
   private recoilOffset = 0;
 
   constructor(
@@ -56,20 +71,22 @@ export class PlayerView {
     this.weapon = state.weapon;
     this.targetX = state.x;
     this.targetY = state.y;
+    this.previousRenderX = state.x;
+    this.previousRenderY = state.y;
 
     this.shadow = scene.add.ellipse(0, 2, 40, 14, 0x17251b, 0.3);
     this.sprite = scene.add.image(
       0,
-      -31,
+      -52,
       HERO_WALK_ATLAS_KEY,
       heroWalkFrame(state.direction, 0),
     );
-    this.sprite.setOrigin(0.5, 0.5).setDisplaySize(96, 96);
+    this.sprite.setOrigin(0.5, 0.5).setDisplaySize(128, 128);
     this.weaponSprite = scene.add
       .image(0, -27, GAME_ATLAS_KEY, weaponFrame(state.weapon))
       .setOrigin(0.5, 0.5);
     this.nameLabel = scene.add
-      .text(0, -94, state.displayId, {
+      .text(0, -104, state.displayId, {
         fontFamily: '"Microsoft YaHei", sans-serif',
         fontSize: "12px",
         color: isLocal ? "#fff5c7" : "#ffffff",
@@ -78,7 +95,7 @@ export class PlayerView {
       })
       .setOrigin(0.5, 0.5);
     this.roleLabel = scene.add
-      .text(0, -80, state.roleName, {
+      .text(0, -90, state.roleName, {
         fontFamily: '"Microsoft YaHei", sans-serif',
         fontSize: "9px",
         color: "#dce8cf",
@@ -87,10 +104,10 @@ export class PlayerView {
       })
       .setOrigin(0.5, 0.5);
     this.healthTrack = scene.add
-      .rectangle(-18, -68, 36, 5, 0x233329, 0.9)
+      .rectangle(-18, -78, 36, 5, 0x233329, 0.9)
       .setOrigin(0, 0.5);
     this.healthFill = scene.add
-      .rectangle(-17, -68, 34, 3, 0x78c267)
+      .rectangle(-17, -78, 34, 3, 0x78c267)
       .setOrigin(0, 0.5);
 
     this.container = scene.add.container(state.x, state.y, [
@@ -105,19 +122,26 @@ export class PlayerView {
 
     if (isLocal) {
       const marker = scene.add
-        .triangle(0, -107, 0, 0, 9, 0, 4.5, 7, 0xffe391)
+        .triangle(0, -117, 0, 0, 9, 0, 4.5, 7, 0xffe391)
         .setOrigin(0.5);
       this.container.add(marker);
     }
   }
 
-  applyState(state: PublicPlayer): void {
+  applyState(state: PublicPlayer, latencyMs = 0): void {
     this.targetX = state.x;
     this.targetY = state.y;
     this.lastSnapshotAt = performance.now();
-    this.velocityX = state.vx;
-    this.velocityY = state.vy;
-    this.direction = state.direction;
+    this.serverVelocityX = state.vx;
+    this.serverVelocityY = state.vy;
+    this.estimatedLatencyMs = latencyMs;
+    if (!this.isLocal) {
+      this.velocityX = state.vx;
+      this.velocityY = state.vy;
+      this.direction = state.direction;
+    } else if (!this.localMoving) {
+      this.direction = state.direction;
+    }
     this.weapon = state.weapon;
     this.health = state.health;
     this.maxHealth = state.maxHealth;
@@ -134,6 +158,10 @@ export class PlayerView {
       );
       if (state.respawning || distance > LOCAL_SNAP_DISTANCE) {
         this.container.setPosition(state.x, state.y);
+        this.previousRenderX = state.x;
+        this.previousRenderY = state.y;
+        this.velocityX = state.vx;
+        this.velocityY = state.vy;
       }
     }
   }
@@ -155,19 +183,42 @@ export class PlayerView {
       yAxis *= Math.SQRT1_2;
     }
 
+    const wasMoving = this.localMoving;
     this.localMoving = xAxis !== 0 || yAxis !== 0;
-    if (!this.localMoving) {
-      this.velocityX = 0;
-      this.velocityY = 0;
-      return;
+    if (wasMoving !== this.localMoving) {
+      this.localInputChangedAt = performance.now();
     }
 
-    this.velocityX = xAxis * PLAYER_SPEED;
-    this.velocityY = yAxis * PLAYER_SPEED;
-    if (Math.abs(xAxis) > Math.abs(yAxis)) {
-      this.direction = xAxis > 0 ? "right" : "left";
-    } else {
-      this.direction = yAxis > 0 ? "down" : "up";
+    const desiredVelocityX = xAxis * PLAYER_SPEED;
+    const desiredVelocityY = yAxis * PLAYER_SPEED;
+    const reversing =
+      this.velocityX * desiredVelocityX + this.velocityY * desiredVelocityY < 0;
+    const acceleration = this.localMoving
+      ? reversing
+        ? TURN_ACCELERATION
+        : MOVE_ACCELERATION
+      : STOP_DECELERATION;
+    const velocityStep = acceleration * deltaSeconds;
+    this.velocityX = moveToward(
+      this.velocityX,
+      desiredVelocityX,
+      velocityStep,
+    );
+    this.velocityY = moveToward(
+      this.velocityY,
+      desiredVelocityY,
+      velocityStep,
+    );
+
+    const speed = Math.hypot(this.velocityX, this.velocityY);
+    if (speed > PLAYER_SPEED) {
+      const scale = PLAYER_SPEED / speed;
+      this.velocityX *= scale;
+      this.velocityY *= scale;
+    }
+
+    if (this.localMoving) {
+      this.updateFacingDirection(xAxis, yAxis);
     }
 
     const nextX = this.container.x + this.velocityX * deltaSeconds;
@@ -180,39 +231,86 @@ export class PlayerView {
     }
   }
 
-  update(deltaSeconds: number, time: number): void {
+  update(deltaSeconds: number, _time: number): void {
     const snapshotAgeSeconds = Math.min(
       (performance.now() - this.lastSnapshotAt) / 1_000,
       MAX_EXTRAPOLATION_SECONDS,
     );
-    const projectedX = this.targetX + this.velocityX * snapshotAgeSeconds;
-    const projectedY = this.targetY + this.velocityY * snapshotAgeSeconds;
+    const latencyLeadSeconds = this.isLocal
+      ? Math.min(this.estimatedLatencyMs / 2_000 + 0.03, 0.11)
+      : 0;
+    const projectedX =
+      this.targetX +
+      this.serverVelocityX * (snapshotAgeSeconds + latencyLeadSeconds);
+    const projectedY =
+      this.targetY +
+      this.serverVelocityY * (snapshotAgeSeconds + latencyLeadSeconds);
 
-    const response = this.isLocal ? (this.localMoving ? 4.5 : 20) : 16;
-    const smoothing = 1 - Math.exp(-response * deltaSeconds);
-    this.container.x = Phaser.Math.Linear(
-      this.container.x,
-      projectedX,
-      smoothing,
-    );
-    this.container.y = Phaser.Math.Linear(
-      this.container.y,
-      projectedY,
-      smoothing,
-    );
+    if (this.isLocal) {
+      this.applyLocalCorrection(projectedX, projectedY, deltaSeconds);
+    } else {
+      const smoothing = 1 - Math.exp(-14 * deltaSeconds);
+      this.container.x = Phaser.Math.Linear(
+        this.container.x,
+        projectedX,
+        smoothing,
+      );
+      this.container.y = Phaser.Math.Linear(
+        this.container.y,
+        projectedY,
+        smoothing,
+      );
+    }
     this.container.setDepth(Math.round(this.container.y));
 
-    const moving =
-      Math.abs(this.velocityX) > 0.1 || Math.abs(this.velocityY) > 0.1;
-    const walkFrame = moving ? Math.floor(time / 105) % 4 : 0;
-    const stepWave = moving ? Math.sin((time / 105) * Math.PI) : 0;
-    this.sprite.y = -31 + stepWave * 1.2 + this.recoilOffset;
-    this.sprite.setAngle(moving ? stepWave * 0.8 : 0);
-    this.sprite.setTexture(
-      HERO_WALK_ATLAS_KEY,
-      heroWalkFrame(this.direction, walkFrame),
+    const distanceMoved = Phaser.Math.Distance.Between(
+      this.previousRenderX,
+      this.previousRenderY,
+      this.container.x,
+      this.container.y,
     );
-    this.shadow.setScale(1 - Math.abs(stepWave) * 0.06, 1);
+    this.previousRenderX = this.container.x;
+    this.previousRenderY = this.container.y;
+    const moving =
+      distanceMoved > 0.035 || Math.hypot(this.velocityX, this.velocityY) > 5;
+    if (moving) {
+      this.walkDistance += Math.min(
+        distanceMoved,
+        PLAYER_SPEED * deltaSeconds * 1.35,
+      );
+    }
+    const targetMotionBlend = moving ? 1 : 0;
+    this.motionBlend = Phaser.Math.Linear(
+      this.motionBlend,
+      targetMotionBlend,
+      1 - Math.exp(-18 * deltaSeconds),
+    );
+    const walkFrame = moving ? Math.floor(this.walkDistance / 12) % 4 : 0;
+    const stepWave = moving
+      ? Math.sin((this.walkDistance / 12) * (Math.PI / 2)) * this.motionBlend
+      : 0;
+    this.sprite.y = -52 + Math.abs(stepWave) * -0.65 + this.recoilOffset;
+    this.sprite.setAngle(
+      this.direction === "left" || this.direction === "right"
+        ? stepWave * 0.18
+        : 0,
+    );
+    const nextFrame = heroWalkFrame(this.direction, walkFrame);
+    if (nextFrame !== this.currentFrame) {
+      this.currentFrame = nextFrame;
+      this.sprite.setTexture(HERO_WALK_ATLAS_KEY, nextFrame);
+      if (
+        this.isLocal &&
+        moving &&
+        (walkFrame === 1 || walkFrame === 3) &&
+        performance.now() - this.lastFootstepAt > 120
+      ) {
+        this.lastFootstepAt = performance.now();
+        this.showFootstep();
+      }
+    }
+    this.shadow.setScale(1 - Math.abs(stepWave) * 0.035, 1);
+    this.shadow.setAlpha(0.3 - Math.abs(stepWave) * 0.035);
     this.updateWeaponSprite(stepWave);
     this.container.setAlpha(this.respawning ? 0.24 : 1);
 
@@ -258,9 +356,117 @@ export class PlayerView {
     const vector = directionVector(this.direction);
     this.weaponSprite.setPosition(
       vector.x * 15 - vector.x * this.recoilOffset,
-      -28 + vector.y * 12 + stepWave * 0.8 - vector.y * this.recoilOffset,
+      -45 + vector.y * 12 + stepWave * 0.45 - vector.y * this.recoilOffset,
     );
   }
+
+  private applyLocalCorrection(
+    projectedX: number,
+    projectedY: number,
+    deltaSeconds: number,
+  ): void {
+    const errorX = projectedX - this.container.x;
+    const errorY = projectedY - this.container.y;
+    const errorDistance = Math.hypot(errorX, errorY);
+    if (errorDistance > LOCAL_SNAP_DISTANCE) {
+      this.container.setPosition(projectedX, projectedY);
+      this.previousRenderX = projectedX;
+      this.previousRenderY = projectedY;
+      return;
+    }
+
+    const transitionGraceMs = Math.min(this.estimatedLatencyMs + 80, 220);
+    if (performance.now() - this.localInputChangedAt < transitionGraceMs) {
+      return;
+    }
+
+    const localSpeed = Math.hypot(this.velocityX, this.velocityY);
+    const serverSpeed = Math.hypot(
+      this.serverVelocityX,
+      this.serverVelocityY,
+    );
+    const velocityAlignment =
+      localSpeed > 1 && serverSpeed > 1
+        ? (this.velocityX * this.serverVelocityX +
+            this.velocityY * this.serverVelocityY) /
+          (localSpeed * serverSpeed)
+        : 1;
+    const serverDisagrees = velocityAlignment < 0.15;
+    const correctionRadius =
+      this.localMoving && !serverDisagrees
+        ? LOCAL_MOVING_CORRECTION_RADIUS
+        : LOCAL_IDLE_CORRECTION_RADIUS;
+    if (errorDistance <= correctionRadius) {
+      return;
+    }
+
+    const correctionSpeed =
+      this.localMoving && !serverDisagrees ? 62 : serverDisagrees ? 420 : 300;
+    const correctionDistance = Math.min(
+      errorDistance - correctionRadius,
+      correctionSpeed * deltaSeconds,
+    );
+    this.container.x += (errorX / errorDistance) * correctionDistance;
+    this.container.y += (errorY / errorDistance) * correctionDistance;
+  }
+
+  private updateFacingDirection(xAxis: number, yAxis: number): void {
+    if (xAxis !== 0 && yAxis !== 0) {
+      const keepsHorizontalDirection =
+        (this.direction === "left" && xAxis < 0) ||
+        (this.direction === "right" && xAxis > 0);
+      const keepsVerticalDirection =
+        (this.direction === "up" && yAxis < 0) ||
+        (this.direction === "down" && yAxis > 0);
+      if (keepsHorizontalDirection || keepsVerticalDirection) {
+        return;
+      }
+    }
+
+    if (Math.abs(xAxis) > Math.abs(yAxis)) {
+      this.direction = xAxis > 0 ? "right" : "left";
+    } else {
+      this.direction = yAxis > 0 ? "down" : "up";
+    }
+  }
+
+  private showFootstep(): void {
+    const side = this.direction === "left" || this.direction === "right";
+    for (let index = 0; index < 2; index += 1) {
+      const dust = this.scene.add
+        .ellipse(
+          this.container.x + Phaser.Math.Between(-4, 4),
+          this.container.y + Phaser.Math.Between(-1, 2),
+          side ? 5 : 7,
+          3,
+          0xc7aa72,
+          0.18,
+        )
+        .setDepth(Math.round(this.container.y - 2));
+      this.scene.tweens.add({
+        targets: dust,
+        x: dust.x + Phaser.Math.Between(-7, 7),
+        y: dust.y + Phaser.Math.Between(1, 5),
+        scaleX: 1.8,
+        scaleY: 1.35,
+        alpha: 0,
+        duration: 210 + index * 35,
+        ease: "Quad.easeOut",
+        onComplete: () => dust.destroy(),
+      });
+    }
+  }
+}
+
+function moveToward(
+  current: number,
+  target: number,
+  maximumDelta: number,
+): number {
+  if (Math.abs(target - current) <= maximumDelta) {
+    return target;
+  }
+  return current + Math.sign(target - current) * maximumDelta;
 }
 
 function positionCollides(

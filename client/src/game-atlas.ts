@@ -1,13 +1,13 @@
 import Phaser from "phaser";
 import type { Direction, WeaponId, ZombieKind } from "./types";
 
-export const GAME_ATLAS_KEY = "easygame-atlas-v1";
-export const ENVIRONMENT_ATLAS_KEY = "easygame-environment-v1";
-export const HERO_WALK_ATLAS_KEY = "easygame-hero-walk-v1";
-export const TERRAIN_GRASS_KEY = "terrain-grass-v1";
-export const TERRAIN_DIRT_KEY = "terrain-dirt-v1";
-export const TERRAIN_WILD_KEY = "terrain-wild-v1";
-export const TERRAIN_SOIL_KEY = "terrain-soil-v1";
+export const GAME_ATLAS_KEY = "easygame-atlas-v2";
+export const ENVIRONMENT_ATLAS_KEY = "easygame-environment-v2";
+export const HERO_WALK_ATLAS_KEY = "easygame-hero-walk-v2";
+export const TERRAIN_GRASS_KEY = "terrain-grass-v2";
+export const TERRAIN_DIRT_KEY = "terrain-dirt-v2";
+export const TERRAIN_WILD_KEY = "terrain-wild-v2";
+export const TERRAIN_SOIL_KEY = "terrain-soil-v2";
 
 const FRAMES: Record<string, [number, number, number, number]> = {
   "hero-down": [70, 55, 240, 300],
@@ -49,19 +49,19 @@ const ENVIRONMENT_FRAMES: Record<string, [number, number, number, number]> = {
 };
 
 export function preloadGameAtlas(scene: Phaser.Scene): void {
-  scene.load.image(GAME_ATLAS_KEY, "/assets/easygame-atlas-v1.png");
+  scene.load.image(GAME_ATLAS_KEY, "/assets/easygame-atlas-v2.webp");
   scene.load.image(
     ENVIRONMENT_ATLAS_KEY,
-    "/assets/easygame-environment-v1.png",
+    "/assets/easygame-environment-v2.webp",
   );
   scene.load.image(
     HERO_WALK_ATLAS_KEY,
-    "/assets/easygame-hero-walk-v1.png",
+    "/assets/easygame-hero-walk-v2.webp",
   );
-  scene.load.image(TERRAIN_GRASS_KEY, "/assets/terrain-grass-v1.webp");
-  scene.load.image(TERRAIN_DIRT_KEY, "/assets/terrain-dirt-v1.webp");
-  scene.load.image(TERRAIN_WILD_KEY, "/assets/terrain-wild-v1.webp");
-  scene.load.image(TERRAIN_SOIL_KEY, "/assets/terrain-soil-v1.webp");
+  scene.load.image(TERRAIN_GRASS_KEY, "/assets/terrain-grass-v2.webp");
+  scene.load.image(TERRAIN_DIRT_KEY, "/assets/terrain-dirt-v2.webp");
+  scene.load.image(TERRAIN_WILD_KEY, "/assets/terrain-wild-v2.webp");
+  scene.load.image(TERRAIN_SOIL_KEY, "/assets/terrain-soil-v2.webp");
 }
 
 export function registerGameAtlasFrames(scene: Phaser.Scene): void {
@@ -82,7 +82,7 @@ export function registerGameAtlasFrames(scene: Phaser.Scene): void {
   }
 
   const walk = scene.textures.get(HERO_WALK_ATLAS_KEY);
-  const cellBounds = [0, 314, 627, 941, 1254];
+  const cellSize = 128;
   const directions: Direction[] = ["down", "up", "right", "left"];
   directions.forEach((direction, row) => {
     for (let frame = 0; frame < 4; frame += 1) {
@@ -91,10 +91,10 @@ export function registerGameAtlasFrames(scene: Phaser.Scene): void {
         walk.add(
           name,
           0,
-          cellBounds[frame],
-          cellBounds[row],
-          cellBounds[frame + 1] - cellBounds[frame],
-          cellBounds[row + 1] - cellBounds[row],
+          frame * cellSize,
+          row * cellSize,
+          cellSize,
+          cellSize,
         );
       }
     }

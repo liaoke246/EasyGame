@@ -30,6 +30,12 @@ type MovementInput = Pick<
   "up" | "down" | "left" | "right"
 >;
 
+interface WorldSceneCallbacks {
+  onLoadProgress?: (progress: number, fileKey?: string) => void;
+  onLoadError?: (fileKey: string) => void;
+  onReady?: () => void;
+}
+
 export class WorldScene extends Phaser.Scene {
   private readonly entities = new Map<string, PlayerView>();
   private readonly zombieEntities = new Map<string, ZombieView>();
@@ -57,15 +63,32 @@ export class WorldScene extends Phaser.Scene {
   private cameraFollowing = false;
   private selectedWeapon: WeaponId = "smg";
   private virtualFiring = false;
+  private latencyMs = 0;
 
   constructor(
     private readonly network: NetworkClient,
     private readonly welcome: WelcomePayload,
+    private readonly callbacks: WorldSceneCallbacks = {},
   ) {
     super("world");
   }
 
   preload(): void {
+    this.load.on(Phaser.Loader.Events.PROGRESS, (progress: number) => {
+      this.callbacks.onLoadProgress?.(progress);
+    });
+    this.load.on(
+      Phaser.Loader.Events.FILE_PROGRESS,
+      (file: Phaser.Loader.File) => {
+        this.callbacks.onLoadProgress?.(this.load.progress, file.key);
+      },
+    );
+    this.load.on(
+      Phaser.Loader.Events.FILE_LOAD_ERROR,
+      (file: Phaser.Loader.File) => {
+        this.callbacks.onLoadError?.(file.key);
+      },
+    );
     preloadGameAtlas(this);
   }
 
@@ -77,7 +100,8 @@ export class WorldScene extends Phaser.Scene {
       this.welcome.world.width,
       this.welcome.world.height,
     );
-    this.cameras.main.setZoom(1.15);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.setRoundPixels(false);
     this.drawWorld();
     this.configureKeyboard();
     this.configureTouchControls();
@@ -87,6 +111,7 @@ export class WorldScene extends Phaser.Scene {
       this.network.onAttack((event) => this.showAttack(event)),
       this.network.onNotification((event) => this.showNotification(event)),
       this.network.onNetworkStats((stats) => {
+        this.latencyMs = stats.latencyMs ?? 0;
         setText(
           "#latency-value",
           stats.latencyMs === null ? "--" : String(stats.latencyMs),
@@ -107,6 +132,9 @@ export class WorldScene extends Phaser.Scene {
         unsubscribe();
       }
     });
+
+    this.callbacks.onLoadProgress?.(1);
+    this.time.delayedCall(80, () => this.callbacks.onReady?.());
   }
 
   update(time: number, delta: number): void {
@@ -126,11 +154,15 @@ export class WorldScene extends Phaser.Scene {
     }
 
     if (localEntity && !this.cameraFollowing) {
+      this.cameras.main.centerOn(
+        localEntity.container.x,
+        localEntity.container.y,
+      );
       this.cameras.main.startFollow(
         localEntity.container,
         true,
-        0.12,
-        0.12,
+        0.16,
+        0.16,
       );
       this.cameraFollowing = true;
     }
@@ -462,7 +494,10 @@ export class WorldScene extends Phaser.Scene {
         );
         this.entities.set(player.id, entity);
       }
-      entity.applyState(player);
+      entity.applyState(
+        player,
+        player.id === this.welcome.playerId ? this.latencyMs : 0,
+      );
 
       if (player.id === this.welcome.playerId) {
         this.updateHud(player, snapshot.players.length);

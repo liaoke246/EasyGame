@@ -8,8 +8,11 @@ import type {
 
 export const WORLD_WIDTH = 2560;
 export const WORLD_HEIGHT = 1440;
-export const PLAYER_SPEED = 190;
+export const PLAYER_SPEED = 205;
 export const PLAYER_RADIUS = 15;
+export const MOVE_ACCELERATION = 2_600;
+export const TURN_ACCELERATION = 4_200;
+export const STOP_DECELERATION = 3_600;
 export const TICK_RATE = 30;
 export const SNAPSHOT_RATE = 15;
 export const ATTACK_COOLDOWN_MS = 620;
@@ -207,8 +210,26 @@ export function updatePlayerMovement(
     player.vx = player.knockbackX;
     player.vy = player.knockbackY;
   } else {
-    player.vx = xAxis * PLAYER_SPEED;
-    player.vy = yAxis * PLAYER_SPEED;
+    const desiredVelocityX = xAxis * PLAYER_SPEED;
+    const desiredVelocityY = yAxis * PLAYER_SPEED;
+    const moving = xAxis !== 0 || yAxis !== 0;
+    const reversing =
+      player.vx * desiredVelocityX + player.vy * desiredVelocityY < 0;
+    const acceleration = moving
+      ? reversing
+        ? TURN_ACCELERATION
+        : MOVE_ACCELERATION
+      : STOP_DECELERATION;
+    const velocityStep = acceleration * deltaSeconds;
+    player.vx = moveToward(player.vx, desiredVelocityX, velocityStep);
+    player.vy = moveToward(player.vy, desiredVelocityY, velocityStep);
+
+    const speed = Math.hypot(player.vx, player.vy);
+    if (speed > PLAYER_SPEED) {
+      const scale = PLAYER_SPEED / speed;
+      player.vx *= scale;
+      player.vy *= scale;
+    }
   }
 
   if (xAxis !== 0 || yAxis !== 0) {
@@ -285,4 +306,15 @@ function circleIntersectsRect(
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));
+}
+
+function moveToward(
+  current: number,
+  target: number,
+  maximumDelta: number,
+): number {
+  if (Math.abs(target - current) <= maximumDelta) {
+    return target;
+  }
+  return current + Math.sign(target - current) * maximumDelta;
 }
