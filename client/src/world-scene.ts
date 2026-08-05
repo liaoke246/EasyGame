@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { NetworkClient } from "./network";
 import { PlayerView } from "./player-view";
+import { ZombieView } from "./zombie-view";
 import type {
   AttackEvent,
   Direction,
@@ -8,14 +9,19 @@ import type {
   NotificationEvent,
   Obstacle,
   PublicPlayer,
+  WeaponId,
   WelcomePayload,
   WorldSnapshot,
 } from "./types";
 
-type MovementInput = Omit<InputPayload, "attack">;
+type MovementInput = Pick<
+  InputPayload,
+  "up" | "down" | "left" | "right"
+>;
 
 export class WorldScene extends Phaser.Scene {
   private readonly entities = new Map<string, PlayerView>();
+  private readonly zombieEntities = new Map<string, ZombieView>();
   private readonly unsubscribeCallbacks: Array<() => void> = [];
   private keyboard?: {
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -24,6 +30,9 @@ export class WorldScene extends Phaser.Scene {
     s: Phaser.Input.Keyboard.Key;
     d: Phaser.Input.Keyboard.Key;
     attack: Phaser.Input.Keyboard.Key;
+    weapon1: Phaser.Input.Keyboard.Key;
+    weapon2: Phaser.Input.Keyboard.Key;
+    weapon3: Phaser.Input.Keyboard.Key;
   };
   private virtualInput: MovementInput = {
     up: false,
@@ -34,6 +43,8 @@ export class WorldScene extends Phaser.Scene {
   private previousInput = "";
   private lastInputSentAt = 0;
   private cameraFollowing = false;
+  private selectedWeapon: WeaponId = "smg";
+  private virtualFiring = false;
 
   constructor(
     private readonly network: NetworkClient,
@@ -89,6 +100,9 @@ export class WorldScene extends Phaser.Scene {
 
     for (const entity of this.entities.values()) {
       entity.update(deltaSeconds, time);
+    }
+    for (const zombie of this.zombieEntities.values()) {
+      zombie.update(deltaSeconds, time);
     }
 
     if (localEntity && !this.cameraFollowing) {
@@ -326,14 +340,14 @@ export class WorldScene extends Phaser.Scene {
       s: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       attack: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+      weapon1: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
+      weapon2: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
+      weapon3: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
     };
 
-    this.keyboard.attack.on("down", (key: Phaser.Input.Keyboard.Key) => {
-      if (!key.isDown || key.getDuration() > 30) {
-        return;
-      }
-      this.network.sendInput({ ...this.currentInput(), attack: true });
-    });
+    this.keyboard.weapon1.on("down", () => this.selectWeapon("smg"));
+    this.keyboard.weapon2.on("down", () => this.selectWeapon("shotgun"));
+    this.keyboard.weapon3.on("down", () => this.selectWeapon("rocket"));
   }
 
   private configureTouchControls(): void {
@@ -356,15 +370,35 @@ export class WorldScene extends Phaser.Scene {
       button.addEventListener("lostpointercapture", () => setPressed(false));
     }
 
-    document
-      .querySelector<HTMLButtonElement>("#touch-attack")
-      ?.addEventListener("pointerdown", (event) => {
+    const attackButton =
+      document.querySelector<HTMLButtonElement>("#touch-attack");
+    attackButton?.addEventListener("pointerdown", (event) => {
         event.preventDefault();
-        this.network.sendInput({ ...this.currentInput(), attack: true });
+        attackButton.setPointerCapture(event.pointerId);
+        this.virtualFiring = true;
       });
+    attackButton?.addEventListener("pointerup", () => {
+      this.virtualFiring = false;
+    });
+    attackButton?.addEventListener("pointercancel", () => {
+      this.virtualFiring = false;
+    });
+    attackButton?.addEventListener("lostpointercapture", () => {
+      this.virtualFiring = false;
+    });
+
+    for (const button of document.querySelectorAll<HTMLButtonElement>(
+      "[data-weapon]",
+    )) {
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        this.selectWeapon(button.dataset.weapon as WeaponId);
+      });
+    }
+    this.selectWeapon(this.selectedWeapon);
   }
 
-  private currentInput(): MovementInput {
+  private currentInput(): InputPayload {
     const keyboard = this.keyboard;
     return {
       up:
@@ -383,10 +417,31 @@ export class WorldScene extends Phaser.Scene {
         this.virtualInput.right ||
         keyboard?.d.isDown === true ||
         keyboard?.cursors.right.isDown === true,
+      fire: this.virtualFiring || keyboard?.attack.isDown === true,
+      weapon: this.selectedWeapon,
     };
   }
 
-  private sendCurrentInput(time: number, input: MovementInput): void {
+  private selectWeapon(weapon: WeaponId): void {
+    if (weapon !== "smg" && weapon !== "shotgun" && weapon !== "rocket") {
+      return;
+    }
+    this.selectedWeapon = weapon;
+    const labels: Record<WeaponId, string> = {
+      smg: "冲锋枪",
+      shotgun: "喷子",
+      rocket: "火箭筒",
+    };
+    setText("#current-weapon", labels[weapon]);
+    setText("#touch-weapon-name", labels[weapon]);
+    for (const button of document.querySelectorAll<HTMLButtonElement>(
+      "[data-weapon]",
+    )) {
+      button.classList.toggle("is-selected", button.dataset.weapon === weapon);
+    }
+  }
+
+  private sendCurrentInput(time: number, input: InputPayload): void {
     const serialized = JSON.stringify(input);
     if (serialized !== this.previousInput || time - this.lastInputSentAt > 500) {
       this.previousInput = serialized;
@@ -397,6 +452,7 @@ export class WorldScene extends Phaser.Scene {
 
   private applySnapshot(snapshot: WorldSnapshot): void {
     const presentPlayers = new Set<string>();
+    const presentZombies = new Set<string>();
 
     for (const player of snapshot.players) {
       presentPlayers.add(player.id);
@@ -423,10 +479,28 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    for (const zombie of snapshot.zombies) {
+      presentZombies.add(zombie.id);
+      let entity = this.zombieEntities.get(zombie.id);
+      if (!entity) {
+        entity = new ZombieView(this, zombie);
+        this.zombieEntities.set(zombie.id, entity);
+      }
+      entity.applyState(zombie);
+    }
+
+    for (const [id, entity] of this.zombieEntities) {
+      if (!presentZombies.has(id)) {
+        entity.destroy();
+        this.zombieEntities.delete(id);
+      }
+    }
+
     const onlineCount = document.querySelector("#online-count");
     if (onlineCount) {
       onlineCount.textContent = String(snapshot.players.length);
     }
+    setText("#zombie-count", String(snapshot.zombies.length));
   }
 
   private updateHud(player: PublicPlayer, online: number): void {
@@ -434,6 +508,7 @@ export class WorldScene extends Phaser.Scene {
     setText("#health-value", `${player.health} / ${player.maxHealth}`);
     setText("#kill-count", String(player.kills));
     setText("#online-count", String(online));
+    this.selectWeapon(player.weapon);
     const healthFill = document.querySelector<HTMLElement>("#hud-health-fill");
     if (healthFill) {
       healthFill.style.width = `${healthRatio}%`;
@@ -447,33 +522,193 @@ export class WorldScene extends Phaser.Scene {
 
   private showAttack(event: AttackEvent): void {
     const vector = directionVector(event.direction);
-    const horizontal = event.direction === "left" || event.direction === "right";
-    const hit = event.hitPlayerIds.length > 0;
-    const slash = this.add
-      .rectangle(
-        event.x + vector.x * 47,
-        event.y + vector.y * 47 - 5,
-        horizontal ? 58 : 36,
-        horizontal ? 36 : 58,
-        hit ? 0xffd18a : 0xf6ecd3,
-        hit ? 0.72 : 0.46,
-      )
-      .setStrokeStyle(3, hit ? 0xf08f59 : 0xffffff, 0.75)
-      .setDepth(Math.round(event.y + 100));
+    this.showMuzzleFlash(
+      event.x + vector.x * 25,
+      event.y + vector.y * 25 - 18,
+      event.weapon,
+    );
 
-    this.tweens.add({
-      targets: slash,
-      alpha: 0,
-      scaleX: 1.25,
-      scaleY: 1.25,
-      duration: 180,
-      ease: "Quad.easeOut",
-      onComplete: () => slash.destroy(),
-    });
-
-    if (event.hitPlayerIds.includes(this.welcome.playerId)) {
-      this.cameras.main.shake(110, 0.004);
+    const killed = new Set(event.killedZombieIds);
+    for (const zombieId of event.hitZombieIds) {
+      this.zombieEntities.get(zombieId)?.showHit(killed.has(zombieId));
     }
+
+    if (event.weapon === "rocket") {
+      const trace = event.traces[0];
+      if (trace) {
+        this.showRocket(event.x, event.y - 18, trace.endX, trace.endY);
+      }
+      return;
+    }
+
+    const color = event.weapon === "shotgun" ? 0xffc773 : 0xffefae;
+    const width = event.weapon === "shotgun" ? 1 : 2;
+    for (const trace of event.traces) {
+      this.showTracer(event.x, event.y - 18, trace.endX, trace.endY, color, width);
+      if (trace.hit) {
+        this.showImpactSpark(trace.endX, trace.endY - 16, color);
+      }
+    }
+  }
+
+  private showMuzzleFlash(x: number, y: number, weapon: WeaponId): void {
+    const colors =
+      weapon === "rocket"
+        ? [0xfff2aa, 0xff9c4a, 0xe84f32]
+        : [0xfff7c7, 0xffcc68, 0xf27b3d];
+    for (let index = 0; index < 5; index += 1) {
+      const particle = this.add
+        .circle(
+          x + Phaser.Math.Between(-4, 4),
+          y + Phaser.Math.Between(-4, 4),
+          Phaser.Math.Between(2, weapon === "rocket" ? 6 : 4),
+          colors[index % colors.length],
+          0.95,
+        )
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(Math.round(y + 240));
+      this.tweens.add({
+        targets: particle,
+        alpha: 0,
+        scale: 0.2,
+        duration: 90 + index * 18,
+        ease: "Quad.easeOut",
+        onComplete: () => particle.destroy(),
+      });
+    }
+  }
+
+  private showTracer(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    color: number,
+    width: number,
+  ): void {
+    const glow = this.add.graphics().setDepth(Math.round(startY + 220));
+    glow.lineStyle(width + 4, color, 0.13);
+    glow.beginPath();
+    glow.moveTo(startX, startY);
+    glow.lineTo(endX, endY - 16);
+    glow.strokePath();
+    glow.lineStyle(width, color, 0.92);
+    glow.beginPath();
+    glow.moveTo(startX, startY);
+    glow.lineTo(endX, endY - 16);
+    glow.strokePath();
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: glow,
+      alpha: 0,
+      duration: 105,
+      ease: "Quad.easeOut",
+      onComplete: () => glow.destroy(),
+    });
+  }
+
+  private showImpactSpark(x: number, y: number, color: number): void {
+    for (let index = 0; index < 5; index += 1) {
+      const angle = (Math.PI * 2 * index) / 5 + Math.random() * 0.4;
+      const spark = this.add
+        .rectangle(x, y, 3, 2, color, 0.95)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(Math.round(y + 250));
+      this.tweens.add({
+        targets: spark,
+        x: x + Math.cos(angle) * Phaser.Math.Between(10, 25),
+        y: y + Math.sin(angle) * Phaser.Math.Between(10, 25),
+        alpha: 0,
+        duration: Phaser.Math.Between(120, 220),
+        ease: "Quad.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  private showRocket(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+  ): void {
+    const trail = this.add.graphics().setDepth(Math.round(startY + 210));
+    trail.lineStyle(8, 0xff7a3d, 0.16);
+    trail.beginPath();
+    trail.moveTo(startX, startY);
+    trail.lineTo(endX, endY - 16);
+    trail.strokePath();
+    trail.lineStyle(2, 0xffdc77, 0.8);
+    trail.beginPath();
+    trail.moveTo(startX, startY);
+    trail.lineTo(endX, endY - 16);
+    trail.strokePath();
+    const rocket = this.add
+      .circle(startX, startY, 6, 0xffe18a, 1)
+      .setStrokeStyle(3, 0xe95c36, 0.9)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(Math.round(startY + 260));
+    const distance = Phaser.Math.Distance.Between(startX, startY, endX, endY);
+    this.tweens.add({
+      targets: rocket,
+      x: endX,
+      y: endY - 16,
+      duration: Phaser.Math.Clamp(distance * 0.55, 140, 360),
+      ease: "Sine.easeIn",
+      onComplete: () => {
+        rocket.destroy();
+        trail.destroy();
+        this.showExplosion(endX, endY - 16);
+      },
+    });
+    this.tweens.add({
+      targets: trail,
+      alpha: 0,
+      duration: Phaser.Math.Clamp(distance * 0.7, 180, 430),
+    });
+  }
+
+  private showExplosion(x: number, y: number): void {
+    const core = this.add
+      .circle(x, y, 18, 0xfff0a2, 0.95)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(Math.round(y + 300));
+    const ring = this.add
+      .circle(x, y, 24, 0x000000, 0)
+      .setStrokeStyle(5, 0xff8a3d, 0.9)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(Math.round(y + 299));
+    this.tweens.add({
+      targets: [core, ring],
+      scale: 4.6,
+      alpha: 0,
+      duration: 360,
+      ease: "Quad.easeOut",
+      onComplete: () => {
+        core.destroy();
+        ring.destroy();
+      },
+    });
+    for (let index = 0; index < 22; index += 1) {
+      const angle = (Math.PI * 2 * index) / 22 + Math.random() * 0.22;
+      const distance = Phaser.Math.Between(45, 120);
+      const color = [0xffdb72, 0xff8d42, 0xcc4934, 0x493e36][index % 4];
+      const debris = this.add
+        .rectangle(x, y, Phaser.Math.Between(3, 7), Phaser.Math.Between(3, 7), color, 0.95)
+        .setDepth(Math.round(y + 310));
+      this.tweens.add({
+        targets: debris,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        angle: Phaser.Math.Between(-180, 180),
+        alpha: 0,
+        scale: 0.25,
+        duration: Phaser.Math.Between(320, 580),
+        ease: "Quad.easeOut",
+        onComplete: () => debris.destroy(),
+      });
+    }
+    this.cameras.main.shake(180, 0.006);
   }
 
   private showNotification(event: NotificationEvent): void {

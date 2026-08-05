@@ -77,6 +77,7 @@ export const CHARACTER_OPTIONS: Array<
 
 export interface PlayerState extends PublicPlayer {
   guestToken: string;
+  firing: boolean;
   input: {
     up: boolean;
     down: boolean;
@@ -127,6 +128,8 @@ export function createPlayer(
     attacking: false,
     kills: 0,
     respawning: false,
+    weapon: "smg",
+    firing: false,
     input: { up: false, down: false, left: false, right: false },
     lastAttackAt: -ATTACK_COOLDOWN_MS,
     attackEndsAt: 0,
@@ -153,6 +156,7 @@ export function toPublicPlayer(player: PlayerState): PublicPlayer {
     attacking: player.attacking,
     kills: player.kills,
     respawning: player.respawning,
+    weapon: player.weapon,
   };
 }
 
@@ -240,7 +244,7 @@ export function canHit(
   return forward >= 2 && forward <= 76 && side <= 38;
 }
 
-function positionCollides(x: number, y: number): boolean {
+export function positionCollides(x: number, y: number): boolean {
   if (
     x < PLAYER_RADIUS ||
     y < PLAYER_RADIUS ||

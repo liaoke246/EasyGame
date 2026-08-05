@@ -367,6 +367,62 @@ button {
   backdrop-filter: blur(7px);
 }
 
+.weapon-bar {
+  position: fixed;
+  z-index: 18;
+  bottom: max(62px, calc(env(safe-area-inset-bottom) + 62px));
+  left: 50%;
+  display: flex;
+  gap: 7px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.weapon-bar button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 112px;
+  padding: 7px 9px;
+  color: #b9c9b2;
+  font: inherit;
+  font-size: 10px;
+  border: 1px solid rgba(237, 225, 187, 0.2);
+  border-radius: 4px;
+  background: rgba(24, 42, 31, 0.82);
+  box-shadow:
+    0 8px 22px rgba(8, 21, 13, 0.22),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(7px);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.weapon-bar button:hover {
+  color: #fff0bd;
+  transform: translateY(-2px);
+}
+
+.weapon-bar button.is-selected {
+  color: #fff5d4;
+  border-color: rgba(237, 196, 91, 0.7);
+  background: rgba(75, 83, 48, 0.94);
+  box-shadow:
+    0 0 18px rgba(232, 185, 76, 0.16),
+    inset 0 -3px 0 rgba(232, 185, 76, 0.3);
+}
+
+.weapon-bar button small {
+  color: #e9c66d;
+  font-family: Georgia, serif;
+  font-size: 15px;
+}
+
 .profile-card {
   display: flex;
   align-items: center;
@@ -816,6 +872,33 @@ kbd {
 
   .desktop-controls {
     display: none;
+  }
+
+  .weapon-bar {
+    right: auto;
+    bottom: max(108px, calc(env(safe-area-inset-bottom) + 108px));
+    left: 50%;
+    gap: 4px;
+    transform: translateX(-50%);
+  }
+
+  .weapon-bar button {
+    display: flex;
+    min-width: 0;
+    width: 42px;
+    height: 38px;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .weapon-bar button span,
+  .weapon-bar button small {
+    display: none;
+  }
+
+  .weapon-bar button kbd {
+    min-width: 24px;
+    padding: 3px;
   }
 
   .touch-controls {
