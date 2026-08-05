@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#24372b" />
+    <meta
+      name="description"
+      content="苔原谷是一款轻量的多人在线像素冒险游戏。"
+    />
+    <title>苔原谷 · Mossfield</title>
+  </head>
+  <body>
+    <main id="app">
+      <section id="login-screen" class="login-screen" aria-labelledby="game-title">
+        <div class="sky-glow" aria-hidden="true"></div>
+        <div class="login-landscape" aria-hidden="true">
+          <span class="hill hill--back"></span>
+          <span class="hill hill--front"></span>
+          <span class="pixel-tree pixel-tree--one"></span>
+          <span class="pixel-tree pixel-tree--two"></span>
+          <span class="pixel-cabin"></span>
+        </div>
+
+        <div class="login-card">
+          <p class="eyebrow">A TINY ONLINE ADVENTURE</p>
+          <h1 id="game-title">苔原谷</h1>
+          <p class="title-en">MOSSFIELD</p>
+          <p class="intro">
+            每位旅人都会获得独一无二的编号与身份。走进山谷，遇见其他玩家，挥动你的木剑。
+          </p>
+
+          <div class="login-features" aria-label="游戏特色">
+            <span><b>01</b> 随机身份</span>
+            <span><b>02</b> 实时联机</span>
+            <span><b>03</b> 轻量战斗</span>
+          </div>
+
+          <button id="enter-button" class="enter-button" type="button">
+            进入山谷
+            <span aria-hidden="true">→</span>
+          </button>
+          <p id="login-status" class="login-status" aria-live="polite">
+            无需注册 · 身份会保存在此设备
+          </p>
+        </div>
+      </section>
+
+      <section id="game-shell" class="game-shell is-hidden" aria-label="游戏画面">
+        <div id="game" class="game-canvas"></div>
+
+        <header class="top-hud">
+          <div class="profile-card">
+            <div id="player-portrait" class="player-portrait" aria-hidden="true">
+              <span class="portrait-hat"></span>
+              <span class="portrait-face"></span>
+              <span class="portrait-body"></span>
+            </div>
+            <div class="profile-copy">
+              <strong id="player-id">旅人-0000</strong>
+              <span id="player-role">山谷旅人</span>
+              <div class="health-row">
+                <div class="health-track" aria-label="生命值">
+                  <span id="hud-health-fill" data-level="healthy"></span>
+                </div>
+                <small id="health-value">100 / 100</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="world-stats">
+            <div>
+              <span class="status-dot" aria-hidden="true"></span>
+              <small>在线</small>
+              <strong id="online-count">1</strong>
+            </div>
+            <i aria-hidden="true"></i>
+            <div>
+              <small>击倒</small>
+              <strong id="kill-count">0</strong>
+            </div>
+          </div>
+        </header>
+
+        <aside id="event-feed" class="event-feed" aria-live="polite"></aside>
+
+        <div id="respawn-message" class="respawn-message" role="status">
+          <strong>暂时倒下了</strong>
+          <span>正在返回山谷入口…</span>
+        </div>
+
+        <footer class="desktop-controls">
+          <span><kbd>WASD</kbd> / <kbd>方向键</kbd> 移动</span>
+          <i aria-hidden="true"></i>
+          <span><kbd>空格</kbd> 攻击</span>
+        </footer>
+
+        <div class="touch-controls" aria-label="触摸控制">
+          <div class="touch-dpad">
+            <button type="button" data-move="up" aria-label="向上移动">↑</button>
+            <button type="button" data-move="left" aria-label="向左移动">←</button>
+            <button type="button" data-move="down" aria-label="向下移动">↓</button>
+            <button type="button" data-move="right" aria-label="向右移动">→</button>
+          </div>
+          <button id="touch-attack" class="touch-attack" type="button" aria-label="攻击">
+            <span aria-hidden="true">⚔</span>
+            攻击
+          </button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

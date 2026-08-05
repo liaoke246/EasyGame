@@ -1,3 +1,52 @@
-# EasyGame
+# 苔原谷 · Mossfield
 
-Game project workspace.
+一个轻量的多人在线俯视角像素游戏原型。玩家以访客身份进入后，会获得随机旅人编号和角色，可以在同一张地图中移动、看到其他玩家并进行近战攻击。
+
+## 已实现
+
+- 匿名进入、随机且持久化的旅人编号与角色
+- 俯视角像素地图、四方向移动和地图碰撞
+- WebSocket 多人位置与状态同步
+- 服务端权威移动、攻击、受伤、击倒和复活
+- 玩家血量、在线人数、击倒数和事件提示
+- 键盘与移动端触摸操作
+- 生产环境下由游戏服务器直接提供前端文件
+
+## 本地运行
+
+需要 Node.js 20.19 或更高版本。
+
+```bash
+npm install
+npm run dev
+```
+
+浏览器打开 `http://localhost:5173`。可以打开两个浏览器窗口测试联机。
+
+## 生产构建
+
+```bash
+npm run build
+npm start
+```
+
+构建完成后访问 `http://localhost:3001`。
+
+## 自动化联机检查
+
+```bash
+npm run build
+npm run test:smoke
+```
+
+测试会启动一个临时游戏服务器，连接两个玩家并确认状态同步和移动有效。
+
+## 项目结构
+
+```text
+client/  Phaser + TypeScript + Vite 游戏客户端
+server/  Express + Socket.IO 权威游戏服务器
+scripts/ 本地验证脚本
+```
+
+玩家身份目前保存在 `server/data/players.json`。这是适合初版的本地存储；正式上线时可以替换为 Supabase Auth 和 PostgreSQL。
