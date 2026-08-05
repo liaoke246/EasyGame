@@ -4,11 +4,11 @@ import type { Direction, WeaponId, ZombieKind } from "./types";
 export const GAME_ATLAS_KEY = "easygame-atlas-v2";
 export const ENVIRONMENT_ATLAS_KEY = "easygame-environment-v2";
 export const HERO_WALK_ATLAS_KEY = "easygame-hero-walk-v3";
-export const WEAPON_OVERLAY_ATLAS_KEY = "easygame-weapon-overlay-v1";
+export const WEAPON_OVERLAY_ATLAS_KEY = "easygame-weapon-overlay-v2";
 export const ZOMBIE_WALK_ATLAS_KEYS: Record<ZombieKind, string> = {
-  walker: "easygame-zombie-walker-walk-v1",
-  runner: "easygame-zombie-runner-walk-v1",
-  brute: "easygame-zombie-brute-walk-v1",
+  walker: "easygame-zombie-walker-walk-v2",
+  runner: "easygame-zombie-runner-walk-v2",
+  brute: "easygame-zombie-brute-walk-v2",
 };
 export const TERRAIN_GRASS_KEY = "terrain-grass-v2";
 export const TERRAIN_DIRT_KEY = "terrain-dirt-v2";
@@ -56,10 +56,10 @@ export function preloadGameAtlas(scene: Phaser.Scene): void {
   );
   scene.load.image(
     WEAPON_OVERLAY_ATLAS_KEY,
-    "/assets/easygame-weapon-overlay-v1.webp",
+    "/assets/easygame-weapon-overlay-v2.webp",
   );
   for (const [kind, key] of Object.entries(ZOMBIE_WALK_ATLAS_KEYS)) {
-    scene.load.image(key, `/assets/easygame-zombie-${kind}-walk-v1.webp`);
+    scene.load.image(key, `/assets/easygame-zombie-${kind}-walk-v2.webp`);
   }
   scene.load.image(TERRAIN_GRASS_KEY, "/assets/terrain-grass-v2.webp");
   scene.load.image(TERRAIN_DIRT_KEY, "/assets/terrain-dirt-v2.webp");

@@ -85,7 +85,6 @@ export class ZombieView {
       this.kind = state.kind;
       this.currentFrame = "";
     }
-    this.direction = state.direction;
     this.targetX = state.x;
     this.targetY = state.y;
     this.velocityX = state.vx;
@@ -118,11 +117,16 @@ export class ZombieView {
       this.container.x,
       this.container.y,
     );
+    const movementX = this.container.x - this.previousRenderX;
+    const movementY = this.container.y - this.previousRenderY;
     this.previousRenderX = this.container.x;
     this.previousRenderY = this.container.y;
     const moving = Math.hypot(this.velocityX, this.velocityY) > 1;
     if (moving) {
       this.walkDistance += distanceMoved;
+      if (distanceMoved > 0.025) {
+        this.updateFacingFromMovement(movementX, movementY);
+      }
     }
     const pixelsPerFrame =
       this.kind === "runner" ? 13 : this.kind === "brute" ? 14 : 15;
@@ -162,6 +166,21 @@ export class ZombieView {
 
   destroy(): void {
     this.container.destroy(true);
+  }
+
+  private updateFacingFromMovement(x: number, y: number): void {
+    const horizontalDistance = Math.abs(x);
+    const verticalDistance = Math.abs(y);
+    const currentlyHorizontal =
+      this.direction === "left" || this.direction === "right";
+    const useHorizontal =
+      horizontalDistance > verticalDistance * 1.2 ||
+      (currentlyHorizontal && horizontalDistance * 1.2 >= verticalDistance);
+    if (useHorizontal) {
+      this.direction = x > 0 ? "right" : "left";
+    } else {
+      this.direction = y > 0 ? "down" : "up";
+    }
   }
 }
 
