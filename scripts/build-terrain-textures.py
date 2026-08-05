@@ -9,7 +9,13 @@ OUTPUT = ROOT / "client" / "public" / "assets"
 PROCESSED = ROOT / "art" / "processed"
 GAME_ATLAS = PROCESSED / "easygame-atlas-alpha-v1.png"
 ENVIRONMENT_ATLAS = PROCESSED / "easygame-environment-alpha-v1.png"
-HERO_WALK_ATLAS = PROCESSED / "easygame-hero-walk-alpha-v1.png"
+HERO_WALK_ATLAS = PROCESSED / "easygame-hero-walk-alpha-v3.png"
+ZOMBIE_WALK_ATLASES = {
+    "walker": PROCESSED / "easygame-zombie-walker-walk-alpha-v1.png",
+    "runner": PROCESSED / "easygame-zombie-runner-walk-alpha-v1.png",
+    "brute": PROCESSED / "easygame-zombie-brute-walk-alpha-v1.png",
+}
+WEAPON_OVERLAY_ATLAS = PROCESSED / "easygame-weapon-overlay-alpha-v1.png"
 
 TILES = {
     "grass": (18, 18, 308, 308),
@@ -18,9 +24,6 @@ TILES = {
     "soil": (946, 18, 1236, 308),
 }
 
-WALK_COLUMNS = [0, 350, 630, 910, 1254]
-WALK_ROWS = [0, 340, 630, 910, 1254]
-WALK_HEIGHTS = [82, 82, 86, 82]
 WALK_CELL_SIZE = 128
 WALK_FOOT_Y = 116
 
@@ -58,37 +61,75 @@ def save_runtime_webp(
     )
 
 
-def build_normalized_walk_atlas(source: Image.Image) -> Image.Image:
+def grid_bounds(length: int, count: int) -> list[int]:
+    return [round(index * length / count) for index in range(count + 1)]
+
+
+def build_normalized_walk_atlas(
+    source: Image.Image,
+    target_heights: list[int],
+) -> Image.Image:
     atlas = Image.new(
         "RGBA",
         (WALK_CELL_SIZE * 4, WALK_CELL_SIZE * 4),
         (0, 0, 0, 0),
     )
+    columns = grid_bounds(source.width, 4)
+    rows = grid_bounds(source.height, 4)
     for row in range(4):
         for column in range(4):
             frame = source.crop(
                 (
-                    WALK_COLUMNS[column],
-                    WALK_ROWS[row],
-                    WALK_COLUMNS[column + 1],
-                    WALK_ROWS[row + 1],
+                    columns[column],
+                    rows[row],
+                    columns[column + 1],
+                    rows[row + 1],
                 )
             )
             bounds = frame.getchannel("A").getbbox()
             if bounds is None:
                 raise RuntimeError(f"Empty walk frame at row {row}, column {column}")
             character = frame.crop(bounds)
-            scale = WALK_HEIGHTS[row] / character.height
+            target_height = target_heights[row]
+            scale = target_height / character.height
             target_width = max(1, round(character.width * scale))
             character = character.resize(
-                (target_width, WALK_HEIGHTS[row]),
+                (target_width, target_height),
                 Image.Resampling.LANCZOS,
             )
             target_x = (
                 column * WALK_CELL_SIZE + (WALK_CELL_SIZE - target_width) // 2
             )
-            target_y = row * WALK_CELL_SIZE + WALK_FOOT_Y - WALK_HEIGHTS[row]
+            target_y = row * WALK_CELL_SIZE + WALK_FOOT_Y - target_height
             atlas.alpha_composite(character, (target_x, target_y))
+    return atlas
+
+
+def build_weapon_overlay_atlas(source: Image.Image) -> Image.Image:
+    atlas = Image.new(
+        "RGBA",
+        (WALK_CELL_SIZE * 4, WALK_CELL_SIZE * 3),
+        (0, 0, 0, 0),
+    )
+    columns = grid_bounds(source.width, 4)
+    rows = grid_bounds(source.height, 3)
+    for row in range(3):
+        for column in range(4):
+            frame = source.crop(
+                (
+                    columns[column],
+                    rows[row],
+                    columns[column + 1],
+                    rows[row + 1],
+                )
+            )
+            frame.thumbnail(
+                (WALK_CELL_SIZE, WALK_CELL_SIZE),
+                Image.Resampling.LANCZOS,
+            )
+            target_x = column * WALK_CELL_SIZE + (WALK_CELL_SIZE - frame.width) // 2
+            target_y = row * WALK_CELL_SIZE + (WALK_CELL_SIZE - frame.height) // 2
+            atlas.alpha_composite(frame, (target_x, target_y))
     return atlas
 
 
@@ -114,10 +155,36 @@ def main() -> None:
         "easygame-environment-v2.webp",
         90,
     )
-    walk = build_normalized_walk_atlas(
-        Image.open(HERO_WALK_ATLAS).convert("RGBA")
+    hero_walk = build_normalized_walk_atlas(
+        Image.open(HERO_WALK_ATLAS).convert("RGBA"),
+        [86, 86, 88, 88],
     )
-    save_runtime_webp(walk, "easygame-hero-walk-v2.webp", 92)
+    save_runtime_webp(hero_walk, "easygame-hero-walk-v3.webp", 92)
+
+    zombie_heights = {
+        "walker": [92, 92, 94, 94],
+        "runner": [88, 88, 90, 90],
+        "brute": [104, 104, 106, 106],
+    }
+    for kind, source_path in ZOMBIE_WALK_ATLASES.items():
+        zombie_walk = build_normalized_walk_atlas(
+            Image.open(source_path).convert("RGBA"),
+            zombie_heights[kind],
+        )
+        save_runtime_webp(
+            zombie_walk,
+            f"easygame-zombie-{kind}-walk-v1.webp",
+            92,
+        )
+
+    weapon_overlay = build_weapon_overlay_atlas(
+        Image.open(WEAPON_OVERLAY_ATLAS).convert("RGBA")
+    )
+    save_runtime_webp(
+        weapon_overlay,
+        "easygame-weapon-overlay-v1.webp",
+        92,
+    )
 
 
 if __name__ == "__main__":

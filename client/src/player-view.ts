@@ -1,15 +1,16 @@
 import Phaser from "phaser";
 import {
-  GAME_ATLAS_KEY,
   HERO_WALK_ATLAS_KEY,
+  WEAPON_OVERLAY_ATLAS_KEY,
   heroWalkFrame,
-  weaponFrame,
+  weaponOverlayFrame,
 } from "./game-atlas";
 import type {
   Direction,
   InputPayload,
   Obstacle,
   PublicPlayer,
+  WeaponId,
 } from "./types";
 
 type MovementInput = Omit<InputPayload, "attack">;
@@ -29,6 +30,31 @@ const MAX_EXTRAPOLATION_SECONDS = 0.14;
 const LOCAL_SNAP_DISTANCE = 170;
 const LOCAL_MOVING_CORRECTION_RADIUS = 44;
 const LOCAL_IDLE_CORRECTION_RADIUS = 1.5;
+const PLAYER_PIXELS_PER_WALK_FRAME = 25;
+
+const MUZZLE_OFFSETS: Record<
+  WeaponId,
+  Record<Direction, { x: number; y: number }>
+> = {
+  smg: {
+    down: { x: 10, y: -8 },
+    up: { x: 0, y: -78 },
+    right: { x: 38, y: -40 },
+    left: { x: -38, y: -40 },
+  },
+  shotgun: {
+    down: { x: 0, y: -6 },
+    up: { x: 0, y: -91 },
+    right: { x: 44, y: -40 },
+    left: { x: -44, y: -40 },
+  },
+  rocket: {
+    down: { x: 0, y: -18 },
+    up: { x: 0, y: -91 },
+    right: { x: 56, y: -42 },
+    left: { x: -56, y: -42 },
+  },
+};
 
 export class PlayerView {
   readonly container: Phaser.GameObjects.Container;
@@ -41,6 +67,7 @@ export class PlayerView {
   private readonly healthFill: Phaser.GameObjects.Rectangle;
   private direction: Direction;
   private weapon: PublicPlayer["weapon"];
+  private desiredWeapon: PublicPlayer["weapon"];
   private targetX: number;
   private targetY: number;
   private velocityX = 0;
@@ -59,8 +86,11 @@ export class PlayerView {
   private walkDistance = 0;
   private motionBlend = 0;
   private currentFrame = "";
+  private currentWeaponFrame = "";
   private lastFootstepAt = 0;
-  private recoilOffset = 0;
+  private readonly recoilState = { amount: 0 };
+  private readonly equipState = { offset: 0 };
+  private weaponSwitchVersion = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -69,6 +99,7 @@ export class PlayerView {
   ) {
     this.direction = state.direction;
     this.weapon = state.weapon;
+    this.desiredWeapon = state.weapon;
     this.targetX = state.x;
     this.targetY = state.y;
     this.previousRenderX = state.x;
@@ -83,8 +114,14 @@ export class PlayerView {
     );
     this.sprite.setOrigin(0.5, 0.5).setDisplaySize(128, 128);
     this.weaponSprite = scene.add
-      .image(0, -27, GAME_ATLAS_KEY, weaponFrame(state.weapon))
-      .setOrigin(0.5, 0.5);
+      .image(
+        0,
+        -52,
+        WEAPON_OVERLAY_ATLAS_KEY,
+        weaponOverlayFrame(state.weapon, state.direction),
+      )
+      .setOrigin(0.5, 0.5)
+      .setDisplaySize(128, 128);
     this.nameLabel = scene.add
       .text(0, -104, state.displayId, {
         fontFamily: '"Microsoft YaHei", sans-serif',
@@ -139,10 +176,12 @@ export class PlayerView {
       this.velocityX = state.vx;
       this.velocityY = state.vy;
       this.direction = state.direction;
+      if (state.weapon !== this.desiredWeapon) {
+        this.equipWeapon(state.weapon);
+      }
     } else if (!this.localMoving) {
       this.direction = state.direction;
     }
-    this.weapon = state.weapon;
     this.health = state.health;
     this.maxHealth = state.maxHealth;
     this.respawning = state.respawning;
@@ -285,16 +324,13 @@ export class PlayerView {
       targetMotionBlend,
       1 - Math.exp(-18 * deltaSeconds),
     );
-    const walkFrame = moving ? Math.floor(this.walkDistance / 12) % 4 : 0;
-    const stepWave = moving
-      ? Math.sin((this.walkDistance / 12) * (Math.PI / 2)) * this.motionBlend
+    const walkFrame = moving
+      ? Math.floor(this.walkDistance / PLAYER_PIXELS_PER_WALK_FRAME) % 4
       : 0;
-    this.sprite.y = -52 + Math.abs(stepWave) * -0.65 + this.recoilOffset;
-    this.sprite.setAngle(
-      this.direction === "left" || this.direction === "right"
-        ? stepWave * 0.18
-        : 0,
-    );
+    const passingPose = walkFrame === 1 || walkFrame === 3;
+    const bodyBob = moving && passingPose ? -0.8 * this.motionBlend : 0;
+    this.sprite.setPosition(0, -52 + bodyBob);
+    this.sprite.setAngle(0);
     const nextFrame = heroWalkFrame(this.direction, walkFrame);
     if (nextFrame !== this.currentFrame) {
       this.currentFrame = nextFrame;
@@ -302,16 +338,16 @@ export class PlayerView {
       if (
         this.isLocal &&
         moving &&
-        (walkFrame === 1 || walkFrame === 3) &&
-        performance.now() - this.lastFootstepAt > 120
+        (walkFrame === 0 || walkFrame === 2) &&
+        performance.now() - this.lastFootstepAt > 180
       ) {
         this.lastFootstepAt = performance.now();
         this.showFootstep();
       }
     }
-    this.shadow.setScale(1 - Math.abs(stepWave) * 0.035, 1);
-    this.shadow.setAlpha(0.3 - Math.abs(stepWave) * 0.035);
-    this.updateWeaponSprite(stepWave);
+    this.shadow.setScale(passingPose ? 0.97 : 1, 1);
+    this.shadow.setAlpha(passingPose ? 0.275 : 0.3);
+    this.updateWeaponSprite(bodyBob);
     this.container.setAlpha(this.respawning ? 0.24 : 1);
 
     const healthRatio = Phaser.Math.Clamp(
@@ -326,38 +362,100 @@ export class PlayerView {
   }
 
   destroy(): void {
+    this.scene.tweens.killTweensOf(this.recoilState);
+    this.scene.tweens.killTweensOf(this.equipState);
+    this.scene.tweens.killTweensOf(this.weaponSprite);
     this.container.destroy(true);
   }
 
-  showRecoil(strength: number): void {
-    this.scene.tweens.killTweensOf(this);
-    this.recoilOffset = strength;
+  equipWeapon(weapon: WeaponId): void {
+    this.desiredWeapon = weapon;
+    if (weapon === this.weapon && this.weaponSprite.alpha >= 0.99) {
+      return;
+    }
+
+    this.weaponSwitchVersion += 1;
+    const switchVersion = this.weaponSwitchVersion;
+    this.scene.tweens.killTweensOf(this.equipState);
+    this.scene.tweens.killTweensOf(this.weaponSprite);
     this.scene.tweens.add({
-      targets: this,
-      recoilOffset: 0,
-      duration: 110,
-      ease: "Back.easeOut",
+      targets: this.equipState,
+      offset: 9,
+      duration: 70,
+      ease: "Quad.easeIn",
+    });
+    this.scene.tweens.add({
+      targets: this.weaponSprite,
+      alpha: 0.12,
+      duration: 70,
+      ease: "Quad.easeIn",
+      onComplete: () => {
+        if (switchVersion !== this.weaponSwitchVersion) {
+          return;
+        }
+        this.weapon = this.desiredWeapon;
+        this.currentWeaponFrame = "";
+        this.scene.tweens.add({
+          targets: this.equipState,
+          offset: 0,
+          duration: 105,
+          ease: "Back.easeOut",
+        });
+        this.scene.tweens.add({
+          targets: this.weaponSprite,
+          alpha: 1,
+          duration: 90,
+          ease: "Quad.easeOut",
+        });
+      },
     });
   }
 
-  private updateWeaponSprite(stepWave: number): void {
-    this.weaponSprite.setTexture(GAME_ATLAS_KEY, weaponFrame(this.weapon));
-    this.weaponSprite.setDisplaySize(this.weapon === "rocket" ? 82 : 64, 38);
-    this.weaponSprite.setVisible(this.weapon !== "smg");
-    const rotation =
-      this.direction === "right"
-        ? 0
-        : this.direction === "left"
-          ? Math.PI
-          : this.direction === "up"
-            ? -Math.PI / 2
-            : Math.PI / 2;
-    this.weaponSprite.setRotation(rotation);
+  getMuzzlePosition(): { x: number; y: number } {
+    const offset = MUZZLE_OFFSETS[this.weapon][this.direction];
+    return {
+      x: this.container.x + offset.x + this.weaponSprite.x,
+      y: this.container.y + offset.y + (this.weaponSprite.y + 52),
+    };
+  }
+
+  showRecoil(strength: number, firedWeapon: WeaponId): void {
+    if (firedWeapon !== this.weapon) {
+      this.forceWeapon(firedWeapon);
+    }
+    this.scene.tweens.killTweensOf(this.recoilState);
+    this.recoilState.amount = strength;
+    this.scene.tweens.add({
+      targets: this.recoilState,
+      amount: 0,
+      duration: firedWeapon === "rocket" ? 190 : firedWeapon === "shotgun" ? 145 : 85,
+      ease: "Cubic.easeOut",
+    });
+  }
+
+  private updateWeaponSprite(bodyBob: number): void {
+    const nextFrame = weaponOverlayFrame(this.weapon, this.direction);
+    if (nextFrame !== this.currentWeaponFrame) {
+      this.currentWeaponFrame = nextFrame;
+      this.weaponSprite.setTexture(WEAPON_OVERLAY_ATLAS_KEY, nextFrame);
+    }
     const vector = directionVector(this.direction);
     this.weaponSprite.setPosition(
-      vector.x * 15 - vector.x * this.recoilOffset,
-      -45 + vector.y * 12 + stepWave * 0.45 - vector.y * this.recoilOffset,
+      -vector.x * this.recoilState.amount,
+      -52 + bodyBob + this.equipState.offset - vector.y * this.recoilState.amount,
     );
+    this.weaponSprite.setRotation(0);
+  }
+
+  private forceWeapon(weapon: WeaponId): void {
+    this.weaponSwitchVersion += 1;
+    this.scene.tweens.killTweensOf(this.equipState);
+    this.scene.tweens.killTweensOf(this.weaponSprite);
+    this.desiredWeapon = weapon;
+    this.weapon = weapon;
+    this.currentWeaponFrame = "";
+    this.equipState.offset = 0;
+    this.weaponSprite.setAlpha(1);
   }
 
   private applyLocalCorrection(

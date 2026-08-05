@@ -455,6 +455,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     this.selectedWeapon = weapon;
+    this.entities.get(this.welcome.playerId)?.equipWeapon(weapon);
     const labels: Record<WeaponId, string> = {
       smg: "冲锋枪",
       shotgun: "喷子",
@@ -557,7 +558,6 @@ export class WorldScene extends Phaser.Scene {
     setText("#health-value", `${player.health} / ${player.maxHealth}`);
     setText("#kill-count", String(player.kills));
     setText("#online-count", String(online));
-    this.selectWeapon(player.weapon);
     const healthFill = document.querySelector<HTMLElement>("#hud-health-fill");
     if (healthFill) {
       healthFill.style.width = `${healthRatio}%`;
@@ -581,12 +581,18 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const vector = directionVector(event.direction);
-    this.entities
-      .get(event.attackerId)
-      ?.showRecoil(event.weapon === "rocket" ? -5 : event.weapon === "shotgun" ? -3.5 : -1.5);
+    const attackerView = this.entities.get(event.attackerId);
+    attackerView?.showRecoil(
+      event.weapon === "rocket" ? 9 : event.weapon === "shotgun" ? 6 : 2.5,
+      event.weapon,
+    );
+    const muzzle = attackerView?.getMuzzlePosition() ?? {
+      x: event.x + vector.x * 25,
+      y: event.y + vector.y * 25 - 18,
+    };
     this.showMuzzleFlash(
-      event.x + vector.x * 25,
-      event.y + vector.y * 25 - 18,
+      muzzle.x,
+      muzzle.y,
       event.weapon,
       vector,
     );
@@ -598,9 +604,9 @@ export class WorldScene extends Phaser.Scene {
     const color = event.weapon === "shotgun" ? 0xffc773 : 0xffefae;
     const width = event.weapon === "shotgun" ? 1 : 2;
     for (const trace of event.traces) {
-      this.showTracer(event.x, event.y - 18, trace.endX, trace.endY, color, width);
+      this.showTracer(muzzle.x, muzzle.y, trace.endX, trace.endY, color, width);
       if (trace.hit) {
-        this.showImpactSpark(trace.endX, trace.endY - 16, color);
+        this.showImpactSpark(trace.endX, trace.endY - 40, color);
       }
     }
   }
@@ -699,20 +705,20 @@ export class WorldScene extends Phaser.Scene {
     glow.lineStyle(width + 7, color, 0.08);
     glow.beginPath();
     glow.moveTo(startX, startY);
-    glow.lineTo(endX, endY - 16);
+    glow.lineTo(endX, endY - 40);
     glow.strokePath();
     glow.lineStyle(width + 2, color, 0.35);
     glow.beginPath();
     glow.moveTo(startX, startY);
-    glow.lineTo(endX, endY - 16);
+    glow.lineTo(endX, endY - 40);
     glow.strokePath();
     glow.lineStyle(width, 0xfffae8, 0.95);
     glow.beginPath();
     glow.moveTo(startX, startY);
-    glow.lineTo(endX, endY - 16);
+    glow.lineTo(endX, endY - 40);
     glow.strokePath();
     glow.setBlendMode(Phaser.BlendModes.ADD);
-    const angle = Math.atan2(endY - 16 - startY, endX - startX);
+    const angle = Math.atan2(endY - 40 - startY, endX - startX);
     const bullet = this.add
       .rectangle(startX, startY, width === 1 ? 7 : 12, 2, 0xfffae8, 1)
       .setRotation(angle)
@@ -722,7 +728,7 @@ export class WorldScene extends Phaser.Scene {
     this.tweens.add({
       targets: bullet,
       x: endX,
-      y: endY - 16,
+      y: endY - 40,
       alpha: 0.25,
       duration: Phaser.Math.Clamp(distance * 0.16, 38, 95),
       ease: "Linear",
