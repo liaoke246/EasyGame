@@ -1,26 +1,46 @@
-name: Deploy EasyGame
+name: Deploy EasyGame Unity Preview
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: easygame-production
+  group: easygame-unity-production
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 15
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+
+      - name: Cache Unity Library
+        uses: actions/cache@v5
+        with:
+          path: unity-client/Library
+          key: unity-6000.3.21f1-${{ hashFiles('unity-client/Assets/**', 'unity-client/Packages/**', 'unity-client/ProjectSettings/**') }}
+          restore-keys: |
+            unity-6000.3.21f1-
+
+      - name: Build Unity WebGL client
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity-client
+          unityVersion: 6000.3.21f1
+          targetPlatform: WebGL
+          buildMethod: EasyGame.Editor.WebBuild.BuildCommandLine
+          customParameters: -buildOutput /github/workspace/build/unity-webgl
+          allowDirtyBuild: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -28,23 +48,19 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build authoritative server
+        run: |
+          npm ci
+          npm run build -w shared
+          npm run build -w server
 
-      - name: Build
-        run: npm run build
-
-      - name: Install verified Unity WebGL release
+      - name: Assemble Unity release
         run: |
           rm -rf client/dist
           mkdir -p client/dist
-          cp -a unity-client/PrebuiltWebGL/. client/dist/
-
-      - name: Verify Unity client structure
-        run: npm run test:unity
-
-      - name: Run multiplayer smoke test
-        run: npm run test:animation && npm run test:smoke
+          cp -a build/unity-webgl/. client/dist/
+          npm run test:unity
+          npm run test:smoke
 
       - name: Package release
         run: |

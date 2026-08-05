@@ -69,7 +69,9 @@ const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
-const clientDistribution = path.resolve(packageRoot, "../client/dist");
+const clientDistribution = process.env.CLIENT_DIST
+  ? path.resolve(process.env.CLIENT_DIST)
+  : path.resolve(packageRoot, "../client/dist");
 
 if (existsSync(clientDistribution)) {
   app.use(

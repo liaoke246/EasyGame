@@ -8,3 +8,22 @@ server/data/
 *.log
 .DS_Store
 Thumbs.db
+
+# Unity generated state and local builds
+unity-client/[Ll]ibrary/
+unity-client/[Tt]emp/
+unity-client/[Oo]bj/
+unity-client/[Ll]ogs/
+unity-client/[Uu]ser[Ss]ettings/
+unity-client/.vscode/
+unity-client/[Bb]uild/
+unity-client/[Bb]uilds/
+unity-client/MemoryCaptures/
+unity-client/Recordings/
+/build/
+unity-client/*.csproj
+unity-client/*.sln
+unity-client/*.slnx
+unity-client/*.suo
+unity-client/*.user
+unity-client/*.userprefs

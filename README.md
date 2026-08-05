@@ -83,3 +83,11 @@ scripts/ 本地验证脚本
 ```
 
 玩家身份目前保存在 `server/data/players.json`。这是适合初版的本地存储；正式上线时可以替换为 Supabase Auth 和 PostgreSQL。
+
+## Unity 客户端迁移
+
+新的 Unity 6.3 LTS 客户端位于 `unity-client/`。Unity 版本采用正交相机下的原创 3D 方块模型，角色保持固定完整层级，武器挂在手部插槽，弹道从武器自身枪口节点生成。
+
+编辑器内按 Play 会进入离线画面预览；WebGL 构建会通过浏览器桥直接连接现有 Socket.IO 服务。运行 `npm run test:unity` 可以检查模型层级、枪口、联机桥、乐观输入和 WebGL 加载器等迁移约束。
+
+`unity-client/PrebuiltWebGL/` 保存经过浏览器验证的 WebGL 发布物；默认 `main` 工作流会用它替换旧客户端、运行联机检查并复用当前 SSH 回滚部署流程。手动工作流 `Deploy EasyGame Unity Preview` 可从 Unity 源码重新构建，启用它还需要配置 `UNITY_LICENSE`、`UNITY_EMAIL` 和 `UNITY_PASSWORD`。
