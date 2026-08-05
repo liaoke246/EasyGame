@@ -7,29 +7,31 @@ import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import { getOrCreateIdentity, initializeIdentityStore } from "./identity-store.js";
 import type {
-  AttackEvent,
   ClientToServerEvents,
   InputPayload,
   ServerToClientEvents,
   WorldSnapshot,
 } from "./protocol.js";
 import {
-  ATTACK_COOLDOWN_MS,
-  ATTACK_DURATION_MS,
   OBSTACLES,
   RESPAWN_DELAY_MS,
   SNAPSHOT_RATE,
   TICK_RATE,
   WORLD_HEIGHT,
   WORLD_WIDTH,
-  canHit,
   createPlayer,
-  directionVector,
   randomSpawn,
   toPublicPlayer,
   updatePlayerMovement,
   type PlayerState,
 } from "./world.js";
+import { fireWeapon, isWeaponId } from "./weapons.js";
+import {
+  createZombie,
+  toPublicZombie,
+  updateZombie,
+  type ZombieState,
+} from "./zombies.js";
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? "0.0.0.0";
@@ -42,6 +44,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   },
 });
 const players = new Map<string, PlayerState>();
+const zombies = new Map<string, ZombieState>();
 
 app.use(cors());
 app.use(express.json());
@@ -49,6 +52,7 @@ app.get("/health", (_request, response) => {
   response.json({
     ok: true,
     players: players.size,
+    zombies: zombies.size,
     uptimeSeconds: Math.round(process.uptime()),
   });
 });
@@ -101,9 +105,6 @@ io.on("connection", async (socket) => {
 
   socket.on("input", (payload) => {
     applyInput(player, payload);
-    if (payload.attack) {
-      performAttack(player);
-    }
   });
 
   socket.on("network:ping", (payload) => {
@@ -131,6 +132,8 @@ io.on("connection", async (socket) => {
 
 let tickCount = 0;
 let previousTick = performance.now();
+let nextZombieSpawnAt = 0;
+let zombieSpawnIndex = 0;
 
 setInterval(() => {
   const now = performance.now();
@@ -140,6 +143,22 @@ setInterval(() => {
   for (const player of players.values()) {
     player.attacking = now < player.attackEndsAt;
     updatePlayerMovement(player, deltaSeconds, now);
+    if (player.firing) {
+      performWeaponFire(player, now);
+    }
+  }
+
+  spawnZombies(now);
+  for (const zombie of zombies.values()) {
+    const damagedPlayer = updateZombie(
+      zombie,
+      players.values(),
+      deltaSeconds,
+      now,
+    );
+    if (damagedPlayer?.health === 0 && !damagedPlayer.respawning) {
+      defeatPlayerByZombie(damagedPlayer);
+    }
   }
 
   tickCount += 1;
@@ -157,70 +176,46 @@ function applyInput(player: PlayerState, payload: InputPayload): void {
   player.input.down = payload.down === true;
   player.input.left = payload.left === true;
   player.input.right = payload.right === true;
+  player.firing = payload.fire === true || payload.attack === true;
+  if (isWeaponId(payload.weapon)) {
+    player.weapon = payload.weapon;
+  }
 }
 
-function performAttack(attacker: PlayerState): void {
-  const now = performance.now();
-  if (
-    attacker.respawning ||
-    attacker.health <= 0 ||
-    now - attacker.lastAttackAt < ATTACK_COOLDOWN_MS
-  ) {
+function performWeaponFire(attacker: PlayerState, now: number): void {
+  const event = fireWeapon(attacker, zombies.values(), now);
+  if (!event) {
     return;
   }
 
-  attacker.lastAttackAt = now;
-  attacker.attackEndsAt = now + ATTACK_DURATION_MS;
-  attacker.attacking = true;
-
-  const hitPlayers: PlayerState[] = [];
-  const facing = directionVector(attacker.direction);
-
-  for (const victim of players.values()) {
-    if (!canHit(attacker, victim)) {
-      continue;
-    }
-
-    hitPlayers.push(victim);
-    victim.health = Math.max(0, victim.health - 25);
-    victim.knockbackX = facing.x * 280;
-    victim.knockbackY = facing.y * 280;
-    victim.knockbackEndsAt = now + 160;
-
-    if (victim.health === 0) {
-      defeatPlayer(attacker, victim);
+  for (const zombieId of event.hitZombieIds) {
+    const zombie = zombies.get(zombieId);
+    if (zombie && zombie.health <= 0) {
+      event.killedZombieIds.push(zombieId);
+      zombies.delete(zombieId);
+      attacker.kills += 1;
     }
   }
-
-  const event: AttackEvent = {
-    attackerId: attacker.id,
-    direction: attacker.direction,
-    x: attacker.x,
-    y: attacker.y,
-    hitPlayerIds: hitPlayers.map((player) => player.id),
-  };
   io.emit("attack", event);
 
-  if (hitPlayers.length > 0) {
+  if (event.killedZombieIds.length > 0) {
     io.emit("notification", {
-      kind: "hit",
-      text: `${attacker.displayId} 命中了 ${hitPlayers
-        .map((player) => player.displayId)
-        .join("、")}`,
+      kind: "defeat",
+      text: `${attacker.displayId} 清除了 ${event.killedZombieIds.length} 只僵尸`,
     });
   }
 }
 
-function defeatPlayer(attacker: PlayerState, victim: PlayerState): void {
+function defeatPlayerByZombie(victim: PlayerState): void {
   victim.respawning = true;
+  victim.firing = false;
   victim.vx = 0;
   victim.vy = 0;
   victim.input = { up: false, down: false, left: false, right: false };
-  attacker.kills += 1;
 
   io.emit("notification", {
     kind: "defeat",
-    text: `${attacker.displayId} 击倒了 ${victim.displayId}`,
+    text: `${victim.displayId} 被僵尸包围了`,
   });
 
   setTimeout(() => {
@@ -236,9 +231,26 @@ function defeatPlayer(attacker: PlayerState, victim: PlayerState): void {
   }, RESPAWN_DELAY_MS);
 }
 
+function spawnZombies(now: number): void {
+  if (players.size === 0) {
+    zombies.clear();
+    return;
+  }
+  const targetCount =
+    process.env.TEST_MODE === "1" ? 1 : Math.min(30, 6 + players.size * 4);
+  if (zombies.size >= targetCount || now < nextZombieSpawnAt) {
+    return;
+  }
+  const zombie = createZombie(zombieSpawnIndex);
+  zombieSpawnIndex += 1;
+  zombies.set(zombie.id, zombie);
+  nextZombieSpawnAt = now + (process.env.TEST_MODE === "1" ? 50 : 900);
+}
+
 function createSnapshot(): WorldSnapshot {
   return {
     serverTime: Date.now(),
     players: Array.from(players.values(), toPublicPlayer),
+    zombies: Array.from(zombies.values(), toPublicZombie),
   };
 }

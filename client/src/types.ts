@@ -2,6 +2,10 @@ export type Direction = "up" | "down" | "left" | "right";
 
 export type CharacterId = "ranger" | "farmer" | "herbalist" | "smith";
 
+export type WeaponId = "smg" | "shotgun" | "rocket";
+
+export type ZombieKind = "walker" | "runner" | "brute";
+
 export interface Obstacle {
   id: string;
   type: "cabin" | "pond" | "tree" | "rock" | "garden";
@@ -30,6 +34,19 @@ export interface PublicPlayer extends PlayerIdentity {
   attacking: boolean;
   kills: number;
   respawning: boolean;
+  weapon: WeaponId;
+}
+
+export interface PublicZombie {
+  id: string;
+  kind: ZombieKind;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  direction: Direction;
+  health: number;
+  maxHealth: number;
 }
 
 export interface WelcomePayload {
@@ -46,6 +63,7 @@ export interface WelcomePayload {
 export interface WorldSnapshot {
   serverTime: number;
   players: PublicPlayer[];
+  zombies: PublicZombie[];
 }
 
 export interface NetworkProbe {
@@ -70,14 +88,26 @@ export interface InputPayload {
   left: boolean;
   right: boolean;
   attack?: boolean;
+  fire?: boolean;
+  weapon?: WeaponId;
+}
+
+export interface WeaponTrace {
+  endX: number;
+  endY: number;
+  hit: boolean;
 }
 
 export interface AttackEvent {
   attackerId: string;
+  weapon: WeaponId;
   direction: Direction;
   x: number;
   y: number;
   hitPlayerIds: string[];
+  hitZombieIds: string[];
+  killedZombieIds: string[];
+  traces: WeaponTrace[];
 }
 
 export interface NotificationEvent {

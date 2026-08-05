@@ -68,7 +68,7 @@ async function runMultiplayerCheck() {
     }
     const twoPlayerSnapshot = await waitForSnapshot(
       first,
-      (snapshot) => snapshot.players.length === 2,
+      (snapshot) => snapshot.players.length === 2 && snapshot.zombies.length > 0,
     );
     const initialPlayer = twoPlayerSnapshot.players.find(
       (player) => player.id === firstWelcome.playerId,
@@ -81,6 +81,10 @@ async function runMultiplayerCheck() {
     );
     if (!otherPlayer) {
       throw new Error("Second player was missing from the shared snapshot");
+    }
+    const targetZombie = twoPlayerSnapshot.zombies[0];
+    if (!targetZombie) {
+      throw new Error("The test zombie was missing from the shared snapshot");
     }
 
     const moveRight = otherPlayer.x > initialPlayer.x;
@@ -120,31 +124,91 @@ async function runMultiplayerCheck() {
       down: false,
       left: false,
       right: false,
-      attack: true,
+      fire: true,
+      weapon: "smg",
     });
     const attackEvent = await attackEventPromise;
     if (
       attackEvent.attackerId !== firstWelcome.playerId ||
-      !attackEvent.hitPlayerIds.includes(otherPlayer.id)
+      attackEvent.weapon !== "smg" ||
+      !attackEvent.hitZombieIds.includes(targetZombie.id)
     ) {
-      throw new Error("Server attack did not hit the nearby second player");
+      throw new Error("Server weapon fire did not hit the nearby zombie");
     }
-    await waitForSnapshot(first, (snapshot) => {
-      const player = snapshot.players.find(
-        (candidate) => candidate.id === otherPlayer.id,
-      );
-      return Boolean(player && player.health === 75);
+    first.emit("input", {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      fire: false,
+      weapon: "smg",
     });
+    await waitForSnapshot(first, (snapshot) => {
+      const zombie = snapshot.zombies.find(
+        (candidate) => candidate.id === targetZombie.id,
+      );
+      return !zombie || zombie.health < targetZombie.health;
+    });
+
+    await delay(650);
+    const shotgunEventPromise = onceEvent(first, "attack");
+    first.emit("input", {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      fire: true,
+      weapon: "shotgun",
+    });
+    const shotgunEvent = await shotgunEventPromise;
+    first.emit("input", {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      fire: false,
+      weapon: "shotgun",
+    });
+    if (shotgunEvent.weapon !== "shotgun" || shotgunEvent.traces.length !== 7) {
+      throw new Error("Shotgun did not produce seven authoritative pellets");
+    }
+
+    await delay(1_100);
+    const rocketEventPromise = onceEvent(first, "attack");
+    first.emit("input", {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      fire: true,
+      weapon: "rocket",
+    });
+    const rocketEvent = await rocketEventPromise;
+    first.emit("input", {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      fire: false,
+      weapon: "rocket",
+    });
+    if (rocketEvent.weapon !== "rocket" || rocketEvent.traces.length !== 1) {
+      throw new Error("Rocket launcher did not produce an explosion trace");
+    }
 
     process.stdout.write(
       `Smoke test passed: two players synchronized; movement ${initialPlayer.x.toFixed(
         1,
-      )} → ${movedPlayer.x.toFixed(1)}; latency probe and attack damage synchronized.\n`,
+      )} → ${movedPlayer.x.toFixed(1)}; zombies and all three weapons synchronized.\n`,
     );
   } finally {
     first.disconnect();
     second.disconnect();
   }
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function onceEvent(socket, eventName) {

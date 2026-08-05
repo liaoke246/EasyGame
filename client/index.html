@@ -33,7 +33,7 @@
           <div class="login-features" aria-label="游戏特色">
             <span><b>01</b> 随机身份</span>
             <span><b>02</b> 实时联机</span>
-            <span><b>03</b> 轻量战斗</span>
+            <span><b>03</b> 僵尸生存</span>
           </div>
 
           <button id="enter-button" class="enter-button" type="button">
@@ -76,8 +76,8 @@
             </div>
             <i class="combat-separator" aria-hidden="true"></i>
             <div class="combat-stat">
-              <small>击倒</small>
-              <strong id="kill-count">0</strong>
+              <small>僵尸 / 清除</small>
+              <strong><span id="zombie-count">0</span> / <span id="kill-count">0</span></strong>
             </div>
             <i class="network-separator" aria-hidden="true"></i>
             <div class="network-stat" title="实时往返延迟与最近 20 次探针超时率">
@@ -100,10 +100,22 @@
           <span>正在返回山谷入口…</span>
         </div>
 
+        <nav class="weapon-bar" aria-label="武器选择">
+          <button type="button" data-weapon="smg" class="is-selected">
+            <kbd>1</kbd><span>冲锋枪</span><small>∞</small>
+          </button>
+          <button type="button" data-weapon="shotgun">
+            <kbd>2</kbd><span>喷子</span><small>∞</small>
+          </button>
+          <button type="button" data-weapon="rocket">
+            <kbd>3</kbd><span>火箭筒</span><small>∞</small>
+          </button>
+        </nav>
+
         <footer class="desktop-controls">
           <span><kbd>WASD</kbd> / <kbd>方向键</kbd> 移动</span>
           <i aria-hidden="true"></i>
-          <span><kbd>空格</kbd> 攻击</span>
+          <span><kbd>空格</kbd> 射击 · 当前 <b id="current-weapon">冲锋枪</b></span>
         </footer>
 
         <div class="touch-controls" aria-label="触摸控制">
@@ -115,7 +127,7 @@
           </div>
           <button id="touch-attack" class="touch-attack" type="button" aria-label="攻击">
             <span aria-hidden="true">⚔</span>
-            攻击
+            <b id="touch-weapon-name">冲锋枪</b>
           </button>
         </div>
       </section>
