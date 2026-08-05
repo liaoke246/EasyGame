@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#24372b" />
+    <meta name="theme-color" content="#24272b" />
     <meta
       name="description"
-      content="苔原谷是一款轻量的多人在线像素冒险游戏。"
+      content="方块危机是一款轻量的多人在线俯视角僵尸生存游戏。"
     />
-    <title>苔原谷 · Mossfield</title>
+    <title>方块危机 · Block Crisis</title>
   </head>
   <body>
     <main id="app">
@@ -23,11 +23,11 @@
         </div>
 
         <div class="login-card">
-          <p class="eyebrow">A TINY ONLINE ADVENTURE</p>
-          <h1 id="game-title">苔原谷</h1>
-          <p class="title-en">MOSSFIELD</p>
+          <p class="eyebrow">TOP-DOWN CO-OP SURVIVAL</p>
+          <h1 id="game-title">方块危机</h1>
+          <p class="title-en">BLOCK CRISIS</p>
           <p class="intro">
-            每位旅人都会获得独一无二的编号与身份。走进山谷，与其他玩家一起抵御不断逼近的僵尸。
+            进入方块竞技场，和其他玩家一起用三种无限弹药武器抵御不断逼近的尸潮。
           </p>
 
           <div class="login-features" aria-label="游戏特色">
@@ -37,7 +37,7 @@
           </div>
 
           <button id="enter-button" class="enter-button" type="button">
-            进入山谷
+            进入竞技场
             <span aria-hidden="true">→</span>
           </button>
           <div
@@ -56,7 +56,7 @@
             <div class="loading-track" aria-hidden="true">
               <span id="loading-progress-fill"></span>
             </div>
-            <small id="loading-file">正在连接山谷…</small>
+            <small id="loading-file">正在连接生存服务器…</small>
           </div>
           <p id="login-status" class="login-status" aria-live="polite">
             无需注册 · 身份会保存在此设备
@@ -76,7 +76,7 @@
             </div>
             <div class="profile-copy">
               <strong id="player-id">旅人-0000</strong>
-              <span id="player-role">山谷旅人</span>
+              <span id="player-role">生存者</span>
               <div class="health-row">
                 <div class="health-track" aria-label="生命值">
                   <span id="hud-health-fill" data-level="healthy"></span>
@@ -115,7 +115,7 @@
 
         <div id="respawn-message" class="respawn-message" role="status">
           <strong>暂时倒下了</strong>
-          <span>正在返回山谷入口…</span>
+          <span>正在返回竞技场…</span>
         </div>
 
         <nav class="weapon-bar" aria-label="武器选择">

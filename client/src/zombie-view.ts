@@ -1,15 +1,12 @@
 import Phaser from "phaser";
-import {
-  ZOMBIE_WALK_ATLAS_KEYS,
-  zombieWalkFrame,
-} from "./game-atlas";
+import { BlockCharacterModel } from "./block-character";
 import type { CardinalDirection, PublicZombie, ZombieKind } from "./types";
 
 const MAX_EXTRAPOLATION_SECONDS = 0.16;
 
 export class ZombieView {
   readonly container: Phaser.GameObjects.Container;
-  private readonly sprite: Phaser.GameObjects.Image;
+  private readonly model: BlockCharacterModel;
   private readonly healthFill: Phaser.GameObjects.Rectangle;
   private kind: ZombieKind;
   private direction: CardinalDirection;
@@ -23,7 +20,6 @@ export class ZombieView {
   private previousRenderX: number;
   private previousRenderY: number;
   private walkDistance = 0;
-  private currentFrame = "";
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -37,26 +33,12 @@ export class ZombieView {
     this.maxHealth = state.maxHealth;
     this.previousRenderX = state.x;
     this.previousRenderY = state.y;
-    const shadow = scene.add.ellipse(
-      0,
-      3,
-      state.kind === "brute" ? 52 : 38,
-      state.kind === "brute" ? 18 : 13,
-      0x17251b,
-      0.34,
-    );
-    this.sprite = scene.add
-      .image(
-        0,
-        -52,
-        ZOMBIE_WALK_ATLAS_KEYS[state.kind],
-        zombieWalkFrame(state.kind, state.direction, 0),
-      )
-      .setDisplaySize(128, 128);
+    this.model = new BlockCharacterModel(scene, { kind: state.kind });
+    this.model.setFacing(state.direction);
     const healthTrack = scene.add
       .rectangle(
         -19,
-        state.kind === "brute" ? -108 : -98,
+        state.kind === "brute" ? -98 : -82,
         38,
         5,
         0x241d1d,
@@ -66,15 +48,14 @@ export class ZombieView {
     this.healthFill = scene.add
       .rectangle(
         -18,
-        state.kind === "brute" ? -108 : -98,
+        state.kind === "brute" ? -98 : -82,
         36,
         3,
         0xc45d4b,
       )
       .setOrigin(0, 0.5);
     this.container = scene.add.container(state.x, state.y, [
-      shadow,
-      this.sprite,
+      this.model.container,
       healthTrack,
       this.healthFill,
     ]);
@@ -83,7 +64,6 @@ export class ZombieView {
   applyState(state: PublicZombie): void {
     if (state.kind !== this.kind) {
       this.kind = state.kind;
-      this.currentFrame = "";
     }
     this.targetX = state.x;
     this.targetY = state.y;
@@ -125,30 +105,16 @@ export class ZombieView {
     if (moving) {
       this.walkDistance += distanceMoved;
     }
-    const pixelsPerFrame =
-      this.kind === "runner" ? 13 : this.kind === "brute" ? 14 : 15;
-    const walkFrame = moving
-      ? Math.floor(this.walkDistance / pixelsPerFrame) % 4
-      : 0;
-    const nextFrame = zombieWalkFrame(
-      this.kind,
-      this.direction,
-      walkFrame,
-    );
-    if (nextFrame !== this.currentFrame) {
-      this.currentFrame = nextFrame;
-      this.sprite.setTexture(ZOMBIE_WALK_ATLAS_KEYS[this.kind], nextFrame);
-    }
-    this.sprite.setPosition(0, -52);
-    this.sprite.setAngle(0);
-    this.sprite.setFlipX(false);
+    const cyclePixels = this.kind === "runner" ? 48 : this.kind === "brute" ? 70 : 60;
+    const walkPhase = (this.walkDistance % cyclePixels) / cyclePixels;
+    this.model.setFacing(this.direction);
+    this.model.setMotion(walkPhase, moving, 0);
     this.healthFill.width =
       36 * Phaser.Math.Clamp(this.health / Math.max(1, this.maxHealth), 0, 1);
   }
 
   showHit(killed: boolean): void {
-    this.sprite.setTintFill(0xf8f1d4);
-    this.scene.time.delayedCall(65, () => this.sprite.clearTint());
+    this.model.flashDamage();
     spawnZombieParticles(this.scene, this.container.x, this.container.y - 18, killed);
     spawnImpactRing(this.scene, this.container.x, this.container.y - 30, killed);
   }

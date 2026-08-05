@@ -1,12 +1,11 @@
 import Phaser from "phaser";
-import { GAME_ATLAS_KEY } from "./game-atlas";
+import { PROJECTILE_VISUAL_ELEVATION } from "@easygame/shared";
 import type { PublicRocket } from "./types";
 
 const MAX_EXTRAPOLATION_SECONDS = 0.16;
-const PROJECTILE_VISUAL_ELEVATION = 40;
 
 export class RocketView {
-  readonly image: Phaser.GameObjects.Image;
+  readonly container: Phaser.GameObjects.Container;
   private targetX: number;
   private targetY: number;
   private velocityX: number;
@@ -22,14 +21,23 @@ export class RocketView {
     this.targetY = state.y;
     this.velocityX = state.vx;
     this.velocityY = state.vy;
-    this.image = scene.add
-      .image(
-        state.x,
-        state.y - PROJECTILE_VISUAL_ELEVATION,
-        GAME_ATLAS_KEY,
-        "rocket-projectile",
-      )
-      .setDisplaySize(42, 28)
+    const tail = scene.add
+      .rectangle(-15, 0, 10, 10, 0x4f5a4e)
+      .setStrokeStyle(2, 0x181a1b);
+    const body = scene.add
+      .rectangle(0, 0, 30, 11, 0x6d7864)
+      .setStrokeStyle(2, 0x181a1b);
+    const band = scene.add.rectangle(4, 0, 5, 14, 0xb34335);
+    const nose = scene.add
+      .triangle(19, 0, 0, -7, 0, 7, 12, 0, 0xc9b46b)
+      .setStrokeStyle(2, 0x181a1b);
+    this.container = scene.add
+      .container(state.x, state.y - PROJECTILE_VISUAL_ELEVATION, [
+        tail,
+        body,
+        band,
+        nose,
+      ])
       .setRotation(Math.atan2(state.vy, state.vx))
       .setDepth(Math.round(state.y + 230));
   }
@@ -40,7 +48,7 @@ export class RocketView {
     this.velocityX = state.vx;
     this.velocityY = state.vy;
     this.lastSnapshotAt = performance.now();
-    this.image.setRotation(Math.atan2(state.vy, state.vx));
+    this.container.setRotation(Math.atan2(state.vy, state.vx));
   }
 
   update(deltaSeconds: number, time: number): void {
@@ -49,31 +57,33 @@ export class RocketView {
       MAX_EXTRAPOLATION_SECONDS,
     );
     const smoothing = 1 - Math.exp(-22 * deltaSeconds);
-    this.image.x = Phaser.Math.Linear(
-      this.image.x,
+    this.container.x = Phaser.Math.Linear(
+      this.container.x,
       this.targetX + this.velocityX * age,
       smoothing,
     );
-    this.image.y = Phaser.Math.Linear(
-      this.image.y,
+    this.container.y = Phaser.Math.Linear(
+      this.container.y,
       this.targetY + this.velocityY * age - PROJECTILE_VISUAL_ELEVATION,
       smoothing,
     );
-    this.image.setDepth(Math.round(this.image.y + 245));
+    this.container.setDepth(Math.round(this.container.y + 245));
 
     if (time - this.lastTrailAt > 34) {
       this.lastTrailAt = time;
-      const angle = this.image.rotation + Math.PI;
+      const angle = this.container.rotation + Math.PI;
       const flame = this.scene.add
-        .circle(
-          this.image.x + Math.cos(angle) * 16,
-          this.image.y + Math.sin(angle) * 16,
-          Phaser.Math.Between(2, 5),
+        .rectangle(
+          this.container.x + Math.cos(angle) * 17,
+          this.container.y + Math.sin(angle) * 17,
+          Phaser.Math.Between(4, 9),
+          Phaser.Math.Between(3, 5),
           Math.random() > 0.45 ? 0xffbe55 : 0xe95b35,
           0.9,
         )
+        .setRotation(this.container.rotation)
         .setBlendMode(Phaser.BlendModes.ADD)
-        .setDepth(this.image.depth - 1);
+        .setDepth(this.container.depth - 1);
       this.scene.tweens.add({
         targets: flame,
         x: flame.x + Math.cos(angle) * Phaser.Math.Between(8, 18),
@@ -87,6 +97,6 @@ export class RocketView {
   }
 
   destroy(): void {
-    this.image.destroy();
+    this.container.destroy(true);
   }
 }
