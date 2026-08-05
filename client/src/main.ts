@@ -136,7 +136,11 @@ function describeAsset(fileKey?: string): string {
   const labels: Record<string, string> = {
     "easygame-atlas-v2": "载入武器与战斗特效…",
     "easygame-environment-v2": "载入山谷建筑与景物…",
-    "easygame-hero-walk-v2": "载入角色步行动画…",
+    "easygame-hero-walk-v3": "载入角色完整步行动画…",
+    "easygame-weapon-overlay-v1": "校准武器与枪口…",
+    "easygame-zombie-walker-walk-v1": "载入行者步伐…",
+    "easygame-zombie-runner-walk-v1": "载入疾行者步伐…",
+    "easygame-zombie-brute-walk-v1": "载入巨尸步伐…",
     "terrain-grass-v2": "铺设草地…",
     "terrain-dirt-v2": "铺设道路…",
     "terrain-wild-v2": "生长荒草…",

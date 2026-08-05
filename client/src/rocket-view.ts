@@ -3,6 +3,7 @@ import { GAME_ATLAS_KEY } from "./game-atlas";
 import type { PublicRocket } from "./types";
 
 const MAX_EXTRAPOLATION_SECONDS = 0.16;
+const PROJECTILE_VISUAL_ELEVATION = 40;
 
 export class RocketView {
   readonly image: Phaser.GameObjects.Image;
@@ -22,7 +23,12 @@ export class RocketView {
     this.velocityX = state.vx;
     this.velocityY = state.vy;
     this.image = scene.add
-      .image(state.x, state.y - 14, GAME_ATLAS_KEY, "rocket-projectile")
+      .image(
+        state.x,
+        state.y - PROJECTILE_VISUAL_ELEVATION,
+        GAME_ATLAS_KEY,
+        "rocket-projectile",
+      )
       .setDisplaySize(42, 28)
       .setRotation(Math.atan2(state.vy, state.vx))
       .setDepth(Math.round(state.y + 230));
@@ -50,7 +56,7 @@ export class RocketView {
     );
     this.image.y = Phaser.Math.Linear(
       this.image.y,
-      this.targetY + this.velocityY * age - 14,
+      this.targetY + this.velocityY * age - PROJECTILE_VISUAL_ELEVATION,
       smoothing,
     );
     this.image.setDepth(Math.round(this.image.y + 245));

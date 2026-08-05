@@ -1,5 +1,8 @@
 import Phaser from "phaser";
-import { GAME_ATLAS_KEY, zombieFrame } from "./game-atlas";
+import {
+  ZOMBIE_WALK_ATLAS_KEYS,
+  zombieWalkFrame,
+} from "./game-atlas";
 import type { Direction, PublicZombie, ZombieKind } from "./types";
 
 const MAX_EXTRAPOLATION_SECONDS = 0.16;
@@ -17,6 +20,10 @@ export class ZombieView {
   private health: number;
   private maxHealth: number;
   private lastSnapshotAt = performance.now();
+  private previousRenderX: number;
+  private previousRenderY: number;
+  private walkDistance = 0;
+  private currentFrame = "";
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -28,6 +35,8 @@ export class ZombieView {
     this.targetY = state.y;
     this.health = state.health;
     this.maxHealth = state.maxHealth;
+    this.previousRenderX = state.x;
+    this.previousRenderY = state.y;
     const shadow = scene.add.ellipse(
       0,
       3,
@@ -37,16 +46,31 @@ export class ZombieView {
       0.34,
     );
     this.sprite = scene.add
-      .image(0, state.kind === "brute" ? -38 : -32, GAME_ATLAS_KEY, zombieFrame(state.kind))
-      .setDisplaySize(
-        state.kind === "brute" ? 94 : state.kind === "runner" ? 68 : 72,
-        state.kind === "brute" ? 104 : 92,
-      );
+      .image(
+        0,
+        -52,
+        ZOMBIE_WALK_ATLAS_KEYS[state.kind],
+        zombieWalkFrame(state.kind, state.direction, 0),
+      )
+      .setDisplaySize(128, 128);
     const healthTrack = scene.add
-      .rectangle(-19, state.kind === "brute" ? -84 : -75, 38, 5, 0x241d1d, 0.9)
+      .rectangle(
+        -19,
+        state.kind === "brute" ? -108 : -98,
+        38,
+        5,
+        0x241d1d,
+        0.9,
+      )
       .setOrigin(0, 0.5);
     this.healthFill = scene.add
-      .rectangle(-18, state.kind === "brute" ? -84 : -75, 36, 3, 0xc45d4b)
+      .rectangle(
+        -18,
+        state.kind === "brute" ? -108 : -98,
+        36,
+        3,
+        0xc45d4b,
+      )
       .setOrigin(0, 0.5);
     this.container = scene.add.container(state.x, state.y, [
       shadow,
@@ -59,7 +83,7 @@ export class ZombieView {
   applyState(state: PublicZombie): void {
     if (state.kind !== this.kind) {
       this.kind = state.kind;
-      this.sprite.setTexture(GAME_ATLAS_KEY, zombieFrame(state.kind));
+      this.currentFrame = "";
     }
     this.direction = state.direction;
     this.targetX = state.x;
@@ -71,7 +95,7 @@ export class ZombieView {
     this.lastSnapshotAt = performance.now();
   }
 
-  update(deltaSeconds: number, time: number): void {
+  update(deltaSeconds: number, _time: number): void {
     const age = Math.min(
       (performance.now() - this.lastSnapshotAt) / 1_000,
       MAX_EXTRAPOLATION_SECONDS,
@@ -88,15 +112,36 @@ export class ZombieView {
       smoothing,
     );
     this.container.setDepth(Math.round(this.container.y));
+    const distanceMoved = Phaser.Math.Distance.Between(
+      this.previousRenderX,
+      this.previousRenderY,
+      this.container.x,
+      this.container.y,
+    );
+    this.previousRenderX = this.container.x;
+    this.previousRenderY = this.container.y;
     const moving = Math.hypot(this.velocityX, this.velocityY) > 1;
-    const stepWave = moving ? Math.sin(time / 88) : 0;
-    this.sprite.y =
-      (this.kind === "brute" ? -38 : -32) +
-      stepWave * (this.kind === "runner" ? 2 : 1.25);
-    this.sprite.x = stepWave * (this.kind === "brute" ? 0.7 : 1.25);
-    this.sprite.setAngle(stepWave * (this.kind === "runner" ? 2.2 : 1.2));
-    this.sprite.setTexture(GAME_ATLAS_KEY, zombieFrame(this.kind));
-    this.sprite.setFlipX(this.direction === "left");
+    if (moving) {
+      this.walkDistance += distanceMoved;
+    }
+    const pixelsPerFrame =
+      this.kind === "runner" ? 13 : this.kind === "brute" ? 14 : 15;
+    const walkFrame = moving
+      ? Math.floor(this.walkDistance / pixelsPerFrame) % 4
+      : 0;
+    const nextFrame = zombieWalkFrame(
+      this.kind,
+      this.direction,
+      walkFrame,
+    );
+    if (nextFrame !== this.currentFrame) {
+      this.currentFrame = nextFrame;
+      this.sprite.setTexture(ZOMBIE_WALK_ATLAS_KEYS[this.kind], nextFrame);
+    }
+    const passingPose = walkFrame === 1 || walkFrame === 3;
+    this.sprite.setPosition(0, -52 - (moving && passingPose ? 0.8 : 0));
+    this.sprite.setAngle(0);
+    this.sprite.setFlipX(false);
     this.healthFill.width =
       36 * Phaser.Math.Clamp(this.health / Math.max(1, this.maxHealth), 0, 1);
   }

@@ -5,6 +5,7 @@ import {
   positionCollides,
   type PlayerState,
 } from "./world.js";
+import { weaponMuzzlePosition } from "./weapons.js";
 import type { ZombieState } from "./zombies.js";
 
 const ROCKET_SPEED = 430;
@@ -27,8 +28,9 @@ export interface RocketImpact {
 
 export function createRocket(attacker: PlayerState): RocketState {
   const vector = directionVector(attacker.direction);
-  const x = attacker.x + vector.x * 30;
-  const y = attacker.y + vector.y * 30;
+  const muzzle = weaponMuzzlePosition(attacker, "rocket");
+  const x = muzzle.x;
+  const y = muzzle.y;
   return {
     id: randomUUID(),
     ownerId: attacker.id,

@@ -8,6 +8,35 @@ export const WEAPON_COOLDOWN_MS: Record<WeaponId, number> = {
   rocket: 1_050,
 };
 
+const MUZZLE_OFFSETS: Record<
+  WeaponId,
+  Record<PlayerState["direction"], { x: number; y: number }>
+> = {
+  smg: {
+    down: { x: 10, y: -8 },
+    up: { x: 0, y: -78 },
+    right: { x: 38, y: -40 },
+    left: { x: -38, y: -40 },
+  },
+  shotgun: {
+    down: { x: 0, y: -6 },
+    up: { x: 0, y: -91 },
+    right: { x: 44, y: -40 },
+    left: { x: -44, y: -40 },
+  },
+  rocket: {
+    down: { x: 0, y: -18 },
+    up: { x: 0, y: -91 },
+    right: { x: 56, y: -42 },
+    left: { x: -56, y: -42 },
+  },
+};
+
+// Player and zombie positions sit on the ground plane, while the weapon art is
+// drawn above it. Converting the visual muzzle back to the ground plane keeps
+// authoritative ray tests aligned with the sprite without aiming at its feet.
+export const PROJECTILE_VISUAL_ELEVATION = 40;
+
 export function isWeaponId(value: unknown): value is WeaponId {
   return value === "smg" || value === "shotgun" || value === "rocket";
 }
@@ -56,11 +85,12 @@ function fireSmg(
   attacker: PlayerState,
   zombies: ZombieState[],
 ): FireResult {
-  const hit = nearestRayTarget(attacker, zombies, 520, 18);
+  const origin = weaponMuzzlePosition(attacker);
+  const hit = nearestRayTarget(origin, attacker, zombies, 520, 18);
   if (hit) {
     hit.health = Math.max(0, hit.health - 14);
   }
-  const end = hit ?? rayEnd(attacker, 520, 0);
+  const end = hit ?? rayEnd(origin, attacker, 520, 0);
   return {
     hitZombieIds: new Set(hit ? [hit.id] : []),
     traces: [{ endX: end.x, endY: end.y, hit: Boolean(hit) }],
@@ -71,15 +101,16 @@ function fireShotgun(
   attacker: PlayerState,
   zombies: ZombieState[],
 ): FireResult {
+  const origin = weaponMuzzlePosition(attacker);
   const hitZombieIds = new Set<string>();
   const traces: WeaponTrace[] = [];
   for (const angle of [-16, -10, -5, 0, 5, 10, 16]) {
-    const hit = nearestRayTarget(attacker, zombies, 310, 16, angle);
+    const hit = nearestRayTarget(origin, attacker, zombies, 310, 16, angle);
     if (hit) {
       hit.health = Math.max(0, hit.health - 13);
       hitZombieIds.add(hit.id);
     }
-    const end = hit ?? rayEnd(attacker, 310, angle);
+    const end = hit ?? rayEnd(origin, attacker, 310, angle);
     traces.push({ endX: end.x, endY: end.y, hit: Boolean(hit) });
   }
   return { hitZombieIds, traces };
@@ -91,6 +122,7 @@ interface FireResult {
 }
 
 function nearestRayTarget(
+  origin: { x: number; y: number },
   attacker: PlayerState,
   zombies: ZombieState[],
   range: number,
@@ -101,8 +133,8 @@ function nearestRayTarget(
   let nearest: ZombieState | undefined;
   let nearestForward = range + 1;
   for (const zombie of zombies) {
-    const relativeX = zombie.x - attacker.x;
-    const relativeY = zombie.y - attacker.y;
+    const relativeX = zombie.x - origin.x;
+    const relativeY = zombie.y - origin.y;
     const forward = relativeX * vector.x + relativeY * vector.y;
     const side = Math.abs(relativeX * -vector.y + relativeY * vector.x);
     if (
@@ -119,14 +151,26 @@ function nearestRayTarget(
 }
 
 function rayEnd(
+  origin: { x: number; y: number },
   attacker: PlayerState,
   range: number,
   angleDegrees: number,
 ): { x: number; y: number } {
   const vector = rotatedDirection(attacker, angleDegrees);
   return {
-    x: attacker.x + vector.x * range,
-    y: attacker.y + vector.y * range,
+    x: origin.x + vector.x * range,
+    y: origin.y + vector.y * range,
+  };
+}
+
+export function weaponMuzzlePosition(
+  attacker: PlayerState,
+  weapon: WeaponId = attacker.weapon,
+): { x: number; y: number } {
+  const offset = MUZZLE_OFFSETS[weapon][attacker.direction];
+  return {
+    x: attacker.x + offset.x,
+    y: attacker.y + offset.y + PROJECTILE_VISUAL_ELEVATION,
   };
 }
 
