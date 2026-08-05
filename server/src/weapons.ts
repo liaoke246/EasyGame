@@ -1,17 +1,12 @@
 import {
   PROJECTILE_VISUAL_ELEVATION,
+  WEAPON_COOLDOWN_MS,
   WEAPON_MUZZLE_OFFSETS,
   directionVector,
 } from "@easygame/shared";
 import type { AttackEvent, WeaponId, WeaponTrace } from "./protocol.js";
 import type { PlayerState } from "./world.js";
 import type { ZombieState } from "./zombies.js";
-
-export const WEAPON_COOLDOWN_MS: Record<WeaponId, number> = {
-  smg: 95,
-  shotgun: 620,
-  rocket: 1_050,
-};
 
 // Player and zombie positions sit on the ground plane, while the weapon art is
 // drawn above it. Converting the visual muzzle back to the ground plane keeps

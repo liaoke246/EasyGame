@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import {
   DIRECTION_VECTORS,
+  WEAPON_COOLDOWN_MS,
   WEAPON_MUZZLE_OFFSETS,
+  cardinalDirectionFromVector,
   directionFromAxes,
 } from "../shared/dist/index.js";
+import { PlayerAnimationController } from "../client/src/player-animation.ts";
 
 const directions = [
   "up",
@@ -28,6 +31,25 @@ for (const direction of directions) {
 
 assert.equal(directionFromAxes(1, -1), "up-right");
 assert.equal(directionFromAxes(-1, 1), "down-left");
+assert.equal(cardinalDirectionFromVector(1, 0.95, "right"), "right");
+assert.equal(cardinalDirectionFromVector(1, 0.95, "down"), "down");
+assert.equal(cardinalDirectionFromVector(1.3, 0.9, "down"), "right");
+assert.deepEqual(WEAPON_COOLDOWN_MS, { smg: 95, shotgun: 620, rocket: 1_050 });
+
+const playerAnimation = new PlayerAnimationController();
+playerAnimation.advanceMovement(50, true);
+const walkPose = playerAnimation.sample(1_000, "right", "right", true);
+playerAnimation.setTriggerHeld(true, 1_000);
+const aimPose = playerAnimation.sample(1_045, "right", "right", true);
+playerAnimation.fire(9, 190, 1_050);
+const recoilPose = playerAnimation.sample(1_060, "right", "right", true);
+assert.equal(walkPose.frame, 4);
+assert.equal(aimPose.frame, walkPose.frame, "Aiming must preserve the gait phase");
+assert.equal(
+  recoilPose.frame,
+  walkPose.frame,
+  "Firing must preserve the gait phase",
+);
 
 for (const [weapon, offsets] of Object.entries(WEAPON_MUZZLE_OFFSETS)) {
   assert.deepEqual(

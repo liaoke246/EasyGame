@@ -139,8 +139,7 @@ export class ZombieView {
       this.currentFrame = nextFrame;
       this.sprite.setTexture(ZOMBIE_WALK_ATLAS_KEYS[this.kind], nextFrame);
     }
-    const passingPose = walkFrame === 1 || walkFrame === 3;
-    this.sprite.setPosition(0, -52 - (moving && passingPose ? 0.8 : 0));
+    this.sprite.setPosition(0, -52);
     this.sprite.setAngle(0);
     this.sprite.setFlipX(false);
     this.healthFill.width =

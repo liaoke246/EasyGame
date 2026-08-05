@@ -4,7 +4,7 @@ import {
   type Direction,
 } from "@easygame/shared";
 
-const WALK_PIXELS_PER_FRAME = 8.5;
+const WALK_PIXELS_PER_FRAME = 12.5;
 const WALK_FRAME_COUNT = 8;
 const AIM_RAISE_MS = 90;
 const AIM_LOWER_MS = 100;
@@ -59,6 +59,8 @@ export class PlayerAnimationController {
     locomotionDirection: CardinalDirection,
     moving: boolean,
   ): PlayerAnimationPose {
+    const locomotionFrame =
+      Math.floor(this.walkDistance / WALK_PIXELS_PER_FRAME) % WALK_FRAME_COUNT;
     const sinceShot = now - this.firedAt;
     const recoilProgress = clamp(sinceShot / this.recoilDurationMs, 0, 1);
     const recoil = this.recoilStrength * (1 - recoilProgress) ** 2;
@@ -72,8 +74,8 @@ export class PlayerAnimationController {
       return {
         state: recoil > 0.08 ? "recoil" : "aim",
         direction: visualCardinalDirection(aimDirection),
-        frame: 0,
-        bodyOffsetY: -aimBlend,
+        frame: moving ? locomotionFrame : 0,
+        bodyOffsetY: -aimBlend * 0.25,
         recoil,
         contactPose: false,
       };
@@ -90,16 +92,12 @@ export class PlayerAnimationController {
       };
     }
 
-    const frame =
-      Math.floor(this.walkDistance / WALK_PIXELS_PER_FRAME) % WALK_FRAME_COUNT;
-    const cycle =
-      ((this.walkDistance / WALK_PIXELS_PER_FRAME) % WALK_FRAME_COUNT) /
-      WALK_FRAME_COUNT;
+    const frame = locomotionFrame;
     return {
       state: "walk",
       direction: locomotionDirection,
       frame,
-      bodyOffsetY: -Math.abs(Math.sin(cycle * Math.PI * 2)) * 0.65,
+      bodyOffsetY: 0,
       recoil: 0,
       contactPose: frame === 0 || frame === 4,
     };

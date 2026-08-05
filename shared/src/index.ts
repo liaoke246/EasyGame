@@ -16,6 +16,12 @@ export interface Vector2 {
 
 export const PROJECTILE_VISUAL_ELEVATION = 40;
 
+export const WEAPON_COOLDOWN_MS: Record<WeaponId, number> = {
+  smg: 95,
+  shotgun: 620,
+  rocket: 1_050,
+};
+
 export const DIRECTION_VECTORS: Record<Direction, Vector2> = {
   up: { x: 0, y: -1 },
   "up-right": { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
@@ -85,7 +91,18 @@ export function cardinalDirectionFromVector(
   if (Math.hypot(x, y) < 0.0001) {
     return fallback;
   }
-  if (Math.abs(x) > Math.abs(y)) {
+
+  const horizontalMagnitude = Math.abs(x);
+  const verticalMagnitude = Math.abs(y);
+  const switchAxisRatio = 1.2;
+  const wasHorizontal = fallback === "left" || fallback === "right";
+  if (wasHorizontal) {
+    if (verticalMagnitude > horizontalMagnitude * switchAxisRatio) {
+      return y > 0 ? "down" : "up";
+    }
+    return x > 0 ? "right" : "left";
+  }
+  if (horizontalMagnitude > verticalMagnitude * switchAxisRatio) {
     return x > 0 ? "right" : "left";
   }
   return y > 0 ? "down" : "up";
