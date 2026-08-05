@@ -1,7 +1,8 @@
 import Phaser from "phaser";
 import {
   GAME_ATLAS_KEY,
-  heroFrame,
+  HERO_WALK_ATLAS_KEY,
+  heroWalkFrame,
   weaponFrame,
 } from "./game-atlas";
 import type {
@@ -21,7 +22,7 @@ interface PredictionWorld {
 
 const PLAYER_SPEED = 190;
 const PLAYER_RADIUS = 15;
-const MAX_EXTRAPOLATION_SECONDS = 0.12;
+const MAX_EXTRAPOLATION_SECONDS = 0.16;
 const LOCAL_SNAP_DISTANCE = 120;
 
 export class PlayerView {
@@ -44,9 +45,10 @@ export class PlayerView {
   private respawning = false;
   private lastSnapshotAt = performance.now();
   private localMoving = false;
+  private recoilOffset = 0;
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     state: PublicPlayer,
     private readonly isLocal: boolean,
   ) {
@@ -59,10 +61,10 @@ export class PlayerView {
     this.sprite = scene.add.image(
       0,
       -31,
-      GAME_ATLAS_KEY,
-      heroFrame(state.direction),
+      HERO_WALK_ATLAS_KEY,
+      heroWalkFrame(state.direction, 0),
     );
-    this.sprite.setOrigin(0.5, 0.5).setDisplaySize(76, 96);
+    this.sprite.setOrigin(0.5, 0.5).setDisplaySize(96, 96);
     this.weaponSprite = scene.add
       .image(0, -27, GAME_ATLAS_KEY, weaponFrame(state.weapon))
       .setOrigin(0.5, 0.5);
@@ -186,27 +188,32 @@ export class PlayerView {
     const projectedX = this.targetX + this.velocityX * snapshotAgeSeconds;
     const projectedY = this.targetY + this.velocityY * snapshotAgeSeconds;
 
-    if (!this.isLocal || !this.localMoving) {
-      const response = this.isLocal ? 18 : 13;
-      const smoothing = 1 - Math.exp(-response * deltaSeconds);
-      this.container.x = Phaser.Math.Linear(
-        this.container.x,
-        projectedX,
-        smoothing,
-      );
-      this.container.y = Phaser.Math.Linear(
-        this.container.y,
-        projectedY,
-        smoothing,
-      );
-    }
+    const response = this.isLocal ? (this.localMoving ? 4.5 : 20) : 16;
+    const smoothing = 1 - Math.exp(-response * deltaSeconds);
+    this.container.x = Phaser.Math.Linear(
+      this.container.x,
+      projectedX,
+      smoothing,
+    );
+    this.container.y = Phaser.Math.Linear(
+      this.container.y,
+      projectedY,
+      smoothing,
+    );
     this.container.setDepth(Math.round(this.container.y));
 
     const moving =
       Math.abs(this.velocityX) > 0.1 || Math.abs(this.velocityY) > 0.1;
-    this.sprite.y = -31 + (moving ? Math.sin(time / 85) * 1.5 : 0);
-    this.sprite.setTexture(GAME_ATLAS_KEY, heroFrame(this.direction));
-    this.updateWeaponSprite();
+    const walkFrame = moving ? Math.floor(time / 105) % 4 : 0;
+    const stepWave = moving ? Math.sin((time / 105) * Math.PI) : 0;
+    this.sprite.y = -31 + stepWave * 1.2 + this.recoilOffset;
+    this.sprite.setAngle(moving ? stepWave * 0.8 : 0);
+    this.sprite.setTexture(
+      HERO_WALK_ATLAS_KEY,
+      heroWalkFrame(this.direction, walkFrame),
+    );
+    this.shadow.setScale(1 - Math.abs(stepWave) * 0.06, 1);
+    this.updateWeaponSprite(stepWave);
     this.container.setAlpha(this.respawning ? 0.24 : 1);
 
     const healthRatio = Phaser.Math.Clamp(
@@ -224,9 +231,21 @@ export class PlayerView {
     this.container.destroy(true);
   }
 
-  private updateWeaponSprite(): void {
+  showRecoil(strength: number): void {
+    this.scene.tweens.killTweensOf(this);
+    this.recoilOffset = strength;
+    this.scene.tweens.add({
+      targets: this,
+      recoilOffset: 0,
+      duration: 110,
+      ease: "Back.easeOut",
+    });
+  }
+
+  private updateWeaponSprite(stepWave: number): void {
     this.weaponSprite.setTexture(GAME_ATLAS_KEY, weaponFrame(this.weapon));
     this.weaponSprite.setDisplaySize(this.weapon === "rocket" ? 82 : 64, 38);
+    this.weaponSprite.setVisible(this.weapon !== "smg");
     const rotation =
       this.direction === "right"
         ? 0
@@ -237,7 +256,10 @@ export class PlayerView {
             : Math.PI / 2;
     this.weaponSprite.setRotation(rotation);
     const vector = directionVector(this.direction);
-    this.weaponSprite.setPosition(vector.x * 15, -28 + vector.y * 12);
+    this.weaponSprite.setPosition(
+      vector.x * 15 - vector.x * this.recoilOffset,
+      -28 + vector.y * 12 + stepWave * 0.8 - vector.y * this.recoilOffset,
+    );
   }
 }
 

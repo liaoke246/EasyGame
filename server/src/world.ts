@@ -6,42 +6,49 @@ import type {
   PublicPlayer,
 } from "./protocol.js";
 
-export const WORLD_WIDTH = 1920;
-export const WORLD_HEIGHT = 1080;
+export const WORLD_WIDTH = 2560;
+export const WORLD_HEIGHT = 1440;
 export const PLAYER_SPEED = 190;
 export const PLAYER_RADIUS = 15;
-export const TICK_RATE = 20;
-export const SNAPSHOT_RATE = 10;
+export const TICK_RATE = 30;
+export const SNAPSHOT_RATE = 15;
 export const ATTACK_COOLDOWN_MS = 620;
 export const ATTACK_DURATION_MS = 180;
 export const RESPAWN_DELAY_MS = 1_250;
 
 export const OBSTACLES: Obstacle[] = [
-  { id: "cabin", type: "cabin", x: 1260, y: 120, width: 300, height: 220 },
-  { id: "pond", type: "pond", x: 150, y: 720, width: 410, height: 240 },
-  { id: "garden", type: "garden", x: 1340, y: 750, width: 360, height: 190 },
-  { id: "tree-nw-1", type: "tree", x: 95, y: 110, width: 74, height: 86 },
-  { id: "tree-nw-2", type: "tree", x: 205, y: 165, width: 74, height: 86 },
-  { id: "tree-nw-3", type: "tree", x: 330, y: 95, width: 74, height: 86 },
-  { id: "tree-west", type: "tree", x: 90, y: 430, width: 74, height: 86 },
-  { id: "tree-north", type: "tree", x: 760, y: 90, width: 74, height: 86 },
-  { id: "tree-ne", type: "tree", x: 1720, y: 120, width: 74, height: 86 },
-  { id: "tree-east-1", type: "tree", x: 1770, y: 460, width: 74, height: 86 },
-  { id: "tree-east-2", type: "tree", x: 1660, y: 600, width: 74, height: 86 },
-  { id: "tree-south-1", type: "tree", x: 780, y: 930, width: 74, height: 86 },
-  { id: "tree-south-2", type: "tree", x: 930, y: 950, width: 74, height: 86 },
-  { id: "rock-1", type: "rock", x: 620, y: 270, width: 52, height: 40 },
-  { id: "rock-2", type: "rock", x: 1090, y: 850, width: 58, height: 44 },
-  { id: "rock-3", type: "rock", x: 450, y: 430, width: 46, height: 38 },
+  { id: "cabin", type: "cabin", x: 1_760, y: 190, width: 330, height: 245 },
+  { id: "cabin-2", type: "cabin", x: 380, y: 235, width: 300, height: 225 },
+  { id: "pond", type: "pond", x: 230, y: 970, width: 450, height: 270 },
+  { id: "garden", type: "garden", x: 1_830, y: 1_015, width: 390, height: 220 },
+  { id: "tree-nw-1", type: "tree", x: 90, y: 80, width: 78, height: 92 },
+  { id: "tree-nw-2", type: "tree", x: 220, y: 135, width: 78, height: 92 },
+  { id: "tree-nw-3", type: "tree", x: 720, y: 80, width: 78, height: 92 },
+  { id: "tree-west-1", type: "tree", x: 80, y: 540, width: 78, height: 92 },
+  { id: "tree-west-2", type: "tree", x: 180, y: 700, width: 78, height: 92 },
+  { id: "tree-north", type: "tree", x: 1_180, y: 70, width: 78, height: 92 },
+  { id: "tree-ne-1", type: "tree", x: 2_310, y: 110, width: 78, height: 92 },
+  { id: "tree-ne-2", type: "tree", x: 2_180, y: 270, width: 78, height: 92 },
+  { id: "tree-east-1", type: "tree", x: 2_390, y: 610, width: 78, height: 92 },
+  { id: "tree-east-2", type: "tree", x: 2_300, y: 840, width: 78, height: 92 },
+  { id: "tree-south-1", type: "tree", x: 840, y: 1_285, width: 78, height: 92 },
+  { id: "tree-south-2", type: "tree", x: 1_060, y: 1_300, width: 78, height: 92 },
+  { id: "tree-south-3", type: "tree", x: 1_550, y: 1_285, width: 78, height: 92 },
+  { id: "tree-south-4", type: "tree", x: 2_360, y: 1_260, width: 78, height: 92 },
+  { id: "rock-1", type: "rock", x: 850, y: 330, width: 58, height: 44 },
+  { id: "rock-2", type: "rock", x: 1_590, y: 1_080, width: 62, height: 48 },
+  { id: "rock-3", type: "rock", x: 720, y: 930, width: 54, height: 42 },
+  { id: "rock-4", type: "rock", x: 2_210, y: 650, width: 64, height: 48 },
+  { id: "rock-5", type: "rock", x: 1_510, y: 285, width: 56, height: 44 },
 ];
 
 export const SPAWN_POINTS = [
-  { x: 830, y: 470 },
-  { x: 960, y: 500 },
-  { x: 1_080, y: 480 },
-  { x: 850, y: 610 },
-  { x: 980, y: 650 },
-  { x: 1_105, y: 610 },
+  { x: 1_135, y: 630 },
+  { x: 1_280, y: 620 },
+  { x: 1_425, y: 630 },
+  { x: 1_145, y: 800 },
+  { x: 1_280, y: 820 },
+  { x: 1_415, y: 800 },
 ];
 
 let testSpawnIndex = 0;

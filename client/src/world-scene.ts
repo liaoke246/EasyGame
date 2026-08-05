@@ -1,6 +1,10 @@
 import Phaser from "phaser";
 import {
+  ENVIRONMENT_ATLAS_KEY,
   GAME_ATLAS_KEY,
+  TERRAIN_DIRT_KEY,
+  TERRAIN_GRASS_KEY,
+  TERRAIN_WILD_KEY,
   explosionFrame,
   preloadGameAtlas,
   registerGameAtlasFrames,
@@ -125,8 +129,8 @@ export class WorldScene extends Phaser.Scene {
       this.cameras.main.startFollow(
         localEntity.container,
         true,
-        0.08,
-        0.08,
+        0.12,
+        0.12,
       );
       this.cameraFollowing = true;
     }
@@ -136,35 +140,41 @@ export class WorldScene extends Phaser.Scene {
 
   private drawWorld(): void {
     const { width, height, obstacles } = this.welcome.world;
-    this.add.rectangle(width / 2, height / 2, width, height, 0x83a95f);
+    const centerX = width / 2;
+    const centerY = height / 2;
+    this.add
+      .tileSprite(centerX, centerY, width, height, TERRAIN_GRASS_KEY)
+      .setDepth(-20);
+    this.add
+      .tileSprite(width * 0.17, height * 0.19, width * 0.34, height * 0.38, TERRAIN_WILD_KEY)
+      .setAlpha(0.42)
+      .setDepth(-19);
+    this.add
+      .tileSprite(width * 0.83, height * 0.78, width * 0.34, height * 0.44, TERRAIN_WILD_KEY)
+      .setAlpha(0.35)
+      .setDepth(-19);
 
-    const ground = this.add.graphics();
-    for (let y = 0; y < height; y += 32) {
-      for (let x = 0; x < width; x += 32) {
-        const variant = hash2d(x, y) % 4;
-        ground.fillStyle(
-          [0x86ad62, 0x80a65c, 0x88af65, 0x7fa25c][variant],
-          1,
-        );
-        ground.fillRect(x, y, 32, 32);
-      }
-    }
+    this.add
+      .tileSprite(centerX, centerY, width, 154, TERRAIN_DIRT_KEY)
+      .setDepth(-15);
+    this.add
+      .tileSprite(centerX, centerY, 154, height, TERRAIN_DIRT_KEY)
+      .setDepth(-14);
+    this.add
+      .rectangle(centerX, centerY, width, 4, 0xd5aa63, 0.18)
+      .setDepth(-13);
+    this.add
+      .rectangle(centerX, centerY, 4, height, 0xd5aa63, 0.18)
+      .setDepth(-13);
 
-    ground.fillStyle(0xc5ac76, 1);
-    ground.fillRect(0, 478, width, 126);
-    ground.fillRect(874, 0, 128, height);
-    ground.fillStyle(0xd0b985, 0.38);
-    ground.fillRect(0, 492, width, 9);
-    ground.fillRect(890, 0, 9, height);
-
-    this.drawGroundDetails(ground, width, height);
+    this.drawGroundDetails(width, height);
 
     for (const obstacle of obstacles) {
       this.drawObstacle(obstacle);
     }
 
     this.add
-      .text(1_005, 452, "苔 原 谷", {
+      .text(centerX + 118, centerY - 118, "苔 原 谷", {
         fontFamily: '"KaiTi", "STKaiti", serif',
         fontSize: "23px",
         color: "#5f5234",
@@ -173,7 +183,7 @@ export class WorldScene extends Phaser.Scene {
       })
       .setDepth(440);
     this.add
-      .text(1_006, 477, "MOSSFIELD", {
+      .text(centerX + 119, centerY - 92, "MOSSFIELD", {
         fontFamily: "Georgia, serif",
         fontSize: "9px",
         letterSpacing: 5,
@@ -182,27 +192,37 @@ export class WorldScene extends Phaser.Scene {
       .setDepth(440);
 
     const border = this.add.graphics();
-    border.lineStyle(10, 0x486b43, 1);
+    border.lineStyle(14, 0x263b2c, 1);
     border.strokeRect(5, 5, width - 10, height - 10);
     border.setDepth(height + 200);
   }
 
-  private drawGroundDetails(
-    graphics: Phaser.GameObjects.Graphics,
-    width: number,
-    height: number,
-  ): void {
-    const flowerColors = [0xffe58f, 0xf3a6a0, 0xd9c1f0, 0xf6f0de];
-    for (let index = 0; index < 145; index += 1) {
-      const x = 24 + ((index * 137) % (width - 48));
-      const y = 24 + ((index * 83) % (height - 48));
-      if (y > 450 && y < 630) {
+  private drawGroundDetails(width: number, height: number): void {
+    for (let index = 0; index < 26; index += 1) {
+      const x = 90 + ((index * 347) % (width - 180));
+      const y = 90 + ((index * 229) % (height - 180));
+      if (Math.abs(x - width / 2) < 115 || Math.abs(y - height / 2) < 115) {
         continue;
       }
-      graphics.fillStyle(flowerColors[index % flowerColors.length], 0.8);
-      graphics.fillRect(x, y, 3, 3);
-      graphics.fillStyle(0x547c49, 0.8);
-      graphics.fillRect(x + 1, y + 3, 1, 4);
+      this.add
+        .image(x, y, ENVIRONMENT_ATLAS_KEY, "prop-flowers")
+        .setDisplaySize(62 + (index % 3) * 8, 48 + (index % 2) * 6)
+        .setAlpha(0.72)
+        .setDepth(Math.round(y - 8));
+    }
+
+    const decorations: Array<[number, number, string, number, number]> = [
+      [width * 0.33, height * 0.22, "prop-stump", 92, 86],
+      [width * 0.72, height * 0.28, "prop-crates", 112, 90],
+      [width * 0.38, height * 0.76, "prop-fence", 150, 78],
+      [width * 0.57, height * 0.18, "prop-lantern", 66, 102],
+      [width * 0.44, height * 0.84, "prop-lantern", 58, 92],
+    ];
+    for (const [x, y, frame, displayWidth, displayHeight] of decorations) {
+      this.add
+        .image(x, y, ENVIRONMENT_ATLAS_KEY, frame)
+        .setDisplaySize(displayWidth, displayHeight)
+        .setDepth(Math.round(y));
     }
   }
 
@@ -234,35 +254,17 @@ export class WorldScene extends Phaser.Scene {
     obstacle: Obstacle,
   ): void {
     const { x, y, width, height } = obstacle;
-    graphics.fillStyle(0x6b4634, 0.2);
-    graphics.fillEllipse(x + width / 2, y + height + 12, width * 0.92, 38);
-    graphics.fillStyle(0xb97b51, 1);
-    graphics.fillRect(x + 25, y + 78, width - 50, height - 78);
-    graphics.fillStyle(0x8f5941, 1);
-    for (let line = y + 94; line < y + height; line += 20) {
-      graphics.fillRect(x + 25, line, width - 50, 4);
-    }
-    graphics.fillStyle(0x65443d, 1);
-    graphics.fillTriangle(x, y + 92, x + width / 2, y, x + width, y + 92);
-    graphics.fillStyle(0x83584b, 1);
-    graphics.fillTriangle(
-      x + 22,
-      y + 86,
-      x + width / 2,
-      y + 15,
-      x + width - 22,
-      y + 86,
-    );
-    graphics.fillStyle(0x573a2e, 1);
-    graphics.fillRect(x + width / 2 - 25, y + height - 72, 50, 72);
-    graphics.fillStyle(0xd9b860, 1);
-    graphics.fillRect(x + width / 2 + 13, y + height - 38, 5, 5);
-    graphics.fillStyle(0x9ccbd2, 1);
-    graphics.fillRect(x + 58, y + 116, 46, 40);
-    graphics.fillRect(x + width - 104, y + 116, 46, 40);
-    graphics.lineStyle(5, 0xe6d2a9, 1);
-    graphics.strokeRect(x + 58, y + 116, 46, 40);
-    graphics.strokeRect(x + width - 104, y + 116, 46, 40);
+    graphics.destroy();
+    this.add
+      .image(
+        x + width / 2,
+        y + height + 28,
+        ENVIRONMENT_ATLAS_KEY,
+        obstacle.id.endsWith("2") ? "prop-cabin-side" : "prop-cabin",
+      )
+      .setOrigin(0.5, 1)
+      .setDisplaySize(width + 90, height + 120)
+      .setDepth(y + height);
   }
 
   private drawPond(
@@ -270,24 +272,11 @@ export class WorldScene extends Phaser.Scene {
     obstacle: Obstacle,
   ): void {
     const { x, y, width, height } = obstacle;
-    graphics.fillStyle(0x5c7c4f, 0.55);
-    graphics.fillRoundedRect(x - 8, y - 8, width + 16, height + 16, 70);
-    graphics.fillStyle(0x70b9b1, 1);
-    graphics.fillRoundedRect(x, y, width, height, 64);
-    graphics.fillStyle(0x8bcac1, 0.75);
-    graphics.fillRoundedRect(x + 18, y + 22, width - 36, height - 46, 52);
-    graphics.lineStyle(3, 0xc5ece1, 0.55);
-    graphics.beginPath();
-    graphics.moveTo(x + 70, y + 70);
-    graphics.lineTo(x + 160, y + 70);
-    graphics.moveTo(x + 240, y + 148);
-    graphics.lineTo(x + 335, y + 148);
-    graphics.strokePath();
-    graphics.fillStyle(0x5c9250, 1);
-    graphics.fillCircle(x + 105, y + 142, 14);
-    graphics.fillCircle(x + 278, y + 72, 12);
-    graphics.fillStyle(0xf5d47b, 1);
-    graphics.fillCircle(x + 105, y + 142, 4);
+    graphics.destroy();
+    this.add
+      .image(x + width / 2, y + height / 2, ENVIRONMENT_ATLAS_KEY, "prop-pond")
+      .setDisplaySize(width + 70, height + 70)
+      .setDepth(y + height - 8);
   }
 
   private drawTree(
@@ -295,18 +284,18 @@ export class WorldScene extends Phaser.Scene {
     obstacle: Obstacle,
   ): void {
     const { x, y, width, height } = obstacle;
-    graphics.fillStyle(0x344c34, 0.2);
-    graphics.fillEllipse(x + width / 2, y + height + 4, width, 20);
-    graphics.fillStyle(0x72503a, 1);
-    graphics.fillRect(x + width / 2 - 9, y + height - 39, 18, 39);
-    graphics.fillStyle(0x386b45, 1);
-    graphics.fillCircle(x + 24, y + 34, 27);
-    graphics.fillCircle(x + width - 24, y + 35, 28);
-    graphics.fillCircle(x + width / 2, y + 20, 34);
-    graphics.fillStyle(0x4f8550, 1);
-    graphics.fillCircle(x + 27, y + 25, 18);
-    graphics.fillCircle(x + width - 27, y + 23, 17);
-    graphics.fillCircle(x + width / 2, y + 9, 19);
+    graphics.destroy();
+    const pine = hash2d(Math.round(x), Math.round(y)) % 3 === 0;
+    this.add
+      .image(
+        x + width / 2,
+        y + height + 20,
+        ENVIRONMENT_ATLAS_KEY,
+        pine ? "prop-pine" : "prop-oak",
+      )
+      .setOrigin(0.5, 1)
+      .setDisplaySize(pine ? 132 : 150, pine ? 178 : 148)
+      .setDepth(y + height);
   }
 
   private drawRock(
@@ -314,12 +303,12 @@ export class WorldScene extends Phaser.Scene {
     obstacle: Obstacle,
   ): void {
     const { x, y, width, height } = obstacle;
-    graphics.fillStyle(0x52635e, 0.2);
-    graphics.fillEllipse(x + width / 2, y + height + 4, width, 13);
-    graphics.fillStyle(0x77837c, 1);
-    graphics.fillRoundedRect(x, y + 5, width, height - 5, 12);
-    graphics.fillStyle(0xa6ada5, 1);
-    graphics.fillTriangle(x + 8, y + 12, x + width / 2, y, x + width - 5, y + 13);
+    graphics.destroy();
+    this.add
+      .image(x + width / 2, y + height + 7, ENVIRONMENT_ATLAS_KEY, "prop-rock")
+      .setOrigin(0.5, 1)
+      .setDisplaySize(width + 58, height + 52)
+      .setDepth(y + height);
   }
 
   private drawGarden(
@@ -327,20 +316,11 @@ export class WorldScene extends Phaser.Scene {
     obstacle: Obstacle,
   ): void {
     const { x, y, width, height } = obstacle;
-    graphics.fillStyle(0x9a704e, 1);
-    graphics.fillRoundedRect(x, y, width, height, 8);
-    for (let row = y + 24; row < y + height - 12; row += 38) {
-      graphics.fillStyle(0x76513a, 1);
-      graphics.fillRect(x + 18, row, width - 36, 20);
-      for (let plant = x + 35; plant < x + width - 25; plant += 40) {
-        graphics.fillStyle(0x4b7c45, 1);
-        graphics.fillCircle(plant, row + 9, 7);
-        graphics.fillStyle(0x78a44f, 1);
-        graphics.fillCircle(plant + 5, row + 7, 5);
-      }
-    }
-    graphics.lineStyle(6, 0xd7b16c, 1);
-    graphics.strokeRect(x, y, width, height);
+    graphics.destroy();
+    this.add
+      .image(x + width / 2, y + height / 2, ENVIRONMENT_ATLAS_KEY, "prop-garden")
+      .setDisplaySize(width + 55, height + 55)
+      .setDepth(y + height);
   }
 
   private configureKeyboard(): void {
@@ -566,10 +546,14 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const vector = directionVector(event.direction);
+    this.entities
+      .get(event.attackerId)
+      ?.showRecoil(event.weapon === "rocket" ? -5 : event.weapon === "shotgun" ? -3.5 : -1.5);
     this.showMuzzleFlash(
       event.x + vector.x * 25,
       event.y + vector.y * 25 - 18,
       event.weapon,
+      vector,
     );
 
     if (event.weapon === "rocket") {
@@ -586,29 +570,84 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private showMuzzleFlash(x: number, y: number, weapon: WeaponId): void {
+  private showMuzzleFlash(
+    x: number,
+    y: number,
+    weapon: WeaponId,
+    vector: { x: number; y: number },
+  ): void {
     const colors =
       weapon === "rocket"
         ? [0xfff2aa, 0xff9c4a, 0xe84f32]
         : [0xfff7c7, 0xffcc68, 0xf27b3d];
-    for (let index = 0; index < 5; index += 1) {
+    const angle = Math.atan2(vector.y, vector.x);
+    const flashCount = weapon === "shotgun" ? 9 : weapon === "rocket" ? 8 : 5;
+    for (let index = 0; index < flashCount; index += 1) {
+      const spread = (Math.random() - 0.5) * (weapon === "shotgun" ? 0.8 : 0.42);
+      const distance = Phaser.Math.Between(4, weapon === "rocket" ? 22 : 15);
       const particle = this.add
-        .circle(
-          x + Phaser.Math.Between(-4, 4),
-          y + Phaser.Math.Between(-4, 4),
-          Phaser.Math.Between(2, weapon === "rocket" ? 6 : 4),
+        .rectangle(
+          x + Math.cos(angle + spread) * distance,
+          y + Math.sin(angle + spread) * distance,
+          Phaser.Math.Between(5, weapon === "rocket" ? 15 : 10),
+          Phaser.Math.Between(2, 4),
           colors[index % colors.length],
           0.95,
         )
+        .setRotation(angle + spread)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setDepth(Math.round(y + 240));
       this.tweens.add({
         targets: particle,
+        x: particle.x + Math.cos(angle + spread) * Phaser.Math.Between(8, 22),
+        y: particle.y + Math.sin(angle + spread) * Phaser.Math.Between(8, 22),
         alpha: 0,
-        scale: 0.2,
-        duration: 90 + index * 18,
+        scaleX: 0.2,
+        scaleY: 0.35,
+        duration: 75 + index * 13,
         ease: "Quad.easeOut",
         onComplete: () => particle.destroy(),
+      });
+    }
+
+    for (let index = 0; index < 3; index += 1) {
+      const smoke = this.add
+        .circle(
+          x - vector.x * index * 3,
+          y - vector.y * index * 3,
+          3 + index,
+          0x9aa58c,
+          0.22,
+        )
+        .setDepth(Math.round(y + 225));
+      this.tweens.add({
+        targets: smoke,
+        x: smoke.x - vector.x * Phaser.Math.Between(5, 13) + Phaser.Math.Between(-4, 4),
+        y: smoke.y - vector.y * Phaser.Math.Between(5, 13) - Phaser.Math.Between(3, 9),
+        scale: 2.2,
+        alpha: 0,
+        duration: 260 + index * 70,
+        ease: "Sine.easeOut",
+        onComplete: () => smoke.destroy(),
+      });
+    }
+
+    if (weapon !== "rocket") {
+      const sideX = -vector.y;
+      const sideY = vector.x;
+      const casing = this.add
+        .rectangle(x - vector.x * 9, y - vector.y * 9, 5, 2, 0xd6a94f, 1)
+        .setRotation(angle + Math.PI / 2)
+        .setDepth(Math.round(y + 232));
+      this.tweens.add({
+        targets: casing,
+        x: casing.x + sideX * Phaser.Math.Between(14, 24),
+        y: casing.y + sideY * Phaser.Math.Between(10, 18) + 10,
+        angle: Phaser.Math.Between(140, 320),
+        alpha: 0,
+        duration: 340,
+        ease: "Quad.easeOut",
+        onComplete: () => casing.destroy(),
       });
     }
   }
@@ -622,39 +661,73 @@ export class WorldScene extends Phaser.Scene {
     width: number,
   ): void {
     const glow = this.add.graphics().setDepth(Math.round(startY + 220));
-    glow.lineStyle(width + 4, color, 0.13);
+    glow.lineStyle(width + 7, color, 0.08);
     glow.beginPath();
     glow.moveTo(startX, startY);
     glow.lineTo(endX, endY - 16);
     glow.strokePath();
-    glow.lineStyle(width, color, 0.92);
+    glow.lineStyle(width + 2, color, 0.35);
+    glow.beginPath();
+    glow.moveTo(startX, startY);
+    glow.lineTo(endX, endY - 16);
+    glow.strokePath();
+    glow.lineStyle(width, 0xfffae8, 0.95);
     glow.beginPath();
     glow.moveTo(startX, startY);
     glow.lineTo(endX, endY - 16);
     glow.strokePath();
     glow.setBlendMode(Phaser.BlendModes.ADD);
+    const angle = Math.atan2(endY - 16 - startY, endX - startX);
+    const bullet = this.add
+      .rectangle(startX, startY, width === 1 ? 7 : 12, 2, 0xfffae8, 1)
+      .setRotation(angle)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(Math.round(startY + 235));
+    const distance = Phaser.Math.Distance.Between(startX, startY, endX, endY);
+    this.tweens.add({
+      targets: bullet,
+      x: endX,
+      y: endY - 16,
+      alpha: 0.25,
+      duration: Phaser.Math.Clamp(distance * 0.16, 38, 95),
+      ease: "Linear",
+      onComplete: () => bullet.destroy(),
+    });
     this.tweens.add({
       targets: glow,
       alpha: 0,
-      duration: 105,
+      duration: width === 1 ? 115 : 145,
       ease: "Quad.easeOut",
       onComplete: () => glow.destroy(),
     });
   }
 
   private showImpactSpark(x: number, y: number, color: number): void {
-    for (let index = 0; index < 5; index += 1) {
-      const angle = (Math.PI * 2 * index) / 5 + Math.random() * 0.4;
+    const ring = this.add
+      .circle(x, y, 5, 0x000000, 0)
+      .setStrokeStyle(2, color, 0.7)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(Math.round(y + 248));
+    this.tweens.add({
+      targets: ring,
+      scale: 2.8,
+      alpha: 0,
+      duration: 150,
+      onComplete: () => ring.destroy(),
+    });
+    for (let index = 0; index < 9; index += 1) {
+      const angle = (Math.PI * 2 * index) / 9 + Math.random() * 0.4;
       const spark = this.add
-        .rectangle(x, y, 3, 2, color, 0.95)
+        .rectangle(x, y, Phaser.Math.Between(3, 7), 2, index % 3 === 0 ? 0xfff4bd : color, 0.95)
+        .setRotation(angle)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setDepth(Math.round(y + 250));
       this.tweens.add({
         targets: spark,
-        x: x + Math.cos(angle) * Phaser.Math.Between(10, 25),
-        y: y + Math.sin(angle) * Phaser.Math.Between(10, 25),
+        x: x + Math.cos(angle) * Phaser.Math.Between(14, 34),
+        y: y + Math.sin(angle) * Phaser.Math.Between(14, 34),
         alpha: 0,
-        duration: Phaser.Math.Between(120, 220),
+        duration: Phaser.Math.Between(140, 260),
         ease: "Quad.easeOut",
         onComplete: () => spark.destroy(),
       });
