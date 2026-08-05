@@ -1,5 +1,9 @@
 import Phaser from "phaser";
-import { directionVector } from "@easygame/shared";
+import {
+  WEAPON_COOLDOWN_MS,
+  WEAPON_MUZZLE_OFFSETS,
+  directionVector,
+} from "@easygame/shared";
 import {
   ENVIRONMENT_ATLAS_KEY,
   EXPLOSION_ATLAS_KEY,
@@ -64,6 +68,7 @@ export class WorldScene extends Phaser.Scene {
   private selectedWeapon: WeaponId = "smg";
   private virtualFiring = false;
   private latencyMs = 0;
+  private lastPredictedAttackAt = Number.NEGATIVE_INFINITY;
 
   constructor(
     private readonly network: NetworkClient,
@@ -143,6 +148,7 @@ export class WorldScene extends Phaser.Scene {
     const localEntity = this.entities.get(this.welcome.playerId);
     localEntity?.predictMovement(input, deltaSeconds, this.welcome.world);
     localEntity?.setTriggerHeld(input.fire === true);
+    this.showPredictedLocalAttack(time, input, localEntity);
 
     for (const entity of this.entities.values()) {
       entity.update(deltaSeconds, time);
@@ -583,20 +589,26 @@ export class WorldScene extends Phaser.Scene {
 
     const vector = directionVector(event.direction);
     const attackerView = this.entities.get(event.attackerId);
-    attackerView?.showRecoil(
-      event.weapon === "rocket" ? 9 : event.weapon === "shotgun" ? 6 : 2.5,
-      event.weapon,
-    );
-    const muzzle = attackerView?.getMuzzlePosition() ?? {
-      x: event.x + vector.x * 25,
-      y: event.y + vector.y * 25 - 18,
+    const isLocalAttacker = event.attackerId === this.welcome.playerId;
+    if (!isLocalAttacker) {
+      attackerView?.showRecoil(
+        event.weapon === "rocket" ? 9 : event.weapon === "shotgun" ? 6 : 2.5,
+        event.weapon,
+      );
+    }
+    const muzzleOffset = WEAPON_MUZZLE_OFFSETS[event.weapon][event.direction];
+    const muzzle = {
+      x: event.x + muzzleOffset.x,
+      y: event.y + muzzleOffset.y,
     };
-    this.showMuzzleFlash(
-      muzzle.x,
-      muzzle.y,
-      event.weapon,
-      vector,
-    );
+    if (!isLocalAttacker) {
+      this.showMuzzleFlash(
+        muzzle.x,
+        muzzle.y,
+        event.weapon,
+        vector,
+      );
+    }
 
     if (event.weapon === "rocket") {
       return;
@@ -610,6 +622,30 @@ export class WorldScene extends Phaser.Scene {
         this.showImpactSpark(trace.endX, trace.endY - 40, color);
       }
     }
+  }
+
+  private showPredictedLocalAttack(
+    time: number,
+    input: InputPayload,
+    localEntity: PlayerView | undefined,
+  ): void {
+    if (!input.fire || !localEntity?.canAct()) {
+      return;
+    }
+    const weapon = input.weapon ?? this.selectedWeapon;
+    const cooldown = WEAPON_COOLDOWN_MS[weapon];
+    if (time - this.lastPredictedAttackAt < cooldown) {
+      return;
+    }
+    this.lastPredictedAttackAt = time;
+    const direction = localEntity.getAimDirection();
+    const vector = directionVector(direction);
+    const muzzle = localEntity.getMuzzlePosition();
+    localEntity.showRecoil(
+      weapon === "rocket" ? 9 : weapon === "shotgun" ? 6 : 2.5,
+      weapon,
+    );
+    this.showMuzzleFlash(muzzle.x, muzzle.y, weapon, vector);
   }
 
   private showMuzzleFlash(

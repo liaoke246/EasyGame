@@ -67,7 +67,6 @@ export class PlayerView {
   private readonly animation = new PlayerAnimationController();
   private currentFrame = "";
   private lastFootstepAt = 0;
-  private readonly equipState = { offset: 0 };
   private weaponSwitchVersion = 0;
 
   constructor(
@@ -286,13 +285,19 @@ export class PlayerView {
     this.previousRenderX = this.container.x;
     this.previousRenderY = this.container.y;
     const now = performance.now();
-    const moving = distanceMoved > 0.025;
     const velocityForFacingX = this.isLocal
       ? this.velocityX
       : this.serverVelocityX;
     const velocityForFacingY = this.isLocal
       ? this.velocityY
       : this.serverVelocityY;
+    const authoritativeSpeed = Math.hypot(
+      velocityForFacingX,
+      velocityForFacingY,
+    );
+    const renderedSpeed = distanceMoved / Math.max(deltaSeconds, 0.001);
+    const moving =
+      !this.respawning && authoritativeSpeed > 8 && renderedSpeed > 4;
     const followsVelocity =
       movementX * velocityForFacingX + movementY * velocityForFacingY >= 0;
     if (moving && followsVelocity) {
@@ -323,7 +328,6 @@ export class PlayerView {
       -vector.x * pose.recoil * 0.22,
       -52 +
         pose.bodyOffsetY +
-        this.equipState.offset -
         vector.y * pose.recoil * 0.22,
     );
     this.sprite.setAngle(0);
@@ -341,8 +345,8 @@ export class PlayerView {
         this.showFootstep();
       }
     }
-    this.shadow.setScale(pose.state === "walk" ? 0.985 : 1, 1);
-    this.shadow.setAlpha(pose.state === "walk" ? 0.285 : 0.3);
+    this.shadow.setScale(1);
+    this.shadow.setAlpha(0.3);
     this.container.setAlpha(this.respawning ? 0.24 : 1);
 
     const healthRatio = Phaser.Math.Clamp(
@@ -357,7 +361,6 @@ export class PlayerView {
   }
 
   destroy(): void {
-    this.scene.tweens.killTweensOf(this.equipState);
     this.scene.tweens.killTweensOf(this.sprite);
     this.container.destroy(true);
   }
@@ -370,18 +373,11 @@ export class PlayerView {
 
     this.weaponSwitchVersion += 1;
     const switchVersion = this.weaponSwitchVersion;
-    this.scene.tweens.killTweensOf(this.equipState);
     this.scene.tweens.killTweensOf(this.sprite);
     this.scene.tweens.add({
-      targets: this.equipState,
-      offset: 6,
-      duration: 85,
-      ease: "Quad.easeIn",
-    });
-    this.scene.tweens.add({
       targets: this.sprite,
-      alpha: 0.72,
-      duration: 85,
+      alpha: 0.78,
+      duration: 55,
       ease: "Quad.easeIn",
       onComplete: () => {
         if (switchVersion !== this.weaponSwitchVersion) {
@@ -390,15 +386,9 @@ export class PlayerView {
         this.weapon = this.desiredWeapon;
         this.currentFrame = "";
         this.scene.tweens.add({
-          targets: this.equipState,
-          offset: 0,
-          duration: 120,
-          ease: "Back.easeOut",
-        });
-        this.scene.tweens.add({
           targets: this.sprite,
           alpha: 1,
-          duration: 90,
+          duration: 75,
           ease: "Quad.easeOut",
         });
       },
@@ -411,6 +401,14 @@ export class PlayerView {
       x: this.container.x + offset.x + this.sprite.x,
       y: this.container.y + offset.y + (this.sprite.y + 52),
     };
+  }
+
+  getAimDirection(): Direction {
+    return this.direction;
+  }
+
+  canAct(): boolean {
+    return !this.respawning && this.health > 0;
   }
 
   setTriggerHeld(held: boolean): void {
@@ -433,12 +431,10 @@ export class PlayerView {
 
   private forceWeapon(weapon: WeaponId): void {
     this.weaponSwitchVersion += 1;
-    this.scene.tweens.killTweensOf(this.equipState);
     this.scene.tweens.killTweensOf(this.sprite);
     this.desiredWeapon = weapon;
     this.weapon = weapon;
     this.currentFrame = "";
-    this.equipState.offset = 0;
     this.sprite.setAlpha(1);
   }
 
