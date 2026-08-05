@@ -50,6 +50,18 @@ export async function getOrCreateIdentity(
   ) {
     const existing = identities.get(proposedToken);
     if (existing) {
+      const character = CHARACTER_OPTIONS.find(
+        (candidate) => candidate.characterId === existing.characterId,
+      );
+      if (
+        character &&
+        (existing.roleName !== character.roleName ||
+          existing.color !== character.color)
+      ) {
+        existing.roleName = character.roleName;
+        existing.color = character.color;
+        await persistIdentities();
+      }
       return existing;
     }
   }

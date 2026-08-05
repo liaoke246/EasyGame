@@ -15,6 +15,7 @@ export interface PlayerAnimationPose {
   state: "idle" | "walk" | "aim" | "recoil";
   direction: CardinalDirection;
   frame: number;
+  walkPhase: number;
   bodyOffsetY: number;
   recoil: number;
   contactPose: boolean;
@@ -62,6 +63,7 @@ export class PlayerAnimationController {
   ): PlayerAnimationPose {
     const locomotionFrame =
       Math.floor(this.walkDistance / WALK_PIXELS_PER_FRAME) % WALK_FRAME_COUNT;
+    const walkPhase = (this.walkDistance % WALK_CYCLE_PIXELS) / WALK_CYCLE_PIXELS;
     const sinceShot = now - this.firedAt;
     const recoilProgress = clamp(sinceShot / this.recoilDurationMs, 0, 1);
     const recoil = this.recoilStrength * (1 - recoilProgress) ** 2;
@@ -81,6 +83,7 @@ export class PlayerAnimationController {
         state: recoil > 0.08 ? "recoil" : "aim",
         direction: visualCardinalDirection(aimDirection),
         frame: moving ? locomotionFrame : 0,
+        walkPhase: moving ? walkPhase : 0,
         bodyOffsetY: walkBodyOffset - aimBlend * 0.25,
         recoil,
         contactPose: false,
@@ -92,6 +95,7 @@ export class PlayerAnimationController {
         state: "idle",
         direction: locomotionDirection,
         frame: 0,
+        walkPhase: 0,
         bodyOffsetY: 0,
         recoil: 0,
         contactPose: false,
@@ -103,6 +107,7 @@ export class PlayerAnimationController {
       state: "walk",
       direction: locomotionDirection,
       frame,
+      walkPhase,
       bodyOffsetY: walkBodyOffset,
       recoil: 0,
       contactPose: frame === 0 || frame === 2,

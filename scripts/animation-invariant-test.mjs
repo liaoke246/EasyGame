@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import {
   DIRECTION_VECTORS,
-  PLAYER_SPRITE_OFFSET_Y,
+  PLAYER_WEAPON_PIVOT_Y,
   WEAPON_COOLDOWN_MS,
+  WEAPON_MUZZLE_DISTANCES,
   cardinalDirectionFromVector,
+  directionAngleDegrees,
   directionFromAxes,
   weaponMuzzleOffset,
-  weaponOverlayAngleDegrees,
-  weaponVisualDirection,
 } from "../shared/dist/index.js";
 import { PlayerAnimationController } from "../client/src/player-animation.ts";
 
@@ -47,68 +47,70 @@ const aimPose = playerAnimation.sample(1_045, "right", "right", true);
 playerAnimation.fire(9, 190, 1_050);
 const recoilPose = playerAnimation.sample(1_060, "right", "right", true);
 assert.equal(walkPose.frame, 2);
-assert.equal(aimPose.frame, walkPose.frame, "Aiming must preserve the gait phase");
+assert.ok(walkPose.walkPhase >= 0 && walkPose.walkPhase < 1);
+assert.equal(aimPose.frame, walkPose.frame, "Aiming must preserve gait frame");
+assert.equal(aimPose.walkPhase, walkPose.walkPhase, "Aiming must preserve walk phase");
+assert.equal(recoilPose.frame, walkPose.frame, "Firing must preserve gait frame");
 assert.equal(
-  recoilPose.frame,
-  walkPose.frame,
-  "Firing must preserve the gait phase",
+  recoilPose.walkPhase,
+  walkPose.walkPhase,
+  "Firing must preserve walk phase",
 );
+
+const expectedAngles = {
+  up: -90,
+  "up-right": -45,
+  right: 0,
+  "down-right": 45,
+  down: 90,
+  "down-left": 135,
+  left: 180,
+  "up-left": -135,
+};
+
+for (const direction of directions) {
+  assert.equal(directionAngleDegrees(direction), expectedAngles[direction]);
+}
 
 for (const weapon of ["smg", "shotgun", "rocket"]) {
   for (const direction of directions) {
     const offset = weaponMuzzleOffset(weapon, direction);
     const facing = DIRECTION_VECTORS[direction];
-    const barrelFromOverlayCenter = {
+    const barrel = {
       x: offset.x,
-      y: offset.y - PLAYER_SPRITE_OFFSET_Y,
+      y: offset.y - PLAYER_WEAPON_PIVOT_Y,
     };
+    const forward = barrel.x * facing.x + barrel.y * facing.y;
+    const cross = barrel.x * facing.y - barrel.y * facing.x;
     assert.ok(Number.isFinite(offset.x) && Number.isFinite(offset.y));
     assert.ok(
-      barrelFromOverlayCenter.x * facing.x +
-        barrelFromOverlayCenter.y * facing.y >
-        7,
-      `${weapon} ${direction} muzzle must stay beyond the gun center`,
+      Math.abs(forward - WEAPON_MUZZLE_DISTANCES[weapon]) < 1e-9,
+      `${weapon} ${direction} muzzle distance must match the rendered barrel`,
+    );
+    assert.ok(
+      Math.abs(cross) < 1e-9,
+      `${weapon} ${direction} barrel and projectile must share one direction`,
     );
   }
 }
 
-assert.equal(weaponVisualDirection("up-right"), "right");
-assert.equal(weaponVisualDirection("down-left"), "left");
-assert.equal(weaponOverlayAngleDegrees("up-right"), -45);
-assert.equal(weaponOverlayAngleDegrees("down-right"), 45);
-assert.equal(weaponOverlayAngleDegrees("up-left"), 45);
-assert.equal(weaponOverlayAngleDegrees("down-left"), -45);
-
-const atlasSource = await readFile("client/src/game-atlas.ts", "utf8");
-assert.doesNotMatch(
-  atlasSource,
-  /HERO_WEAPON_WALK|heroWeaponWalkFrame|hero-.*-fire/,
-  "Weapons must not be baked into complete character models",
-);
-assert.match(atlasSource, /HERO_WALK_ATLAS_KEY/);
-assert.match(atlasSource, /WEAPON_OVERLAY_ATLAS_KEY/);
-assert.match(
-  atlasSource,
-  /easygame-hero-body-armless-v1/,
-  "The body layer must not contain a second pair of arms",
-);
+const blockModelSource = await readFile("client/src/block-character.ts", "utf8");
+assert.match(blockModelSource, /WEAPON_MUZZLE_DISTANCES/);
+assert.match(blockModelSource, /weaponMuzzleOffset/);
+assert.match(blockModelSource, /readonly weaponLayer/);
 
 const playerViewSource = await readFile("client/src/player-view.ts", "utf8");
+assert.match(playerViewSource, /BlockCharacterModel/);
+assert.match(playerViewSource, /this\.model\.getMuzzleLocal\(\)/);
 assert.doesNotMatch(
   playerViewSource,
-  /HERO_WEAPON|heroWeapon|targets:\s*this\.container,[\s\S]{0,160}scale[XY]/,
-  "Player actions must preserve one fixed-size character model",
+  /bodySprite|weaponSprite|HERO_|WEAPON_OVERLAY/,
+  "Player rendering must remain one procedural model with one weapon layer",
 );
-assert.match(
-  playerViewSource,
-  /weaponMuzzleOffset\(this\.weapon, this\.direction\)/,
-  "Predicted fire must use the shared barrel-tip transform",
-);
-assert.doesNotMatch(
-  playerViewSource,
-  /targets:\s*this\.bodySprite/,
-  "Weapon switching and recoil must never replace or tween the complete body",
-);
+
+const zombieViewSource = await readFile("client/src/zombie-view.ts", "utf8");
+assert.match(zombieViewSource, /BlockCharacterModel/);
+assert.doesNotMatch(zombieViewSource, /ZOMBIE_WALK|targets:\s*this\.container[\s\S]{0,160}scale[XY]/);
 
 const worldSceneSource = await readFile("client/src/world-scene.ts", "utf8");
 assert.match(
@@ -116,6 +118,8 @@ assert.match(
   /weaponMuzzleOffset\(event\.weapon, event\.direction\)/,
   "Network attack effects must use the shared barrel-tip transform",
 );
+assert.doesNotMatch(worldSceneSource, /game-atlas|\.load\.image|\.load\.spritesheet/);
+
 const serverWeaponSource = await readFile("server/src/weapons.ts", "utf8");
 assert.match(
   serverWeaponSource,
@@ -123,23 +127,12 @@ assert.match(
   "Authoritative hit tests must use the shared barrel-tip transform",
 );
 
-const zombieViewSource = await readFile("client/src/zombie-view.ts", "utf8");
-assert.doesNotMatch(
-  zombieViewSource,
-  /targets:\s*this\.container,[\s\S]{0,160}scale[XY]/,
-  "Zombie hit feedback must not resize the character model",
-);
-
-const runtimeAssets = await readdir("client/public/assets");
-assert.ok(runtimeAssets.includes("easygame-hero-body-armless-v1.webp"));
-assert.ok(runtimeAssets.includes("easygame-weapon-overlay-v2.webp"));
-assert.equal(runtimeAssets.includes("easygame-hero-walk-v3.webp"), false);
-assert.equal(
-  runtimeAssets.some((name) => /hero-(smg|shotgun|rocket)-walk/.test(name)),
-  false,
-  "Baked weapon/body walk sheets must stay out of the runtime bundle",
+await assert.rejects(
+  access("client/src/game-atlas.ts"),
+  undefined,
+  "The obsolete raster atlas registry must stay removed",
 );
 
 process.stdout.write(
-  "Animation invariants passed: stable body model, layered weapons, eight-way aim transforms, and shared barrel-tip geometry.\n",
+  "Animation invariants passed: procedural block characters, continuous gait, eight-way aim, and shared barrel-tip geometry.\n",
 );

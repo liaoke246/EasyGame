@@ -22,16 +22,16 @@ let game: Phaser.Game | undefined;
 
 enterButton.addEventListener("click", async () => {
   enterButton.disabled = true;
-  enterButton.textContent = "正在寻找山谷…";
+  enterButton.textContent = "正在进入危机区…";
   loginStatus.textContent = "连接游戏服务器";
   loadingPanel.classList.remove("is-hidden");
   loadingPanel.dataset.phase = "connecting";
-  setLoadingProgress(0.04, "连接山谷服务器", "正在建立实时连接…");
+  setLoadingProgress(0.04, "连接生存服务器", "正在建立实时连接…");
 
   try {
     const welcome = await network.connect();
     loadingPanel.dataset.phase = "loading";
-    setLoadingProgress(0.1, "准备游戏资源", "正在清点地图与角色贴图…");
+    setLoadingProgress(0.1, "准备战斗系统", "正在组装方块模型…");
     setText("#player-id", welcome.identity.displayId);
     setText("#player-role", welcome.identity.roleName);
     const portrait = requireElement<HTMLElement>("#player-portrait");
@@ -44,7 +44,7 @@ enterButton.addEventListener("click", async () => {
       parent: "game",
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: "#26392f",
+      backgroundColor: "#cdbb96",
       pixelArt: true,
       roundPixels: false,
       antialias: false,
@@ -66,7 +66,7 @@ enterButton.addEventListener("click", async () => {
           const overallProgress = 0.1 + progress * 0.9;
           setLoadingProgress(
             overallProgress,
-            progress >= 1 ? "正在进入山谷" : "载入游戏资源",
+            progress >= 1 ? "正在部署竞技场" : "构建游戏世界",
             describeAsset(fileKey),
           );
         },
@@ -75,7 +75,7 @@ enterButton.addEventListener("click", async () => {
         },
         onReady: () => {
           loadingPanel.dataset.phase = "ready";
-          setLoadingProgress(1, "准备完成", "欢迎来到苔原谷");
+          setLoadingProgress(1, "准备完成", "进入 BLOCK CRISIS");
           window.setTimeout(() => {
             loginScreen.classList.add("is-leaving");
             window.setTimeout(
@@ -131,21 +131,10 @@ function setLoadingProgress(
 
 function describeAsset(fileKey?: string): string {
   if (!fileKey) {
-    return "正在整理地图与动画…";
+    return "正在构建竞技场与动作系统…";
   }
   const labels: Record<string, string> = {
-    "easygame-atlas-v2": "载入武器与战斗特效…",
-    "easygame-environment-v2": "载入山谷建筑与景物…",
-    "easygame-hero-body-armless-v1": "载入角色步伐…",
-    "easygame-weapon-overlay-v2": "装配武器与持枪动作…",
-    "easygame-explosion-v3": "载入火箭爆炸特效…",
-    "easygame-zombie-walker-walk-v2": "载入行者步伐…",
-    "easygame-zombie-runner-walk-v2": "载入疾行者步伐…",
-    "easygame-zombie-brute-walk-v2": "载入巨尸步伐…",
-    "terrain-grass-v2": "铺设草地…",
-    "terrain-dirt-v2": "铺设道路…",
-    "terrain-wild-v2": "生长荒草…",
-    "terrain-soil-v2": "整理农田…",
+    "block-models": "组装方块角色、武器与竞技场…",
   };
-  return labels[fileKey] ?? "载入游戏资源…";
+  return labels[fileKey] ?? "构建游戏世界…";
 }

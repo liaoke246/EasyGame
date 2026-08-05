@@ -61,25 +61,25 @@ export const CHARACTER_OPTIONS: Array<
 > = [
   {
     characterId: "ranger",
-    roleName: "森林游侠",
+    roleName: "突击手",
     color: "#4c956c",
     displayId: "",
   },
   {
     characterId: "farmer",
-    roleName: "麦田农夫",
+    roleName: "守卫",
     color: "#d8a548",
     displayId: "",
   },
   {
     characterId: "herbalist",
-    roleName: "山谷药师",
+    roleName: "战地医师",
     color: "#8f6bb3",
     displayId: "",
   },
   {
     characterId: "smith",
-    roleName: "河畔铁匠",
+    roleName: "爆破手",
     color: "#c7654d",
     displayId: "",
   },

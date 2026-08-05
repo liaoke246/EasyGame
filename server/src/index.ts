@@ -115,7 +115,7 @@ io.on("connection", async (socket) => {
   socket.emit("snapshot", createSnapshot());
   io.emit("notification", {
     kind: "join",
-    text: `${identity.displayId} 来到了苔原谷`,
+    text: `${identity.displayId} 进入了竞技场`,
   });
 
   socket.on("input", (payload) => {
@@ -140,7 +140,7 @@ io.on("connection", async (socket) => {
     players.delete(socket.id);
     io.emit("notification", {
       kind: "leave",
-      text: `${player.displayId} 离开了苔原谷`,
+      text: `${player.displayId} 离开了竞技场`,
     });
   });
 });
