@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_ATLAS_KEY } from "./game-atlas";
 import type { PublicRocket } from "./types";
 
-const MAX_EXTRAPOLATION_SECONDS = 0.12;
+const MAX_EXTRAPOLATION_SECONDS = 0.16;
 
 export class RocketView {
   readonly image: Phaser.GameObjects.Image;
@@ -42,7 +42,7 @@ export class RocketView {
       (performance.now() - this.lastSnapshotAt) / 1_000,
       MAX_EXTRAPOLATION_SECONDS,
     );
-    const smoothing = 1 - Math.exp(-18 * deltaSeconds);
+    const smoothing = 1 - Math.exp(-22 * deltaSeconds);
     this.image.x = Phaser.Math.Linear(
       this.image.x,
       this.targetX + this.velocityX * age,

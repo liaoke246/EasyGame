@@ -2,6 +2,12 @@ import Phaser from "phaser";
 import type { Direction, WeaponId, ZombieKind } from "./types";
 
 export const GAME_ATLAS_KEY = "easygame-atlas-v1";
+export const ENVIRONMENT_ATLAS_KEY = "easygame-environment-v1";
+export const HERO_WALK_ATLAS_KEY = "easygame-hero-walk-v1";
+export const TERRAIN_GRASS_KEY = "terrain-grass-v1";
+export const TERRAIN_DIRT_KEY = "terrain-dirt-v1";
+export const TERRAIN_WILD_KEY = "terrain-wild-v1";
+export const TERRAIN_SOIL_KEY = "terrain-soil-v1";
 
 const FRAMES: Record<string, [number, number, number, number]> = {
   "hero-down": [70, 55, 240, 300],
@@ -23,8 +29,39 @@ const FRAMES: Record<string, [number, number, number, number]> = {
   "explosion-5": [1010, 910, 235, 265],
 };
 
+const ENVIRONMENT_FRAMES: Record<string, [number, number, number, number]> = {
+  "ground-grass": [18, 18, 290, 290],
+  "ground-dirt": [327, 18, 291, 290],
+  "ground-wild": [636, 18, 291, 290],
+  "ground-soil": [946, 18, 290, 290],
+  "prop-oak": [18, 315, 292, 315],
+  "prop-pine": [327, 315, 291, 315],
+  "prop-rock": [636, 315, 291, 315],
+  "prop-stump": [946, 315, 290, 315],
+  "prop-cabin": [18, 625, 292, 335],
+  "prop-cabin-side": [327, 625, 291, 335],
+  "prop-garden": [636, 625, 291, 335],
+  "prop-pond": [946, 625, 290, 335],
+  "prop-fence": [18, 950, 292, 286],
+  "prop-crates": [327, 950, 291, 286],
+  "prop-flowers": [636, 950, 291, 286],
+  "prop-lantern": [946, 950, 290, 286],
+};
+
 export function preloadGameAtlas(scene: Phaser.Scene): void {
   scene.load.image(GAME_ATLAS_KEY, "/assets/easygame-atlas-v1.png");
+  scene.load.image(
+    ENVIRONMENT_ATLAS_KEY,
+    "/assets/easygame-environment-v1.png",
+  );
+  scene.load.image(
+    HERO_WALK_ATLAS_KEY,
+    "/assets/easygame-hero-walk-v1.png",
+  );
+  scene.load.image(TERRAIN_GRASS_KEY, "/assets/terrain-grass-v1.webp");
+  scene.load.image(TERRAIN_DIRT_KEY, "/assets/terrain-dirt-v1.webp");
+  scene.load.image(TERRAIN_WILD_KEY, "/assets/terrain-wild-v1.webp");
+  scene.load.image(TERRAIN_SOIL_KEY, "/assets/terrain-soil-v1.webp");
 }
 
 export function registerGameAtlasFrames(scene: Phaser.Scene): void {
@@ -34,10 +71,42 @@ export function registerGameAtlasFrames(scene: Phaser.Scene): void {
       texture.add(name, 0, x, y, width, height);
     }
   }
+
+  const environment = scene.textures.get(ENVIRONMENT_ATLAS_KEY);
+  for (const [name, [x, y, width, height]] of Object.entries(
+    ENVIRONMENT_FRAMES,
+  )) {
+    if (!environment.has(name)) {
+      environment.add(name, 0, x, y, width, height);
+    }
+  }
+
+  const walk = scene.textures.get(HERO_WALK_ATLAS_KEY);
+  const cellBounds = [0, 314, 627, 941, 1254];
+  const directions: Direction[] = ["down", "up", "right", "left"];
+  directions.forEach((direction, row) => {
+    for (let frame = 0; frame < 4; frame += 1) {
+      const name = heroWalkFrame(direction, frame);
+      if (!walk.has(name)) {
+        walk.add(
+          name,
+          0,
+          cellBounds[frame],
+          cellBounds[row],
+          cellBounds[frame + 1] - cellBounds[frame],
+          cellBounds[row + 1] - cellBounds[row],
+        );
+      }
+    }
+  });
 }
 
 export function heroFrame(direction: Direction): string {
   return `hero-${direction}`;
+}
+
+export function heroWalkFrame(direction: Direction, frame: number): string {
+  return `hero-walk-${direction}-${frame % 4}`;
 }
 
 export function zombieFrame(kind: ZombieKind): string {

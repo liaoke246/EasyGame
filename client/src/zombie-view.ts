@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_ATLAS_KEY, zombieFrame } from "./game-atlas";
 import type { Direction, PublicZombie, ZombieKind } from "./types";
 
-const MAX_EXTRAPOLATION_SECONDS = 0.12;
+const MAX_EXTRAPOLATION_SECONDS = 0.16;
 
 export class ZombieView {
   readonly container: Phaser.GameObjects.Container;
@@ -76,7 +76,7 @@ export class ZombieView {
       (performance.now() - this.lastSnapshotAt) / 1_000,
       MAX_EXTRAPOLATION_SECONDS,
     );
-    const smoothing = 1 - Math.exp(-12 * deltaSeconds);
+    const smoothing = 1 - Math.exp(-16 * deltaSeconds);
     this.container.x = Phaser.Math.Linear(
       this.container.x,
       this.targetX + this.velocityX * age,
@@ -89,9 +89,12 @@ export class ZombieView {
     );
     this.container.setDepth(Math.round(this.container.y));
     const moving = Math.hypot(this.velocityX, this.velocityY) > 1;
+    const stepWave = moving ? Math.sin(time / 88) : 0;
     this.sprite.y =
       (this.kind === "brute" ? -38 : -32) +
-      (moving ? Math.sin(time / 105) * 1.2 : 0);
+      stepWave * (this.kind === "runner" ? 2 : 1.25);
+    this.sprite.x = stepWave * (this.kind === "brute" ? 0.7 : 1.25);
+    this.sprite.setAngle(stepWave * (this.kind === "runner" ? 2.2 : 1.2));
     this.sprite.setTexture(GAME_ATLAS_KEY, zombieFrame(this.kind));
     this.sprite.setFlipX(this.direction === "left");
     this.healthFill.width =
