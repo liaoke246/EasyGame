@@ -1,0 +1,103 @@
+name: Deploy EasyGame Unity Preview
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: easygame-unity-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Cache Unity Library
+        uses: actions/cache@v5
+        with:
+          path: unity-client/Library
+          key: unity-6000.3.21f1-${{ hashFiles('unity-client/Assets/**', 'unity-client/Packages/**', 'unity-client/ProjectSettings/**') }}
+          restore-keys: |
+            unity-6000.3.21f1-
+
+      - name: Build Unity WebGL client
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: unity-client
+          unityVersion: 6000.3.21f1
+          targetPlatform: WebGL
+          buildMethod: EasyGame.Editor.WebBuild.BuildCommandLine
+          customParameters: -buildOutput /github/workspace/build/unity-webgl
+          allowDirtyBuild: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Build authoritative server
+        run: |
+          npm ci
+          npm run build -w shared
+          npm run build -w server
+
+      - name: Assemble Unity release
+        run: |
+          rm -rf client/dist
+          mkdir -p client/dist
+          cp -a build/unity-webgl/. client/dist/
+          npm run test:unity
+          npm run test:smoke
+
+      - name: Package release
+        run: |
+          tar -czf "easygame-${GITHUB_SHA}.tar.gz" \
+            package.json package-lock.json \
+            client/package.json client/dist \
+            server/package.json server/dist \
+            shared/package.json shared/dist
+
+      - name: Configure SSH
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_HOST_KEY: ${{ secrets.SERVER_HOST_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/easygame
+          chmod 600 ~/.ssh/easygame
+          printf '%s\n' "$SERVER_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          scp -i ~/.ssh/easygame -P "$SERVER_PORT" \
+            "easygame-${GITHUB_SHA}.tar.gz" \
+            "$SERVER_USER@$SERVER_HOST:/tmp/easygame-${GITHUB_SHA}.tar.gz"
+
+      - name: Activate release
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/easygame -p "$SERVER_PORT" \
+            "$SERVER_USER@$SERVER_HOST" \
+            "bash -s -- '$GITHUB_SHA' '/tmp/easygame-$GITHUB_SHA.tar.gz'" \
+            < scripts/deploy-server.sh
