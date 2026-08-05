@@ -321,6 +321,87 @@ button {
   opacity: 0.78;
 }
 
+.loading-panel {
+  margin-top: 18px;
+  padding: 13px 14px 12px;
+  text-align: left;
+  border: 1px solid rgba(235, 204, 121, 0.2);
+  border-radius: 3px;
+  background: rgba(12, 29, 20, 0.48);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.08);
+}
+
+.loading-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #e8dcae;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.loading-copy strong {
+  color: #f1ca69;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+}
+
+.loading-track {
+  height: 8px;
+  padding: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(233, 209, 143, 0.22);
+  background: #13251a;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.loading-track span {
+  position: relative;
+  display: block;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(90deg, #73975e, #edc765 72%, #fff0ad);
+  box-shadow: 0 0 10px rgba(236, 199, 101, 0.35);
+  transition: width 180ms ease-out;
+}
+
+.loading-track span::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: loading-shimmer 1.15s linear infinite;
+}
+
+.loading-panel small {
+  display: block;
+  min-height: 14px;
+  margin-top: 7px;
+  overflow: hidden;
+  color: #8fa389;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading-panel[data-phase="ready"] .loading-track span {
+  background: linear-gradient(90deg, #7cab66, #f0cf79);
+}
+
+@keyframes loading-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 .login-status {
   min-height: 16px;
   margin: 14px 0 0;

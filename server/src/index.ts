@@ -72,6 +72,13 @@ const packageRoot = path.resolve(
 const clientDistribution = path.resolve(packageRoot, "../client/dist");
 
 if (existsSync(clientDistribution)) {
+  app.use(
+    "/assets",
+    express.static(path.join(clientDistribution, "assets"), {
+      immutable: true,
+      maxAge: "1y",
+    }),
+  );
   app.use(express.static(clientDistribution));
   app.get("*", (request, response, next) => {
     if (request.path.startsWith("/socket.io")) {
