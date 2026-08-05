@@ -98,6 +98,21 @@ const blockModelSource = await readFile("client/src/block-character.ts", "utf8")
 assert.match(blockModelSource, /WEAPON_MUZZLE_DISTANCES/);
 assert.match(blockModelSource, /weaponMuzzleOffset/);
 assert.match(blockModelSource, /readonly weaponLayer/);
+assert.match(
+  blockModelSource,
+  /Phaser\.GameObjects\.Polygon/,
+  "Characters must retain separate pseudo-3D top and side planes",
+);
+assert.match(
+  blockModelSource,
+  /moveTo\(this\.weaponLayer, 1\)/,
+  "Upward aiming must move the weapon behind the body",
+);
+assert.match(
+  blockModelSource,
+  /bringToTop\(this\.weaponLayer\)/,
+  "Forward aiming must move the weapon in front of the body",
+);
 
 const playerViewSource = await readFile("client/src/player-view.ts", "utf8");
 assert.match(playerViewSource, /BlockCharacterModel/);
@@ -119,6 +134,9 @@ assert.match(
   "Network attack effects must use the shared barrel-tip transform",
 );
 assert.doesNotMatch(worldSceneSource, /game-atlas|\.load\.image|\.load\.spritesheet/);
+assert.match(worldSceneSource, /drawGroundPatches/);
+assert.match(worldSceneSource, /drawArenaBarrel/);
+assert.match(worldSceneSource, /fillPoints/);
 
 const serverWeaponSource = await readFile("server/src/weapons.ts", "utf8");
 assert.match(

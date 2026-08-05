@@ -83,7 +83,7 @@ export class PlayerView {
     });
     this.model.setWeapon(state.weapon);
     this.nameLabel = scene.add
-      .text(0, -98, state.displayId, {
+      .text(0, -107, state.displayId, {
         fontFamily: '"Microsoft YaHei", sans-serif',
         fontSize: "12px",
         color: isLocal ? "#fff5c7" : "#ffffff",
@@ -92,7 +92,7 @@ export class PlayerView {
       })
       .setOrigin(0.5, 0.5);
     this.roleLabel = scene.add
-      .text(0, -85, state.roleName, {
+      .text(0, -94, state.roleName, {
         fontFamily: '"Microsoft YaHei", sans-serif',
         fontSize: "9px",
         color: "#dce8cf",
@@ -101,10 +101,10 @@ export class PlayerView {
       })
       .setOrigin(0.5, 0.5);
     this.healthTrack = scene.add
-      .rectangle(-18, -74, 36, 5, 0x252525, 0.9)
+      .rectangle(-18, -83, 36, 5, 0x252525, 0.9)
       .setOrigin(0, 0.5);
     this.healthFill = scene.add
-      .rectangle(-17, -74, 34, 3, 0x69c45e)
+      .rectangle(-17, -83, 34, 3, 0x69c45e)
       .setOrigin(0, 0.5);
 
     this.container = scene.add.container(state.x, state.y, [
@@ -117,7 +117,7 @@ export class PlayerView {
 
     if (isLocal) {
       const marker = scene.add
-        .triangle(0, -110, 0, 0, 9, 0, 4.5, 7, 0xffd04d)
+        .triangle(0, -120, 0, 0, 9, 0, 4.5, 7, 0xffd04d)
         .setOrigin(0.5);
       this.container.add(marker);
     }
