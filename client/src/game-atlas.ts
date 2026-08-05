@@ -7,7 +7,7 @@ import type {
 
 export const GAME_ATLAS_KEY = "easygame-atlas-v2";
 export const ENVIRONMENT_ATLAS_KEY = "easygame-environment-v2";
-export const HERO_WALK_ATLAS_KEY = "easygame-hero-walk-v3";
+export const HERO_WALK_ATLAS_KEY = "easygame-hero-body-armless-v1";
 export const WEAPON_OVERLAY_ATLAS_KEY = "easygame-weapon-overlay-v2";
 export const EXPLOSION_ATLAS_KEY = "easygame-explosion-v3";
 export const ZOMBIE_WALK_ATLAS_KEYS: Record<ZombieKind, string> = {
@@ -59,7 +59,10 @@ export function preloadGameAtlas(scene: Phaser.Scene): void {
     EXPLOSION_ATLAS_KEY,
     "/assets/easygame-explosion-v3.webp",
   );
-  scene.load.image(HERO_WALK_ATLAS_KEY, "/assets/easygame-hero-walk-v3.webp");
+  scene.load.image(
+    HERO_WALK_ATLAS_KEY,
+    "/assets/easygame-hero-body-armless-v1.webp",
+  );
   scene.load.image(
     WEAPON_OVERLAY_ATLAS_KEY,
     "/assets/easygame-weapon-overlay-v2.webp",

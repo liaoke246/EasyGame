@@ -10,7 +10,7 @@ OUTPUT = ROOT / "client" / "public" / "assets"
 PROCESSED = ROOT / "art" / "processed"
 GAME_ATLAS = PROCESSED / "easygame-atlas-alpha-v1.png"
 ENVIRONMENT_ATLAS = PROCESSED / "easygame-environment-alpha-v1.png"
-HERO_WALK_ATLAS = PROCESSED / "easygame-hero-walk-alpha-v3.png"
+HERO_WALK_ATLAS = PROCESSED / "easygame-hero-body-armless-alpha-v1.png"
 WEAPON_OVERLAY_ATLAS = PROCESSED / "easygame-weapon-overlay-alpha-v2.png"
 EXPLOSION_ATLAS = PROCESSED / "easygame-explosion-alpha-v3.png"
 ZOMBIE_WALK_ATLASES = {
@@ -373,7 +373,7 @@ def main() -> None:
         Image.open(HERO_WALK_ATLAS).convert("RGBA"),
         [86, 86, 88, 88],
     )
-    save_runtime_webp(hero_walk, "easygame-hero-walk-v3.webp", 92)
+    save_runtime_webp(hero_walk, "easygame-hero-body-armless-v1.webp", 92)
 
     weapon_overlay = build_weapon_overlay_atlas(
         Image.open(WEAPON_OVERLAY_ATLAS).convert("RGBA")
