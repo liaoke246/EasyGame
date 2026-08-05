@@ -1,10 +1,24 @@
 import Phaser from "phaser";
-import type { Direction, WeaponId, ZombieKind } from "./types";
+import type {
+  CardinalDirection,
+  Direction,
+  WeaponId,
+  ZombieKind,
+} from "./types";
 
 export const GAME_ATLAS_KEY = "easygame-atlas-v2";
 export const ENVIRONMENT_ATLAS_KEY = "easygame-environment-v2";
-export const HERO_WALK_ATLAS_KEY = "easygame-hero-walk-v3";
-export const WEAPON_OVERLAY_ATLAS_KEY = "easygame-weapon-overlay-v2";
+export const HERO_WEAPON_WALK_ATLAS_KEYS: Record<WeaponId, string> = {
+  smg: "easygame-hero-smg-walk-v4",
+  shotgun: "easygame-hero-shotgun-walk-v4",
+  rocket: "easygame-hero-rocket-walk-v4",
+};
+export const HERO_WEAPON_FIRE_ATLAS_KEYS: Record<WeaponId, string> = {
+  smg: "easygame-hero-smg-fire-v1",
+  shotgun: "easygame-hero-shotgun-fire-v1",
+  rocket: "easygame-hero-rocket-fire-v1",
+};
+export const EXPLOSION_ATLAS_KEY = "easygame-explosion-v3";
 export const ZOMBIE_WALK_ATLAS_KEYS: Record<ZombieKind, string> = {
   walker: "easygame-zombie-walker-walk-v2",
   runner: "easygame-zombie-runner-walk-v2",
@@ -51,13 +65,15 @@ export function preloadGameAtlas(scene: Phaser.Scene): void {
     "/assets/easygame-environment-v2.webp",
   );
   scene.load.image(
-    HERO_WALK_ATLAS_KEY,
-    "/assets/easygame-hero-walk-v3.webp",
+    EXPLOSION_ATLAS_KEY,
+    "/assets/easygame-explosion-v3.webp",
   );
-  scene.load.image(
-    WEAPON_OVERLAY_ATLAS_KEY,
-    "/assets/easygame-weapon-overlay-v2.webp",
-  );
+  for (const [weapon, key] of Object.entries(HERO_WEAPON_WALK_ATLAS_KEYS)) {
+    scene.load.image(key, `/assets/easygame-hero-${weapon}-walk-v4.webp`);
+  }
+  for (const [weapon, key] of Object.entries(HERO_WEAPON_FIRE_ATLAS_KEYS)) {
+    scene.load.image(key, `/assets/easygame-hero-${weapon}-fire-v1.webp`);
+  }
   for (const [kind, key] of Object.entries(ZOMBIE_WALK_ATLAS_KEYS)) {
     scene.load.image(key, `/assets/easygame-zombie-${kind}-walk-v2.webp`);
   }
@@ -84,24 +100,74 @@ export function registerGameAtlasFrames(scene: Phaser.Scene): void {
     }
   }
 
-  const walk = scene.textures.get(HERO_WALK_ATLAS_KEY);
   const cellSize = 128;
-  const directions: Direction[] = ["down", "up", "right", "left"];
-  directions.forEach((direction, row) => {
-    for (let frame = 0; frame < 4; frame += 1) {
-      const name = heroWalkFrame(direction, frame);
-      if (!walk.has(name)) {
-        walk.add(
-          name,
-          0,
-          frame * cellSize,
-          row * cellSize,
-          cellSize,
-          cellSize,
-        );
+  const directions: CardinalDirection[] = ["down", "up", "right", "left"];
+  for (const [weapon, key] of Object.entries(
+    HERO_WEAPON_WALK_ATLAS_KEYS,
+  ) as Array<[WeaponId, string]>) {
+    const walk = scene.textures.get(key);
+    directions.forEach((direction, row) => {
+      for (let frame = 0; frame < 8; frame += 1) {
+        const name = heroWeaponWalkFrame(weapon, direction, frame);
+        if (!walk.has(name)) {
+          walk.add(
+            name,
+            0,
+            frame * cellSize,
+            row * cellSize,
+            cellSize,
+            cellSize,
+          );
+        }
       }
+    });
+  }
+
+  const aimDirections: Direction[] = [
+    "down",
+    "down-right",
+    "right",
+    "up-right",
+    "up",
+    "up-left",
+    "left",
+    "down-left",
+  ];
+  for (const [weapon, key] of Object.entries(
+    HERO_WEAPON_FIRE_ATLAS_KEYS,
+  ) as Array<[WeaponId, string]>) {
+    const fire = scene.textures.get(key);
+    for (let phase = 0; phase < 6; phase += 1) {
+      aimDirections.forEach((direction, column) => {
+        const name = heroWeaponFireFrame(weapon, direction, phase);
+        if (!fire.has(name)) {
+          fire.add(
+            name,
+            0,
+            column * cellSize,
+            phase * cellSize,
+            cellSize,
+            cellSize,
+          );
+        }
+      });
     }
-  });
+  }
+
+  const explosion = scene.textures.get(EXPLOSION_ATLAS_KEY);
+  for (let frame = 0; frame < 12; frame += 1) {
+    const name = explosionFrame(frame);
+    if (!explosion.has(name)) {
+      explosion.add(
+        name,
+        0,
+        (frame % 4) * 192,
+        Math.floor(frame / 4) * 192,
+        192,
+        192,
+      );
+    }
+  }
 
   for (const [kind, key] of Object.entries(ZOMBIE_WALK_ATLAS_KEYS) as Array<
     [ZombieKind, string]
@@ -124,44 +190,32 @@ export function registerGameAtlasFrames(scene: Phaser.Scene): void {
     });
   }
 
-  const weaponOverlay = scene.textures.get(WEAPON_OVERLAY_ATLAS_KEY);
-  const weapons: WeaponId[] = ["smg", "shotgun", "rocket"];
-  weapons.forEach((weapon, row) => {
-    directions.forEach((direction, column) => {
-      const name = weaponOverlayFrame(weapon, direction);
-      if (!weaponOverlay.has(name)) {
-        weaponOverlay.add(
-          name,
-          0,
-          column * cellSize,
-          row * cellSize,
-          cellSize,
-          cellSize,
-        );
-      }
-    });
-  });
 }
 
-export function heroWalkFrame(direction: Direction, frame: number): string {
-  return `hero-walk-${direction}-${frame % 4}`;
+export function heroWeaponWalkFrame(
+  weapon: WeaponId,
+  direction: CardinalDirection,
+  frame: number,
+): string {
+  return `hero-${weapon}-walk-${direction}-${frame % 8}`;
+}
+
+export function heroWeaponFireFrame(
+  weapon: WeaponId,
+  direction: Direction,
+  phase: number,
+): string {
+  return `hero-${weapon}-fire-${direction}-${phase % 6}`;
 }
 
 export function zombieWalkFrame(
   kind: ZombieKind,
-  direction: Direction,
+  direction: CardinalDirection,
   frame: number,
 ): string {
   return `zombie-walk-${kind}-${direction}-${frame % 4}`;
 }
 
-export function weaponOverlayFrame(
-  weapon: WeaponId,
-  direction: Direction,
-): string {
-  return `weapon-overlay-${weapon}-${direction}`;
-}
-
 export function explosionFrame(index: number): string {
-  return `explosion-${Phaser.Math.Clamp(index, 0, 5)}`;
+  return `explosion-v3-${Phaser.Math.Clamp(index, 0, 11)}`;
 }

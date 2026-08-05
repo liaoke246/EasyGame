@@ -217,10 +217,37 @@ async function runMultiplayerCheck() {
       throw new Error("Rocket collision did not produce an explosion event");
     }
 
+    await delay(140);
+    const diagonalFirePromise = waitForEvent(
+      first,
+      "attack",
+      (event) => event.weapon === "smg" && event.phase === "fire",
+    );
+    first.emit("input", {
+      up: true,
+      down: false,
+      left: false,
+      right: true,
+      fire: true,
+      weapon: "smg",
+    });
+    const diagonalFire = await diagonalFirePromise;
+    first.emit("input", {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      fire: false,
+      weapon: "smg",
+    });
+    if (diagonalFire.direction !== "up-right") {
+      throw new Error("Diagonal input did not produce a 45-degree shot");
+    }
+
     process.stdout.write(
       `Smoke test passed: two players synchronized; movement ${initialPlayer.x.toFixed(
         1,
-      )} → ${movedPlayer.x.toFixed(1)}; zombies and all three weapons synchronized.\n`,
+      )} → ${movedPlayer.x.toFixed(1)}; zombies, all three weapons, and 45-degree fire synchronized.\n`,
     );
   } finally {
     first.disconnect();

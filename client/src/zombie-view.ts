@@ -3,7 +3,7 @@ import {
   ZOMBIE_WALK_ATLAS_KEYS,
   zombieWalkFrame,
 } from "./game-atlas";
-import type { Direction, PublicZombie, ZombieKind } from "./types";
+import type { CardinalDirection, PublicZombie, ZombieKind } from "./types";
 
 const MAX_EXTRAPOLATION_SECONDS = 0.16;
 
@@ -12,7 +12,7 @@ export class ZombieView {
   private readonly sprite: Phaser.GameObjects.Image;
   private readonly healthFill: Phaser.GameObjects.Rectangle;
   private kind: ZombieKind;
-  private direction: Direction;
+  private direction: CardinalDirection;
   private targetX: number;
   private targetY: number;
   private velocityX = 0;

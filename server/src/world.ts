@@ -183,6 +183,14 @@ export function directionVector(direction: Direction): {
       return { x: -1, y: 0 };
     case "right":
       return { x: 1, y: 0 };
+    case "up-left":
+      return { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
+    case "up-right":
+      return { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
+    case "down-left":
+      return { x: -Math.SQRT1_2, y: Math.SQRT1_2 };
+    case "down-right":
+      return { x: Math.SQRT1_2, y: Math.SQRT1_2 };
   }
 }
 
@@ -233,7 +241,11 @@ export function updatePlayerMovement(
   }
 
   if (xAxis !== 0 || yAxis !== 0) {
-    if (Math.abs(xAxis) > Math.abs(yAxis)) {
+    if (xAxis !== 0 && yAxis !== 0) {
+      player.direction = `${yAxis > 0 ? "down" : "up"}-${
+        xAxis > 0 ? "right" : "left"
+      }` as Direction;
+    } else if (Math.abs(xAxis) > Math.abs(yAxis)) {
       player.direction = xAxis > 0 ? "right" : "left";
     } else {
       player.direction = yAxis > 0 ? "down" : "up";

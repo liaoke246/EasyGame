@@ -1,11 +1,12 @@
 import Phaser from "phaser";
 import {
-  HERO_WALK_ATLAS_KEY,
-  WEAPON_OVERLAY_ATLAS_KEY,
-  heroWalkFrame,
-  weaponOverlayFrame,
+  HERO_WEAPON_FIRE_ATLAS_KEYS,
+  HERO_WEAPON_WALK_ATLAS_KEYS,
+  heroWeaponFireFrame,
+  heroWeaponWalkFrame,
 } from "./game-atlas";
 import type {
+  CardinalDirection,
   Direction,
   InputPayload,
   Obstacle,
@@ -30,7 +31,7 @@ const MAX_EXTRAPOLATION_SECONDS = 0.14;
 const LOCAL_SNAP_DISTANCE = 170;
 const LOCAL_MOVING_CORRECTION_RADIUS = 44;
 const LOCAL_IDLE_CORRECTION_RADIUS = 1.5;
-const PLAYER_PIXELS_PER_WALK_FRAME = 25;
+const PLAYER_PIXELS_PER_WALK_FRAME = 12.5;
 
 const MUZZLE_OFFSETS: Record<
   WeaponId,
@@ -38,21 +39,33 @@ const MUZZLE_OFFSETS: Record<
 > = {
   smg: {
     down: { x: 10, y: -8 },
+    "down-right": { x: 31, y: -19 },
     up: { x: 0, y: -78 },
+    "up-right": { x: 31, y: -67 },
+    "up-left": { x: -31, y: -67 },
     right: { x: 38, y: -40 },
     left: { x: -38, y: -40 },
+    "down-left": { x: -31, y: -19 },
   },
   shotgun: {
     down: { x: 0, y: -6 },
+    "down-right": { x: 38, y: -17 },
     up: { x: 0, y: -91 },
+    "up-right": { x: 38, y: -73 },
+    "up-left": { x: -38, y: -73 },
     right: { x: 44, y: -40 },
     left: { x: -44, y: -40 },
+    "down-left": { x: -38, y: -17 },
   },
   rocket: {
     down: { x: 0, y: -18 },
+    "down-right": { x: 45, y: -27 },
     up: { x: 0, y: -91 },
+    "up-right": { x: 45, y: -73 },
+    "up-left": { x: -45, y: -73 },
     right: { x: 56, y: -42 },
     left: { x: -56, y: -42 },
+    "down-left": { x: -45, y: -27 },
   },
 };
 
@@ -60,7 +73,6 @@ export class PlayerView {
   readonly container: Phaser.GameObjects.Container;
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly sprite: Phaser.GameObjects.Image;
-  private readonly weaponSprite: Phaser.GameObjects.Image;
   private readonly nameLabel: Phaser.GameObjects.Text;
   private readonly roleLabel: Phaser.GameObjects.Text;
   private readonly healthTrack: Phaser.GameObjects.Rectangle;
@@ -86,11 +98,15 @@ export class PlayerView {
   private walkDistance = 0;
   private motionBlend = 0;
   private currentFrame = "";
-  private currentWeaponFrame = "";
   private lastFootstepAt = 0;
   private readonly recoilState = { amount: 0 };
   private readonly equipState = { offset: 0 };
   private weaponSwitchVersion = 0;
+  private triggerHeld = false;
+  private aimStartedAt = Number.NEGATIVE_INFINITY;
+  private firedAt = Number.NEGATIVE_INFINITY;
+  private releaseStartedAt = Number.NEGATIVE_INFINITY;
+  private attackWeapon: WeaponId | undefined;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -109,19 +125,10 @@ export class PlayerView {
     this.sprite = scene.add.image(
       0,
       -52,
-      HERO_WALK_ATLAS_KEY,
-      heroWalkFrame(state.direction, 0),
+      HERO_WEAPON_WALK_ATLAS_KEYS[state.weapon],
+      heroWeaponWalkFrame(state.weapon, walkDirection(state.direction), 0),
     );
     this.sprite.setOrigin(0.5, 0.5).setDisplaySize(128, 128);
-    this.weaponSprite = scene.add
-      .image(
-        0,
-        -52,
-        WEAPON_OVERLAY_ATLAS_KEY,
-        weaponOverlayFrame(state.weapon, state.direction),
-      )
-      .setOrigin(0.5, 0.5)
-      .setDisplaySize(128, 128);
     this.nameLabel = scene.add
       .text(0, -104, state.displayId, {
         fontFamily: '"Microsoft YaHei", sans-serif',
@@ -150,7 +157,6 @@ export class PlayerView {
     this.container = scene.add.container(state.x, state.y, [
       this.shadow,
       this.sprite,
-      this.weaponSprite,
       this.healthTrack,
       this.healthFill,
       this.roleLabel,
@@ -325,29 +331,51 @@ export class PlayerView {
       1 - Math.exp(-18 * deltaSeconds),
     );
     const walkFrame = moving
-      ? Math.floor(this.walkDistance / PLAYER_PIXELS_PER_WALK_FRAME) % 4
+      ? Math.floor(this.walkDistance / PLAYER_PIXELS_PER_WALK_FRAME) % 8
       : 0;
-    const passingPose = walkFrame === 1 || walkFrame === 3;
-    const bodyBob = moving && passingPose ? -0.8 * this.motionBlend : 0;
-    this.sprite.setPosition(0, -52 + bodyBob);
+    const passingPose = [1, 3, 5, 7].includes(walkFrame);
+    const bodyBob = moving && passingPose ? -0.55 * this.motionBlend : 0;
+    const now = performance.now();
+    const actionPhase = this.actionPhase(now);
+    const renderedWeapon = this.attackWeapon ?? this.weapon;
+    const textureKey =
+      actionPhase === undefined
+        ? HERO_WEAPON_WALK_ATLAS_KEYS[this.weapon]
+        : HERO_WEAPON_FIRE_ATLAS_KEYS[renderedWeapon];
+    const nextFrame =
+      actionPhase === undefined
+        ? heroWeaponWalkFrame(
+            this.weapon,
+            walkDirection(this.direction),
+            walkFrame,
+          )
+        : heroWeaponFireFrame(renderedWeapon, this.direction, actionPhase);
+    const vector = directionVector(this.direction);
+    this.sprite.setPosition(
+      -vector.x * this.recoilState.amount * 0.22,
+      -52 +
+        bodyBob +
+        this.equipState.offset -
+        vector.y * this.recoilState.amount * 0.22,
+    );
     this.sprite.setAngle(0);
-    const nextFrame = heroWalkFrame(this.direction, walkFrame);
-    if (nextFrame !== this.currentFrame) {
-      this.currentFrame = nextFrame;
-      this.sprite.setTexture(HERO_WALK_ATLAS_KEY, nextFrame);
+    const frameKey = `${textureKey}:${nextFrame}`;
+    if (frameKey !== this.currentFrame) {
+      this.currentFrame = frameKey;
+      this.sprite.setTexture(textureKey, nextFrame);
       if (
+        actionPhase === undefined &&
         this.isLocal &&
         moving &&
-        (walkFrame === 0 || walkFrame === 2) &&
-        performance.now() - this.lastFootstepAt > 180
+        (walkFrame === 0 || walkFrame === 4) &&
+        now - this.lastFootstepAt > 165
       ) {
-        this.lastFootstepAt = performance.now();
+        this.lastFootstepAt = now;
         this.showFootstep();
       }
     }
     this.shadow.setScale(passingPose ? 0.97 : 1, 1);
     this.shadow.setAlpha(passingPose ? 0.275 : 0.3);
-    this.updateWeaponSprite(bodyBob);
     this.container.setAlpha(this.respawning ? 0.24 : 1);
 
     const healthRatio = Phaser.Math.Clamp(
@@ -364,20 +392,20 @@ export class PlayerView {
   destroy(): void {
     this.scene.tweens.killTweensOf(this.recoilState);
     this.scene.tweens.killTweensOf(this.equipState);
-    this.scene.tweens.killTweensOf(this.weaponSprite);
+    this.scene.tweens.killTweensOf(this.sprite);
     this.container.destroy(true);
   }
 
   equipWeapon(weapon: WeaponId): void {
     this.desiredWeapon = weapon;
-    if (weapon === this.weapon && this.weaponSprite.alpha >= 0.99) {
+    if (weapon === this.weapon && this.sprite.alpha >= 0.99) {
       return;
     }
 
     this.weaponSwitchVersion += 1;
     const switchVersion = this.weaponSwitchVersion;
     this.scene.tweens.killTweensOf(this.equipState);
-    this.scene.tweens.killTweensOf(this.weaponSprite);
+    this.scene.tweens.killTweensOf(this.sprite);
     this.scene.tweens.add({
       targets: this.equipState,
       offset: 9,
@@ -385,8 +413,8 @@ export class PlayerView {
       ease: "Quad.easeIn",
     });
     this.scene.tweens.add({
-      targets: this.weaponSprite,
-      alpha: 0.12,
+      targets: this.sprite,
+      alpha: 0.18,
       duration: 70,
       ease: "Quad.easeIn",
       onComplete: () => {
@@ -394,7 +422,10 @@ export class PlayerView {
           return;
         }
         this.weapon = this.desiredWeapon;
-        this.currentWeaponFrame = "";
+        if (this.triggerHeld) {
+          this.attackWeapon = this.weapon;
+        }
+        this.currentFrame = "";
         this.scene.tweens.add({
           targets: this.equipState,
           offset: 0,
@@ -402,7 +433,7 @@ export class PlayerView {
           ease: "Back.easeOut",
         });
         this.scene.tweens.add({
-          targets: this.weaponSprite,
+          targets: this.sprite,
           alpha: 1,
           duration: 90,
           ease: "Quad.easeOut",
@@ -414,48 +445,82 @@ export class PlayerView {
   getMuzzlePosition(): { x: number; y: number } {
     const offset = MUZZLE_OFFSETS[this.weapon][this.direction];
     return {
-      x: this.container.x + offset.x + this.weaponSprite.x,
-      y: this.container.y + offset.y + (this.weaponSprite.y + 52),
+      x: this.container.x + offset.x + this.sprite.x,
+      y: this.container.y + offset.y + (this.sprite.y + 52),
     };
+  }
+
+  setTriggerHeld(held: boolean): void {
+    if (!this.isLocal || held === this.triggerHeld) {
+      return;
+    }
+    const now = performance.now();
+    this.triggerHeld = held;
+    this.currentFrame = "";
+    if (held) {
+      this.aimStartedAt = now;
+      this.releaseStartedAt = Number.NEGATIVE_INFINITY;
+      this.attackWeapon = this.weapon;
+    } else {
+      this.releaseStartedAt = now;
+    }
   }
 
   showRecoil(strength: number, firedWeapon: WeaponId): void {
     if (firedWeapon !== this.weapon) {
       this.forceWeapon(firedWeapon);
     }
+    this.firedAt = performance.now();
+    this.attackWeapon = firedWeapon;
+    this.currentFrame = "";
     this.scene.tweens.killTweensOf(this.recoilState);
     this.recoilState.amount = strength;
     this.scene.tweens.add({
       targets: this.recoilState,
       amount: 0,
-      duration: firedWeapon === "rocket" ? 190 : firedWeapon === "shotgun" ? 145 : 85,
+      duration:
+        firedWeapon === "rocket" ? 190 : firedWeapon === "shotgun" ? 145 : 85,
       ease: "Cubic.easeOut",
     });
-  }
-
-  private updateWeaponSprite(bodyBob: number): void {
-    const nextFrame = weaponOverlayFrame(this.weapon, this.direction);
-    if (nextFrame !== this.currentWeaponFrame) {
-      this.currentWeaponFrame = nextFrame;
-      this.weaponSprite.setTexture(WEAPON_OVERLAY_ATLAS_KEY, nextFrame);
-    }
-    const vector = directionVector(this.direction);
-    this.weaponSprite.setPosition(
-      -vector.x * this.recoilState.amount,
-      -52 + bodyBob + this.equipState.offset - vector.y * this.recoilState.amount,
-    );
-    this.weaponSprite.setRotation(0);
   }
 
   private forceWeapon(weapon: WeaponId): void {
     this.weaponSwitchVersion += 1;
     this.scene.tweens.killTweensOf(this.equipState);
-    this.scene.tweens.killTweensOf(this.weaponSprite);
+    this.scene.tweens.killTweensOf(this.sprite);
     this.desiredWeapon = weapon;
     this.weapon = weapon;
-    this.currentWeaponFrame = "";
+    if (this.triggerHeld) {
+      this.attackWeapon = weapon;
+    }
+    this.currentFrame = "";
     this.equipState.offset = 0;
-    this.weaponSprite.setAlpha(1);
+    this.sprite.setAlpha(1);
+  }
+
+  private actionPhase(now: number): number | undefined {
+    const sinceShot = now - this.firedAt;
+    if (sinceShot < 52) {
+      return 3;
+    }
+    if (sinceShot < 122) {
+      return 4;
+    }
+    if (this.triggerHeld) {
+      const aimingFor = now - this.aimStartedAt;
+      if (aimingFor < 48) {
+        return 0;
+      }
+      if (aimingFor < 96) {
+        return 1;
+      }
+      return 2;
+    }
+    if (now - this.releaseStartedAt < 92 || sinceShot < 214) {
+      return 5;
+    }
+    this.attackWeapon = undefined;
+    return undefined;
   }
 
   private applyLocalCorrection(
@@ -510,15 +575,10 @@ export class PlayerView {
 
   private updateFacingDirection(xAxis: number, yAxis: number): void {
     if (xAxis !== 0 && yAxis !== 0) {
-      const keepsHorizontalDirection =
-        (this.direction === "left" && xAxis < 0) ||
-        (this.direction === "right" && xAxis > 0);
-      const keepsVerticalDirection =
-        (this.direction === "up" && yAxis < 0) ||
-        (this.direction === "down" && yAxis > 0);
-      if (keepsHorizontalDirection || keepsVerticalDirection) {
-        return;
-      }
+      this.direction = `${yAxis > 0 ? "down" : "up"}-${
+        xAxis > 0 ? "right" : "left"
+      }`;
+      return;
     }
 
     if (Math.abs(xAxis) > Math.abs(yAxis)) {
@@ -600,5 +660,26 @@ function directionVector(direction: Direction): { x: number; y: number } {
       return { x: -1, y: 0 };
     case "right":
       return { x: 1, y: 0 };
+    case "up-left":
+      return { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
+    case "up-right":
+      return { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
+    case "down-left":
+      return { x: -Math.SQRT1_2, y: Math.SQRT1_2 };
+    case "down-right":
+      return { x: Math.SQRT1_2, y: Math.SQRT1_2 };
+  }
+}
+
+function walkDirection(direction: Direction): CardinalDirection {
+  switch (direction) {
+    case "up-left":
+    case "down-left":
+      return "left";
+    case "up-right":
+    case "down-right":
+      return "right";
+    default:
+      return direction;
   }
 }

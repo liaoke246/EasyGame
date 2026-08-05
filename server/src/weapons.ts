@@ -14,21 +14,33 @@ const MUZZLE_OFFSETS: Record<
 > = {
   smg: {
     down: { x: 10, y: -8 },
+    "down-right": { x: 31, y: -19 },
     up: { x: 0, y: -78 },
+    "up-right": { x: 31, y: -67 },
+    "up-left": { x: -31, y: -67 },
     right: { x: 38, y: -40 },
     left: { x: -38, y: -40 },
+    "down-left": { x: -31, y: -19 },
   },
   shotgun: {
     down: { x: 0, y: -6 },
+    "down-right": { x: 38, y: -17 },
     up: { x: 0, y: -91 },
+    "up-right": { x: 38, y: -73 },
+    "up-left": { x: -38, y: -73 },
     right: { x: 44, y: -40 },
     left: { x: -44, y: -40 },
+    "down-left": { x: -38, y: -17 },
   },
   rocket: {
     down: { x: 0, y: -18 },
+    "down-right": { x: 45, y: -27 },
     up: { x: 0, y: -91 },
+    "up-right": { x: 45, y: -73 },
+    "up-left": { x: -45, y: -73 },
     right: { x: 56, y: -42 },
     left: { x: -56, y: -42 },
+    "down-left": { x: -45, y: -27 },
   },
 };
 
