@@ -568,6 +568,36 @@ button {
   box-shadow: 0 0 7px #83cc6b;
 }
 
+#connection-dot[data-state="offline"] {
+  background: #d66758;
+  box-shadow: 0 0 7px #d66758;
+}
+
+.world-stats .network-stat {
+  display: flex;
+  min-width: 112px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.world-stats .network-stat small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.world-stats .network-stat strong {
+  display: block;
+  grid-column: auto;
+  grid-row: auto;
+  color: #dce7d6;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .event-feed {
   position: fixed;
   z-index: 9;
@@ -764,9 +794,19 @@ kbd {
     padding: 6px 9px;
   }
 
-  .world-stats div:last-child,
-  .world-stats i {
+  .world-stats .combat-stat,
+  .world-stats .combat-separator,
+  .world-stats .online-stat,
+  .world-stats .network-separator {
     display: none;
+  }
+
+  .world-stats .network-stat {
+    min-width: 96px;
+  }
+
+  .world-stats .network-stat strong {
+    font-size: 9px;
   }
 
   .event-feed {

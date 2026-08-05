@@ -69,15 +69,26 @@
           </div>
 
           <div class="world-stats">
-            <div>
+            <div class="online-stat">
               <span class="status-dot" aria-hidden="true"></span>
               <small>在线</small>
               <strong id="online-count">1</strong>
             </div>
-            <i aria-hidden="true"></i>
-            <div>
+            <i class="combat-separator" aria-hidden="true"></i>
+            <div class="combat-stat">
               <small>击倒</small>
               <strong id="kill-count">0</strong>
+            </div>
+            <i class="network-separator" aria-hidden="true"></i>
+            <div class="network-stat" title="实时往返延迟与最近 20 次探针超时率">
+              <small>
+                <span id="connection-dot" class="status-dot" data-state="offline" aria-hidden="true"></span>
+                网络
+              </small>
+              <strong>
+                <span id="latency-value">--</span> ms ·
+                <span id="packet-loss-value">--</span>% lost
+              </strong>
             </div>
           </div>
         </header>

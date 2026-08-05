@@ -48,6 +48,15 @@ export interface WorldSnapshot {
   players: PublicPlayer[];
 }
 
+export interface NetworkProbe {
+  sequence: number;
+  clientSentAt: number;
+}
+
+export interface NetworkPong extends NetworkProbe {
+  serverTime: number;
+}
+
 export interface InputPayload {
   up?: boolean;
   down?: boolean;
@@ -71,6 +80,7 @@ export interface NotificationEvent {
 
 export interface ClientToServerEvents {
   input: (payload: InputPayload) => void;
+  "network:ping": (payload: NetworkProbe) => void;
 }
 
 export interface ServerToClientEvents {
@@ -78,4 +88,5 @@ export interface ServerToClientEvents {
   snapshot: (payload: WorldSnapshot) => void;
   attack: (payload: AttackEvent) => void;
   notification: (payload: NotificationEvent) => void;
+  "network:pong": (payload: NetworkPong) => void;
 }
