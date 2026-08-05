@@ -116,7 +116,7 @@ function chooseKind(): ZombieKind {
 
 function zombieSpawn(index: number): { x: number; y: number } {
   if (process.env.TEST_MODE === "1") {
-    return { x: 1_045 + index * 35, y: 540 };
+    return { x: 1_120 + index * 35, y: 540 };
   }
 
   for (let attempt = 0; attempt < 30; attempt += 1) {

@@ -244,29 +244,36 @@ export function canHit(
   return forward >= 2 && forward <= 76 && side <= 38;
 }
 
-export function positionCollides(x: number, y: number): boolean {
+export function positionCollides(
+  x: number,
+  y: number,
+  radius = PLAYER_RADIUS,
+): boolean {
   if (
-    x < PLAYER_RADIUS ||
-    y < PLAYER_RADIUS ||
-    x > WORLD_WIDTH - PLAYER_RADIUS ||
-    y > WORLD_HEIGHT - PLAYER_RADIUS
+    x < radius ||
+    y < radius ||
+    x > WORLD_WIDTH - radius ||
+    y > WORLD_HEIGHT - radius
   ) {
     return true;
   }
 
-  return OBSTACLES.some((obstacle) => circleIntersectsRect(x, y, obstacle));
+  return OBSTACLES.some((obstacle) =>
+    circleIntersectsRect(x, y, obstacle, radius),
+  );
 }
 
 function circleIntersectsRect(
   centerX: number,
   centerY: number,
   rect: Obstacle,
+  radius: number,
 ): boolean {
   const closestX = clamp(centerX, rect.x, rect.x + rect.width);
   const closestY = clamp(centerY, rect.y, rect.y + rect.height);
   const deltaX = centerX - closestX;
   const deltaY = centerY - closestY;
-  return deltaX * deltaX + deltaY * deltaY < PLAYER_RADIUS * PLAYER_RADIUS;
+  return deltaX * deltaX + deltaY * deltaY < radius * radius;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {

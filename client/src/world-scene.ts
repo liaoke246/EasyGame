@@ -1,6 +1,13 @@
 import Phaser from "phaser";
+import {
+  GAME_ATLAS_KEY,
+  explosionFrame,
+  preloadGameAtlas,
+  registerGameAtlasFrames,
+} from "./game-atlas";
 import type { NetworkClient } from "./network";
 import { PlayerView } from "./player-view";
+import { RocketView } from "./rocket-view";
 import { ZombieView } from "./zombie-view";
 import type {
   AttackEvent,
@@ -22,6 +29,7 @@ type MovementInput = Pick<
 export class WorldScene extends Phaser.Scene {
   private readonly entities = new Map<string, PlayerView>();
   private readonly zombieEntities = new Map<string, ZombieView>();
+  private readonly rocketEntities = new Map<string, RocketView>();
   private readonly unsubscribeCallbacks: Array<() => void> = [];
   private keyboard?: {
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -53,7 +61,12 @@ export class WorldScene extends Phaser.Scene {
     super("world");
   }
 
+  preload(): void {
+    preloadGameAtlas(this);
+  }
+
   create(): void {
+    registerGameAtlasFrames(this);
     this.cameras.main.setBounds(
       0,
       0,
@@ -103,6 +116,9 @@ export class WorldScene extends Phaser.Scene {
     }
     for (const zombie of this.zombieEntities.values()) {
       zombie.update(deltaSeconds, time);
+    }
+    for (const rocket of this.rocketEntities.values()) {
+      rocket.update(deltaSeconds, time);
     }
 
     if (localEntity && !this.cameraFollowing) {
@@ -453,6 +469,7 @@ export class WorldScene extends Phaser.Scene {
   private applySnapshot(snapshot: WorldSnapshot): void {
     const presentPlayers = new Set<string>();
     const presentZombies = new Set<string>();
+    const presentRockets = new Set<string>();
 
     for (const player of snapshot.players) {
       presentPlayers.add(player.id);
@@ -496,6 +513,23 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    for (const rocket of snapshot.rockets) {
+      presentRockets.add(rocket.id);
+      let entity = this.rocketEntities.get(rocket.id);
+      if (!entity) {
+        entity = new RocketView(this, rocket);
+        this.rocketEntities.set(rocket.id, entity);
+      }
+      entity.applyState(rocket);
+    }
+
+    for (const [id, entity] of this.rocketEntities) {
+      if (!presentRockets.has(id)) {
+        entity.destroy();
+        this.rocketEntities.delete(id);
+      }
+    }
+
     const onlineCount = document.querySelector("#online-count");
     if (onlineCount) {
       onlineCount.textContent = String(snapshot.players.length);
@@ -521,6 +555,16 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private showAttack(event: AttackEvent): void {
+    const killed = new Set(event.killedZombieIds);
+    for (const zombieId of event.hitZombieIds) {
+      this.zombieEntities.get(zombieId)?.showHit(killed.has(zombieId));
+    }
+
+    if (event.weapon === "rocket" && event.phase === "impact") {
+      this.showExplosion(event.x, event.y - 14);
+      return;
+    }
+
     const vector = directionVector(event.direction);
     this.showMuzzleFlash(
       event.x + vector.x * 25,
@@ -528,16 +572,7 @@ export class WorldScene extends Phaser.Scene {
       event.weapon,
     );
 
-    const killed = new Set(event.killedZombieIds);
-    for (const zombieId of event.hitZombieIds) {
-      this.zombieEntities.get(zombieId)?.showHit(killed.has(zombieId));
-    }
-
     if (event.weapon === "rocket") {
-      const trace = event.traces[0];
-      if (trace) {
-        this.showRocket(event.x, event.y - 18, trace.endX, trace.endY);
-      }
       return;
     }
 
@@ -626,66 +661,41 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private showRocket(
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number,
-  ): void {
-    const trail = this.add.graphics().setDepth(Math.round(startY + 210));
-    trail.lineStyle(8, 0xff7a3d, 0.16);
-    trail.beginPath();
-    trail.moveTo(startX, startY);
-    trail.lineTo(endX, endY - 16);
-    trail.strokePath();
-    trail.lineStyle(2, 0xffdc77, 0.8);
-    trail.beginPath();
-    trail.moveTo(startX, startY);
-    trail.lineTo(endX, endY - 16);
-    trail.strokePath();
-    const rocket = this.add
-      .circle(startX, startY, 6, 0xffe18a, 1)
-      .setStrokeStyle(3, 0xe95c36, 0.9)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(Math.round(startY + 260));
-    const distance = Phaser.Math.Distance.Between(startX, startY, endX, endY);
-    this.tweens.add({
-      targets: rocket,
-      x: endX,
-      y: endY - 16,
-      duration: Phaser.Math.Clamp(distance * 0.55, 140, 360),
-      ease: "Sine.easeIn",
-      onComplete: () => {
-        rocket.destroy();
-        trail.destroy();
-        this.showExplosion(endX, endY - 16);
+  private showExplosion(x: number, y: number): void {
+    let frameIndex = 0;
+    const blast = this.add
+      .image(x, y, GAME_ATLAS_KEY, explosionFrame(frameIndex))
+      .setDisplaySize(150, 150)
+      .setDepth(Math.round(y + 301));
+    this.time.addEvent({
+      delay: 62,
+      repeat: 5,
+      callback: () => {
+        frameIndex += 1;
+        blast.setFrame(explosionFrame(frameIndex));
+        blast.setDisplaySize(150 + frameIndex * 5, 150 + frameIndex * 5);
+        if (frameIndex === 5) {
+          this.tweens.add({
+            targets: blast,
+            alpha: 0,
+            duration: 170,
+            onComplete: () => blast.destroy(),
+          });
+        }
       },
     });
-    this.tweens.add({
-      targets: trail,
-      alpha: 0,
-      duration: Phaser.Math.Clamp(distance * 0.7, 180, 430),
-    });
-  }
-
-  private showExplosion(x: number, y: number): void {
-    const core = this.add
-      .circle(x, y, 18, 0xfff0a2, 0.95)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(Math.round(y + 300));
     const ring = this.add
       .circle(x, y, 24, 0x000000, 0)
       .setStrokeStyle(5, 0xff8a3d, 0.9)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(Math.round(y + 299));
     this.tweens.add({
-      targets: [core, ring],
+      targets: ring,
       scale: 4.6,
       alpha: 0,
       duration: 360,
       ease: "Quad.easeOut",
       onComplete: () => {
-        core.destroy();
         ring.destroy();
       },
     });

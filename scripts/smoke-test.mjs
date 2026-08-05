@@ -174,7 +174,16 @@ async function runMultiplayerCheck() {
     }
 
     await delay(1_100);
-    const rocketEventPromise = onceEvent(first, "attack");
+    const rocketLaunchPromise = waitForEvent(
+      first,
+      "attack",
+      (event) => event.weapon === "rocket" && event.phase === "fire",
+    );
+    const rocketImpactPromise = waitForEvent(
+      first,
+      "attack",
+      (event) => event.weapon === "rocket" && event.phase === "impact",
+    );
     first.emit("input", {
       up: false,
       down: false,
@@ -183,7 +192,8 @@ async function runMultiplayerCheck() {
       fire: true,
       weapon: "rocket",
     });
-    const rocketEvent = await rocketEventPromise;
+    const rocketLaunch = await rocketLaunchPromise;
+    const rocketLaunchedAt = performance.now();
     first.emit("input", {
       up: false,
       down: false,
@@ -192,8 +202,19 @@ async function runMultiplayerCheck() {
       fire: false,
       weapon: "rocket",
     });
-    if (rocketEvent.weapon !== "rocket" || rocketEvent.traces.length !== 1) {
-      throw new Error("Rocket launcher did not produce an explosion trace");
+    if (
+      rocketLaunch.hitZombieIds.length !== 0 ||
+      rocketLaunch.traces.length !== 0
+    ) {
+      throw new Error("Rocket launch applied damage before projectile collision");
+    }
+
+    const rocketImpact = await rocketImpactPromise;
+    if (
+      rocketImpact.traces.length !== 1 ||
+      performance.now() - rocketLaunchedAt < 25
+    ) {
+      throw new Error("Rocket collision did not produce an explosion event");
     }
 
     process.stdout.write(
@@ -228,11 +249,29 @@ function onceEvent(socket, eventName) {
   });
 }
 
-function waitForSnapshot(socket, predicate) {
+function waitForEvent(socket, eventName, predicate) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      socket.off(eventName, onEvent);
+      reject(new Error(`Timed out waiting for matching ${eventName}`));
+    }, 4_000);
+    const onEvent = (payload) => {
+      if (!predicate(payload)) {
+        return;
+      }
+      clearTimeout(timer);
+      socket.off(eventName, onEvent);
+      resolve(payload);
+    };
+    socket.on(eventName, onEvent);
+  });
+}
+
+function waitForSnapshot(socket, predicate, description = "matching snapshot") {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       socket.off("snapshot", onSnapshot);
-      reject(new Error("Timed out waiting for matching snapshot"));
+      reject(new Error(`Timed out waiting for ${description}`));
     }, 5_000);
     const onSnapshot = (snapshot) => {
       if (!predicate(snapshot)) {

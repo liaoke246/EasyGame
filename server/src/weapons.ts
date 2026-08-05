@@ -36,11 +36,12 @@ export function fireWeapon(
       ? fireSmg(attacker, living)
       : attacker.weapon === "shotgun"
         ? fireShotgun(attacker, living)
-        : fireRocket(attacker, living);
+        : { hitZombieIds: new Set<string>(), traces: [] };
 
   return {
     attackerId: attacker.id,
     weapon: attacker.weapon,
+    phase: "fire",
     direction: attacker.direction,
     x: attacker.x,
     y: attacker.y,
@@ -82,30 +83,6 @@ function fireShotgun(
     traces.push({ endX: end.x, endY: end.y, hit: Boolean(hit) });
   }
   return { hitZombieIds, traces };
-}
-
-function fireRocket(
-  attacker: PlayerState,
-  zombies: ZombieState[],
-): FireResult {
-  const directHit = nearestRayTarget(attacker, zombies, 650, 30);
-  const impact = directHit ?? rayEnd(attacker, 650, 0);
-  const hitZombieIds = new Set<string>();
-  for (const zombie of zombies) {
-    const distance = Math.hypot(zombie.x - impact.x, zombie.y - impact.y);
-    if (distance > 120) {
-      continue;
-    }
-    const damage = Math.max(32, Math.round(100 - distance * 0.55));
-    zombie.health = Math.max(0, zombie.health - damage);
-    hitZombieIds.add(zombie.id);
-  }
-  return {
-    hitZombieIds,
-    traces: [
-      { endX: impact.x, endY: impact.y, hit: hitZombieIds.size > 0 },
-    ],
-  };
 }
 
 interface FireResult {

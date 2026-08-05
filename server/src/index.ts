@@ -27,6 +27,12 @@ import {
 } from "./world.js";
 import { fireWeapon, isWeaponId } from "./weapons.js";
 import {
+  createRocket,
+  toPublicRocket,
+  updateRocket,
+  type RocketState,
+} from "./rockets.js";
+import {
   createZombie,
   toPublicZombie,
   updateZombie,
@@ -45,6 +51,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 });
 const players = new Map<string, PlayerState>();
 const zombies = new Map<string, ZombieState>();
+const rockets = new Map<string, RocketState>();
 
 app.use(cors());
 app.use(express.json());
@@ -53,6 +60,7 @@ app.get("/health", (_request, response) => {
     ok: true,
     players: players.size,
     zombies: zombies.size,
+    rockets: rockets.size,
     uptimeSeconds: Math.round(process.uptime()),
   });
 });
@@ -139,6 +147,7 @@ setInterval(() => {
   const now = performance.now();
   const deltaSeconds = Math.min((now - previousTick) / 1_000, 0.1);
   previousTick = now;
+  const rocketsToUpdate = Array.from(rockets.values());
 
   for (const player of players.values()) {
     player.attacking = now < player.attackEndsAt;
@@ -158,6 +167,13 @@ setInterval(() => {
     );
     if (damagedPlayer?.health === 0 && !damagedPlayer.respawning) {
       defeatPlayerByZombie(damagedPlayer);
+    }
+  }
+
+  for (const rocket of rocketsToUpdate) {
+    const impact = updateRocket(rocket, zombies.values(), deltaSeconds);
+    if (impact) {
+      resolveRocketImpact(rocket, impact);
     }
   }
 
@@ -188,6 +204,11 @@ function performWeaponFire(attacker: PlayerState, now: number): void {
     return;
   }
 
+  if (event.weapon === "rocket") {
+    const rocket = createRocket(attacker);
+    rockets.set(rocket.id, rocket);
+  }
+
   for (const zombieId of event.hitZombieIds) {
     const zombie = zombies.get(zombieId);
     if (zombie && zombie.health <= 0) {
@@ -202,6 +223,51 @@ function performWeaponFire(attacker: PlayerState, now: number): void {
     io.emit("notification", {
       kind: "defeat",
       text: `${attacker.displayId} 清除了 ${event.killedZombieIds.length} 只僵尸`,
+    });
+  }
+}
+
+function resolveRocketImpact(
+  rocket: RocketState,
+  impact: { x: number; y: number; hitZombieIds: string[] },
+): void {
+  rockets.delete(rocket.id);
+  const owner = players.get(rocket.ownerId);
+  const killedZombieIds: string[] = [];
+  for (const zombieId of impact.hitZombieIds) {
+    const zombie = zombies.get(zombieId);
+    if (zombie && zombie.health <= 0) {
+      killedZombieIds.push(zombieId);
+      zombies.delete(zombieId);
+      if (owner) {
+        owner.kills += 1;
+      }
+    }
+  }
+
+  io.emit("attack", {
+    attackerId: rocket.ownerId,
+    weapon: "rocket",
+    phase: "impact",
+    direction: rocket.direction,
+    x: impact.x,
+    y: impact.y,
+    hitPlayerIds: [],
+    hitZombieIds: impact.hitZombieIds,
+    killedZombieIds,
+    traces: [
+      {
+        endX: impact.x,
+        endY: impact.y,
+        hit: impact.hitZombieIds.length > 0,
+      },
+    ],
+  });
+
+  if (owner && killedZombieIds.length > 0) {
+    io.emit("notification", {
+      kind: "defeat",
+      text: `${owner.displayId} 清除了 ${killedZombieIds.length} 只僵尸`,
     });
   }
 }
@@ -234,6 +300,7 @@ function defeatPlayerByZombie(victim: PlayerState): void {
 function spawnZombies(now: number): void {
   if (players.size === 0) {
     zombies.clear();
+    rockets.clear();
     return;
   }
   const targetCount =
@@ -252,5 +319,6 @@ function createSnapshot(): WorldSnapshot {
     serverTime: Date.now(),
     players: Array.from(players.values(), toPublicPlayer),
     zombies: Array.from(zombies.values(), toPublicZombie),
+    rockets: Array.from(rockets.values(), toPublicRocket),
   };
 }

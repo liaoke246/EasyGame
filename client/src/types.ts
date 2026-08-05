@@ -49,6 +49,15 @@ export interface PublicZombie {
   maxHealth: number;
 }
 
+export interface PublicRocket {
+  id: string;
+  ownerId: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
+
 export interface WelcomePayload {
   playerId: string;
   guestToken: string;
@@ -64,6 +73,7 @@ export interface WorldSnapshot {
   serverTime: number;
   players: PublicPlayer[];
   zombies: PublicZombie[];
+  rockets: PublicRocket[];
 }
 
 export interface NetworkProbe {
@@ -101,6 +111,7 @@ export interface WeaponTrace {
 export interface AttackEvent {
   attackerId: string;
   weapon: WeaponId;
+  phase: "fire" | "impact";
   direction: Direction;
   x: number;
   y: number;
