@@ -38,7 +38,7 @@ export class ZombieView {
     const healthTrack = scene.add
       .rectangle(
         -19,
-        state.kind === "brute" ? -98 : -82,
+        state.kind === "brute" ? -105 : -84,
         38,
         5,
         0x241d1d,
@@ -48,7 +48,7 @@ export class ZombieView {
     this.healthFill = scene.add
       .rectangle(
         -18,
-        state.kind === "brute" ? -98 : -82,
+        state.kind === "brute" ? -105 : -84,
         36,
         3,
         0xc45d4b,
@@ -115,6 +115,7 @@ export class ZombieView {
 
   showHit(killed: boolean): void {
     this.model.flashDamage();
+    spawnBloodStain(this.scene, this.container.x, this.container.y, killed);
     spawnZombieParticles(this.scene, this.container.x, this.container.y - 18, killed);
     spawnImpactRing(this.scene, this.container.x, this.container.y - 30, killed);
   }
@@ -123,6 +124,34 @@ export class ZombieView {
     this.container.destroy(true);
   }
 
+}
+
+function spawnBloodStain(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  killed: boolean,
+): void {
+  const stain = scene.add.graphics().setDepth(Math.round(y - 6));
+  stain.fillStyle(0xc91f25, killed ? 0.72 : 0.48);
+  stain.fillEllipse(x, y, killed ? 30 : 16, killed ? 13 : 7);
+  const drops = killed ? 11 : 5;
+  for (let index = 0; index < drops; index += 1) {
+    const angle = index * 2.17 + Math.random() * 0.32;
+    const distance = Phaser.Math.Between(killed ? 13 : 7, killed ? 40 : 20);
+    stain.fillCircle(
+      x + Math.cos(angle) * distance,
+      y + Math.sin(angle) * distance * 0.58,
+      Phaser.Math.Between(1, killed ? 4 : 3),
+    );
+  }
+  scene.tweens.add({
+    targets: stain,
+    alpha: 0.2,
+    duration: 18_000,
+    delay: 7_000,
+    onComplete: () => stain.destroy(),
+  });
 }
 
 function spawnImpactRing(
@@ -153,7 +182,7 @@ function spawnZombieParticles(
   y: number,
   killed: boolean,
 ): void {
-  const colors = [0x9fbd73, 0x5d7849, 0xb74e45, 0xe4c46b];
+  const colors = [0xd62529, 0x9e151c, 0xe2483c, 0x642126];
   const count = killed ? 14 : 6;
   for (let index = 0; index < count; index += 1) {
     const angle = (Math.PI * 2 * index) / count + Math.random() * 0.35;

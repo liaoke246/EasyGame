@@ -156,44 +156,14 @@ export class WorldScene extends Phaser.Scene {
     const centerX = width / 2;
     const centerY = height / 2;
     this.add
-      .rectangle(centerX, centerY, width, height, 0xcdbb96)
+      .rectangle(centerX, centerY, width, height, 0xc9c1c1)
       .setDepth(-20);
-    const grid = this.add.graphics().setDepth(-19);
-    grid.lineStyle(1, 0x8c8068, 0.18);
-    for (let x = 0; x <= width; x += 64) {
-      grid.lineBetween(x, 0, x, height);
-    }
-    for (let y = 0; y <= height; y += 64) {
-      grid.lineBetween(0, y, width, y);
-    }
-    this.add.rectangle(centerX, centerY, width - 120, 150, 0xdacaa9, 0.7).setDepth(-18);
-    this.add.rectangle(centerX, centerY, 150, height - 120, 0xdacaa9, 0.7).setDepth(-18);
-    this.add.rectangle(centerX, centerY, width - 120, 3, 0x91866f, 0.24).setDepth(-17);
-    this.add.rectangle(centerX, centerY, 3, height - 120, 0x91866f, 0.24).setDepth(-17);
-
+    this.drawGroundPatches(width, height);
     this.drawGroundDetails(width, height);
 
     for (const obstacle of obstacles) {
       this.drawObstacle(obstacle);
     }
-
-    this.add
-      .text(centerX + 105, centerY - 105, "BLOCK CRISIS", {
-        fontFamily: '"Arial Black", sans-serif',
-        fontSize: "24px",
-        color: "#7a6e59",
-        stroke: "#e6d7b7",
-        strokeThickness: 3,
-      })
-      .setDepth(440);
-    this.add
-      .text(centerX + 107, centerY - 76, "SURVIVAL ARENA // 03", {
-        fontFamily: "monospace",
-        fontSize: "10px",
-        letterSpacing: 2,
-        color: "#8e8067",
-      })
-      .setDepth(440);
 
     const border = this.add.graphics();
     border.lineStyle(14, 0x313438, 1);
@@ -201,8 +171,34 @@ export class WorldScene extends Phaser.Scene {
     border.setDepth(height + 200);
   }
 
+  private drawGroundPatches(width: number, height: number): void {
+    const patches: Array<Array<[number, number]>> = [
+      [[0, 0], [760, 0], [805, 120], [690, 245], [735, 420], [550, 515], [0, 470]],
+      [[1_050, 0], [1_760, 0], [1_715, 160], [1_865, 275], [1_690, 430], [1_210, 390], [1_025, 225]],
+      [[2_010, 0], [width, 0], [width, 520], [2_365, 560], [2_210, 430], [2_270, 250]],
+      [[0, 790], [410, 735], [650, 855], [580, 1_080], [760, 1_240], [655, height], [0, height]],
+      [[900, 650], [1_370, 560], [1_635, 700], [1_560, 930], [1_720, 1_120], [1_480, height], [980, height], [1_030, 1_120], [830, 960]],
+      [[1_900, 760], [2_260, 660], [width, 730], [width, height], [1_980, height], [2_030, 1_180], [1_850, 1_020]],
+    ];
+    const graphics = this.add.graphics().setDepth(-19);
+    for (const points of patches) {
+      graphics.fillStyle(0xead9bd, 0.96);
+      graphics.fillPoints(
+        points.map(([x, y]) => new Phaser.Geom.Point(x, y)),
+        true,
+      );
+    }
+    graphics.lineStyle(2, 0xffffff, 0.06);
+    for (let x = 256; x < width; x += 256) {
+      graphics.lineBetween(x, 0, x, height);
+    }
+    for (let y = 256; y < height; y += 256) {
+      graphics.lineBetween(0, y, width, y);
+    }
+  }
+
   private drawGroundDetails(width: number, height: number): void {
-    for (let index = 0; index < 68; index += 1) {
+    for (let index = 0; index < 48; index += 1) {
       const x = 44 + ((index * 347) % (width - 88));
       const y = 44 + ((index * 229) % (height - 88));
       const dark = index % 5 === 0;
@@ -212,38 +208,46 @@ export class WorldScene extends Phaser.Scene {
           y,
           3 + (index % 4) * 2,
           dark ? 3 : 2,
-          dark ? 0x6e6658 : 0xede0c1,
-          dark ? 0.28 : 0.2,
+          dark ? 0x7a7372 : 0xf4e8d4,
+          dark ? 0.2 : 0.24,
         )
         .setRotation((index % 7) * 0.31)
         .setDepth(-16);
     }
-    for (let index = 0; index < 12; index += 1) {
+    for (let index = 0; index < 9; index += 1) {
       const x = 180 + ((index * 503) % (width - 360));
       const y = 160 + ((index * 317) % (height - 320));
-      this.add
-        .ellipse(x, y, 32 + (index % 3) * 13, 12 + (index % 2) * 6, 0x8b3d34, 0.11)
-        .setRotation((index % 5) * 0.47)
-        .setDepth(-15);
+      const stain = this.add.graphics().setDepth(-15);
+      stain.fillStyle(0xb91f24, 0.2);
+      stain.fillEllipse(x, y, 24 + (index % 3) * 10, 10 + (index % 2) * 5);
+      for (let drop = 0; drop < 4; drop += 1) {
+        const angle = index * 0.71 + drop * 1.43;
+        const distance = 18 + drop * 7;
+        stain.fillCircle(
+          x + Math.cos(angle) * distance,
+          y + Math.sin(angle) * distance,
+          2 + ((index + drop) % 3),
+        );
+      }
     }
   }
 
   private drawObstacle(obstacle: Obstacle): void {
     switch (obstacle.type) {
       case "cabin":
-        this.drawArenaBlock(obstacle, 0xd8d8d2, 0xa8aaa9);
+        this.drawArenaBlock(obstacle, 0xf8f7f2, 0x8f9090);
         break;
       case "pond":
         this.drawArenaPit(obstacle);
         break;
       case "tree":
-        this.drawArenaCrate(obstacle, 0x8e3431);
+        this.drawArenaBlock(obstacle, 0xf5f4ef, 0x929393);
         break;
       case "rock":
-        this.drawArenaBlock(obstacle, 0x9ca09f, 0x6f7374);
+        this.drawArenaBarrel(obstacle);
         break;
       case "garden":
-        this.drawArenaCrate(obstacle, 0x6c6f70);
+        this.drawArenaCrate(obstacle, 0xc8322d);
         break;
     }
   }
@@ -254,17 +258,34 @@ export class WorldScene extends Phaser.Scene {
     sideColor: number,
   ): void {
     const { x, y, width, height } = obstacle;
-    const graphics = this.add.graphics().setDepth(y + height);
-    graphics.fillStyle(0x26282a, 0.22);
-    graphics.fillRect(x + 10, y + 13, width, height);
+    const faceHeight = height > 100 ? 42 : 22;
+    const bevel = Math.min(14, width * 0.16);
+    const graphics = this.add.graphics().setDepth(y + height + faceHeight);
+    graphics.fillStyle(0x242526, 0.18);
+    graphics.fillRect(x + 12, y + 17, width, height + faceHeight);
     graphics.fillStyle(sideColor, 1);
-    graphics.fillRect(x, y + 9, width, height);
+    graphics.fillPoints([
+      new Phaser.Geom.Point(x, y + height),
+      new Phaser.Geom.Point(x + width, y + height),
+      new Phaser.Geom.Point(x + width, y + height + faceHeight),
+      new Phaser.Geom.Point(x + bevel, y + height + faceHeight),
+      new Phaser.Geom.Point(x, y + height + faceHeight - bevel),
+    ], true);
+    graphics.fillStyle(0x777879, 1);
+    graphics.fillPoints([
+      new Phaser.Geom.Point(x, y),
+      new Phaser.Geom.Point(x + bevel, y + bevel),
+      new Phaser.Geom.Point(x + bevel, y + height + faceHeight),
+      new Phaser.Geom.Point(x, y + height + faceHeight - bevel),
+    ], true);
     graphics.fillStyle(topColor, 1);
     graphics.fillRect(x, y, width, height);
-    graphics.lineStyle(3, 0x303335, 0.92);
+    graphics.lineStyle(2, 0x262729, 0.95);
     graphics.strokeRect(x, y, width, height);
-    graphics.lineStyle(1, 0xffffff, 0.26);
-    graphics.lineBetween(x + 8, y + 8, x + width - 8, y + 8);
+    graphics.lineBetween(x, y + height, x + width, y + height);
+    graphics.lineBetween(x + width, y + height, x + width, y + height + faceHeight);
+    graphics.lineStyle(1, 0xffffff, 0.72);
+    graphics.lineBetween(x + 3, y + 3, x + width - 3, y + 3);
   }
 
   private drawArenaPit(obstacle: Obstacle): void {
@@ -282,22 +303,49 @@ export class WorldScene extends Phaser.Scene {
 
   private drawArenaCrate(obstacle: Obstacle, color: number): void {
     const { x, y, width, height } = obstacle;
-    const graphics = this.add.graphics().setDepth(y + height);
-    graphics.fillStyle(0x2b2d2e, 0.22);
-    graphics.fillRect(x + 7, y + 10, width, height);
-    graphics.fillStyle(color, 1);
-    graphics.fillRect(x, y, width, height);
-    graphics.lineStyle(3, 0x2d2f31, 0.95);
-    graphics.strokeRect(x, y, width, height);
-    graphics.lineStyle(2, 0xffffff, 0.2);
-    graphics.lineBetween(x + 8, y + 8, x + width - 8, y + height - 8);
-    graphics.lineBetween(x + width - 8, y + 8, x + 8, y + height - 8);
-    if (width > 100) {
-      for (let column = x + 64; column < x + width; column += 64) {
-        graphics.lineStyle(3, 0x2d2f31, 0.8);
-        graphics.lineBetween(column, y, column, y + height);
+    const graphics = this.add.graphics().setDepth(y + height + 18);
+    const cellSize = 54;
+    for (let cellY = y + 5; cellY < y + height - 12; cellY += cellSize) {
+      for (let cellX = x + 5; cellX < x + width - 12; cellX += cellSize) {
+        const cellWidth = Math.min(45, x + width - cellX - 5);
+        const cellHeight = Math.min(42, y + height - cellY - 5);
+        graphics.fillStyle(0x2a2525, 0.22);
+        graphics.fillRect(cellX + 6, cellY + 8, cellWidth, cellHeight + 8);
+        graphics.fillStyle(darkenColor(color, 34), 1);
+        graphics.fillRect(cellX, cellY + 7, cellWidth, cellHeight);
+        graphics.fillStyle(color, 1);
+        graphics.fillRect(cellX, cellY, cellWidth, cellHeight);
+        graphics.lineStyle(2, 0x2d2020, 0.95);
+        graphics.strokeRect(cellX, cellY, cellWidth, cellHeight);
+        graphics.lineStyle(2, 0xffffff, 0.2);
+        graphics.lineBetween(cellX + 6, cellY + 6, cellX + cellWidth - 6, cellY + cellHeight - 6);
+        graphics.lineBetween(cellX + cellWidth - 6, cellY + 6, cellX + 6, cellY + cellHeight - 6);
       }
     }
+  }
+
+  private drawArenaBarrel(obstacle: Obstacle): void {
+    const { x, y, width, height } = obstacle;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const barrelWidth = Math.min(width - 6, 34);
+    const barrelHeight = Math.min(height - 4, 38);
+    const graphics = this.add.graphics().setDepth(y + height + 8);
+    graphics.fillStyle(0x242526, 0.22);
+    graphics.fillEllipse(centerX + 6, centerY + barrelHeight / 2, barrelWidth, 10);
+    graphics.fillStyle(0x6f7273, 1);
+    graphics.fillRect(centerX - barrelWidth / 2, centerY - barrelHeight / 2, barrelWidth, barrelHeight);
+    graphics.fillStyle(0xaeb1b1, 1);
+    graphics.fillEllipse(centerX, centerY - barrelHeight / 2, barrelWidth, 10);
+    graphics.fillStyle(0x4f5152, 1);
+    graphics.fillEllipse(centerX, centerY + barrelHeight / 2, barrelWidth, 10);
+    graphics.fillStyle(0xc23830, 1);
+    graphics.fillRect(centerX - barrelWidth / 2, centerY - 7, barrelWidth, 6);
+    graphics.lineStyle(2, 0x292b2c, 0.95);
+    graphics.strokeEllipse(centerX, centerY - barrelHeight / 2, barrelWidth, 10);
+    graphics.strokeEllipse(centerX, centerY + barrelHeight / 2, barrelWidth, 10);
+    graphics.lineBetween(centerX - barrelWidth / 2, centerY - barrelHeight / 2, centerX - barrelWidth / 2, centerY + barrelHeight / 2);
+    graphics.lineBetween(centerX + barrelWidth / 2, centerY - barrelHeight / 2, centerX + barrelWidth / 2, centerY + barrelHeight / 2);
   }
 
   private configureKeyboard(): void {
@@ -902,4 +950,11 @@ function setText(selector: string, value: string): void {
   if (element) {
     element.textContent = value;
   }
+}
+
+function darkenColor(color: number, amount: number): number {
+  const red = Phaser.Math.Clamp(((color >> 16) & 0xff) - amount, 0, 255);
+  const green = Phaser.Math.Clamp(((color >> 8) & 0xff) - amount, 0, 255);
+  const blue = Phaser.Math.Clamp((color & 0xff) - amount, 0, 255);
+  return (red << 16) | (green << 8) | blue;
 }
