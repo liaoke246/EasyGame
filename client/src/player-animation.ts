@@ -4,8 +4,9 @@ import {
   type Direction,
 } from "@easygame/shared";
 
-const WALK_PIXELS_PER_FRAME = 12.5;
-const WALK_FRAME_COUNT = 8;
+const WALK_PIXELS_PER_FRAME = 25;
+const WALK_FRAME_COUNT = 4;
+const WALK_CYCLE_PIXELS = WALK_PIXELS_PER_FRAME * WALK_FRAME_COUNT;
 const AIM_RAISE_MS = 90;
 const AIM_LOWER_MS = 100;
 const SHOT_HOLD_MS = 220;
@@ -69,13 +70,18 @@ export class PlayerAnimationController {
       sinceShot < SHOT_HOLD_MS ||
       now - this.aimReleasedAt < AIM_LOWER_MS;
     const aimBlend = this.aimBlend(now, sinceShot);
+    const walkBodyOffset = moving
+      ? -Math.abs(
+          Math.sin((this.walkDistance / WALK_CYCLE_PIXELS) * Math.PI * 2),
+        ) * 1.25
+      : 0;
 
     if (combatActive) {
       return {
         state: recoil > 0.08 ? "recoil" : "aim",
         direction: visualCardinalDirection(aimDirection),
         frame: moving ? locomotionFrame : 0,
-        bodyOffsetY: -aimBlend * 0.25,
+        bodyOffsetY: walkBodyOffset - aimBlend * 0.25,
         recoil,
         contactPose: false,
       };
@@ -97,9 +103,9 @@ export class PlayerAnimationController {
       state: "walk",
       direction: locomotionDirection,
       frame,
-      bodyOffsetY: 0,
+      bodyOffsetY: walkBodyOffset,
       recoil: 0,
-      contactPose: frame === 0 || frame === 4,
+      contactPose: frame === 0 || frame === 2,
     };
   }
 

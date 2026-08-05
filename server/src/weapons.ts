@@ -1,8 +1,8 @@
 import {
   PROJECTILE_VISUAL_ELEVATION,
   WEAPON_COOLDOWN_MS,
-  WEAPON_MUZZLE_OFFSETS,
   directionVector,
+  weaponMuzzleOffset,
 } from "@easygame/shared";
 import type { AttackEvent, WeaponId, WeaponTrace } from "./protocol.js";
 import type { PlayerState } from "./world.js";
@@ -142,7 +142,7 @@ export function weaponMuzzlePosition(
   attacker: PlayerState,
   weapon: WeaponId = attacker.weapon,
 ): { x: number; y: number } {
-  const offset = WEAPON_MUZZLE_OFFSETS[weapon][attacker.direction];
+  const offset = weaponMuzzleOffset(weapon, attacker.direction);
   return {
     x: attacker.x + offset.x,
     y: attacker.y + offset.y + PROJECTILE_VISUAL_ELEVATION,
