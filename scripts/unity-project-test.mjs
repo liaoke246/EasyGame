@@ -13,6 +13,11 @@ const required = [
   "Assets/Editor/WebBuild.cs",
   "Packages/manifest.json",
   "ProjectSettings/ProjectVersion.txt",
+  "PrebuiltWebGL/index.html",
+  "PrebuiltWebGL/Build/unity-webgl.data.unityweb",
+  "PrebuiltWebGL/Build/unity-webgl.framework.js.unityweb",
+  "PrebuiltWebGL/Build/unity-webgl.loader.js",
+  "PrebuiltWebGL/Build/unity-webgl.wasm.unityweb",
 ];
 
 await Promise.all(required.map(path => access(`${root}/${path}`)));
@@ -45,4 +50,4 @@ assert.match(template, /socket\.io\/socket\.io\.js/);
 assert.match(template, /createUnityInstance/);
 assert.match(template, /id="progress"/);
 
-process.stdout.write("Unity migration invariants passed: fixed character hierarchy, weapon muzzle sockets, Socket.IO bridge, optimistic input, collision-timed rocket effects, and WebGL loader are present.\n");
+process.stdout.write("Unity migration invariants passed: fixed character hierarchy, weapon muzzle sockets, Socket.IO bridge, optimistic input, collision-timed rocket effects, and a deployable WebGL release are present.\n");

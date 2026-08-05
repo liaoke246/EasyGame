@@ -34,6 +34,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install verified Unity WebGL release
+        run: |
+          rm -rf client/dist
+          mkdir -p client/dist
+          cp -a unity-client/PrebuiltWebGL/. client/dist/
+
+      - name: Verify Unity client structure
+        run: npm run test:unity
+
       - name: Run multiplayer smoke test
         run: npm run test:animation && npm run test:smoke
 
