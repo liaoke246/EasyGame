@@ -50,4 +50,9 @@ assert.match(template, /socket\.io\/socket\.io\.js/);
 assert.match(template, /createUnityInstance/);
 assert.match(template, /id="progress"/);
 
+const server = await readFile("server/src/index.ts", "utf8");
+assert.match(server, /Content-Encoding", "gzip/);
+assert.match(server, /\.wasm\.unityweb/);
+assert.match(server, /application\/wasm/);
+
 process.stdout.write("Unity migration invariants passed: fixed character hierarchy, weapon muzzle sockets, Socket.IO bridge, optimistic input, collision-timed rocket effects, and a deployable WebGL release are present.\n");
