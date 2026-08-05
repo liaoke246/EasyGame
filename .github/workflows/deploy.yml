@@ -35,14 +35,15 @@ jobs:
         run: npm run build
 
       - name: Run multiplayer smoke test
-        run: npm run test:smoke
+        run: npm run test:animation && npm run test:smoke
 
       - name: Package release
         run: |
           tar -czf "easygame-${GITHUB_SHA}.tar.gz" \
             package.json package-lock.json \
             client/package.json client/dist \
-            server/package.json server/dist
+            server/package.json server/dist \
+            shared/package.json shared/dist
 
       - name: Configure SSH
         env:

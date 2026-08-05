@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { directionVector } from "@easygame/shared";
 import type { Direction, PublicRocket } from "./protocol.js";
 import {
-  directionVector,
   positionCollides,
   type PlayerState,
 } from "./world.js";

@@ -1,9 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
-import type {
-  CardinalDirection,
-  PublicZombie,
-  ZombieKind,
-} from "./protocol.js";
+import { cardinalDirectionFromVector } from "@easygame/shared";
+import type { PublicZombie, ZombieKind } from "./protocol.js";
 import {
   PLAYER_RADIUS,
   WORLD_HEIGHT,
@@ -77,22 +74,28 @@ export function updateZombie(
   const speed = ZOMBIE_STATS[zombie.kind].speed;
   const normalX = distance > 0 ? deltaX / distance : 0;
   const normalY = distance > 0 ? deltaY / distance : 0;
-  zombie.vx = normalX * speed;
-  zombie.vy = normalY * speed;
-  zombie.direction = directionFromVector(normalX, normalY);
+  const requestedVelocityX = normalX * speed;
+  const requestedVelocityY = normalY * speed;
+  const previousX = zombie.x;
+  const previousY = zombie.y;
 
-  const nextX = zombie.x + zombie.vx * deltaSeconds;
+  const nextX = zombie.x + requestedVelocityX * deltaSeconds;
   if (!positionCollides(nextX, zombie.y)) {
     zombie.x = nextX;
-  } else {
-    zombie.vx = 0;
   }
-  const nextY = zombie.y + zombie.vy * deltaSeconds;
+  const nextY = zombie.y + requestedVelocityY * deltaSeconds;
   if (!positionCollides(zombie.x, nextY)) {
     zombie.y = nextY;
-  } else {
-    zombie.vy = 0;
   }
+  const movementX = zombie.x - previousX;
+  const movementY = zombie.y - previousY;
+  zombie.vx = deltaSeconds > 0 ? movementX / deltaSeconds : 0;
+  zombie.vy = deltaSeconds > 0 ? movementY / deltaSeconds : 0;
+  zombie.direction = cardinalDirectionFromVector(
+    movementX,
+    movementY,
+    zombie.direction,
+  );
   return undefined;
 }
 
@@ -170,13 +173,6 @@ function nearestLivingPlayer(
     }
   }
   return nearest;
-}
-
-function directionFromVector(x: number, y: number): CardinalDirection {
-  if (Math.abs(x) > Math.abs(y)) {
-    return x > 0 ? "right" : "left";
-  }
-  return y > 0 ? "down" : "up";
 }
 
 function round(value: number): number {

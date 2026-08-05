@@ -1,15 +1,12 @@
-export type CardinalDirection = "up" | "down" | "left" | "right";
+import type {
+  CardinalDirection,
+  Direction,
+  WeaponId,
+} from "@easygame/shared";
 
-export type Direction =
-  | CardinalDirection
-  | "up-left"
-  | "up-right"
-  | "down-left"
-  | "down-right";
+export type { CardinalDirection, Direction, WeaponId } from "@easygame/shared";
 
 export type CharacterId = "ranger" | "farmer" | "herbalist" | "smith";
-
-export type WeaponId = "smg" | "shotgun" | "rocket";
 
 export type ZombieKind = "walker" | "runner" | "brute";
 

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { directionVector } from "@easygame/shared";
 import {
   ENVIRONMENT_ATLAS_KEY,
   EXPLOSION_ATLAS_KEY,
@@ -15,7 +16,6 @@ import { RocketView } from "./rocket-view";
 import { ZombieView } from "./zombie-view";
 import type {
   AttackEvent,
-  Direction,
   InputPayload,
   NotificationEvent,
   Obstacle,
@@ -916,27 +916,6 @@ export class WorldScene extends Phaser.Scene {
     }
     window.setTimeout(() => item.classList.add("is-leaving"), 3_400);
     window.setTimeout(() => item.remove(), 3_800);
-  }
-}
-
-function directionVector(direction: Direction): { x: number; y: number } {
-  switch (direction) {
-    case "up":
-      return { x: 0, y: -1 };
-    case "down":
-      return { x: 0, y: 1 };
-    case "left":
-      return { x: -1, y: 0 };
-    case "right":
-      return { x: 1, y: 0 };
-    case "up-left":
-      return { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
-    case "up-right":
-      return { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
-    case "down-left":
-      return { x: -Math.SQRT1_2, y: Math.SQRT1_2 };
-    case "down-right":
-      return { x: Math.SQRT1_2, y: Math.SQRT1_2 };
   }
 }
 
