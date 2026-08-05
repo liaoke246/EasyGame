@@ -1,5 +1,9 @@
 import { randomInt, randomUUID } from "node:crypto";
-import type { Direction, PublicZombie, ZombieKind } from "./protocol.js";
+import type {
+  CardinalDirection,
+  PublicZombie,
+  ZombieKind,
+} from "./protocol.js";
 import {
   PLAYER_RADIUS,
   WORLD_HEIGHT,
@@ -168,7 +172,7 @@ function nearestLivingPlayer(
   return nearest;
 }
 
-function directionFromVector(x: number, y: number): Direction {
+function directionFromVector(x: number, y: number): CardinalDirection {
   if (Math.abs(x) > Math.abs(y)) {
     return x > 0 ? "right" : "left";
   }

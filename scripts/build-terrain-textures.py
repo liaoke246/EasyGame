@@ -11,6 +11,17 @@ PROCESSED = ROOT / "art" / "processed"
 GAME_ATLAS = PROCESSED / "easygame-atlas-alpha-v1.png"
 ENVIRONMENT_ATLAS = PROCESSED / "easygame-environment-alpha-v1.png"
 HERO_WALK_ATLAS = PROCESSED / "easygame-hero-walk-alpha-v3.png"
+HERO_WEAPON_WALK_ATLASES = {
+    "smg": PROCESSED / "easygame-hero-smg-walk-alpha-v4.png",
+    "shotgun": PROCESSED / "easygame-hero-shotgun-walk-alpha-v4.png",
+    "rocket": PROCESSED / "easygame-hero-rocket-walk-alpha-v4.png",
+}
+HERO_WEAPON_FIRE_ATLASES = {
+    "smg": PROCESSED / "easygame-hero-smg-fire-alpha-v1.png",
+    "shotgun": PROCESSED / "easygame-hero-shotgun-fire-alpha-v1.png",
+    "rocket": PROCESSED / "easygame-hero-rocket-fire-alpha-v1.png",
+}
+EXPLOSION_ATLAS = PROCESSED / "easygame-explosion-alpha-v3.png"
 ZOMBIE_WALK_ATLASES = {
     "walker": PROCESSED / "easygame-zombie-walker-walk-alpha-v1.png",
     "runner": PROCESSED / "easygame-zombie-runner-walk-alpha-v1.png",
@@ -227,6 +238,73 @@ def build_weapon_overlay_atlas(source: Image.Image) -> Image.Image:
     return atlas
 
 
+def build_uniform_grid_atlas(
+    source: Image.Image,
+    column_count: int,
+    row_count: int,
+    cell_size: int,
+) -> Image.Image:
+    """Crop every frame with one shared window so scale and anchors never pulse."""
+    columns = grid_bounds(source.width, column_count)
+    rows = grid_bounds(source.height, row_count)
+    frames: list[tuple[int, int, Image.Image]] = []
+    normalized_bounds: list[tuple[float, float, float, float]] = []
+
+    for row in range(row_count):
+        for column in range(column_count):
+            frame = source.crop(
+                (
+                    columns[column],
+                    rows[row],
+                    columns[column + 1],
+                    rows[row + 1],
+                )
+            )
+            bounds = significant_alpha_bounds(frame)
+            frames.append((row, column, frame))
+            normalized_bounds.append(
+                (
+                    bounds[0] / frame.width,
+                    bounds[1] / frame.height,
+                    bounds[2] / frame.width,
+                    bounds[3] / frame.height,
+                )
+            )
+
+    padding = 0.018
+    shared_left = max(0.0, min(bounds[0] for bounds in normalized_bounds) - padding)
+    shared_top = max(0.0, min(bounds[1] for bounds in normalized_bounds) - padding)
+    shared_right = min(1.0, max(bounds[2] for bounds in normalized_bounds) + padding)
+    shared_bottom = min(1.0, max(bounds[3] for bounds in normalized_bounds) + padding)
+    atlas = Image.new(
+        "RGBA",
+        (cell_size * column_count, cell_size * row_count),
+        (0, 0, 0, 0),
+    )
+
+    for row, column, frame in frames:
+        crop = frame.crop(
+            (
+                round(shared_left * frame.width),
+                round(shared_top * frame.height),
+                round(shared_right * frame.width),
+                round(shared_bottom * frame.height),
+            )
+        )
+        scale = min((cell_size - 4) / crop.width, (cell_size - 4) / crop.height)
+        target_width = max(1, round(crop.width * scale))
+        target_height = max(1, round(crop.height * scale))
+        crop = crop.resize(
+            (target_width, target_height),
+            Image.Resampling.LANCZOS,
+        )
+        target_x = column * cell_size + (cell_size - target_width) // 2
+        target_y = row * cell_size + (cell_size - target_height) // 2
+        atlas.alpha_composite(crop, (target_x, target_y))
+
+    return atlas
+
+
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
     source = Image.open(SOURCE).convert("RGB")
@@ -254,6 +332,40 @@ def main() -> None:
         [86, 86, 88, 88],
     )
     save_runtime_webp(hero_walk, "easygame-hero-walk-v3.webp", 92)
+
+    for weapon, source_path in HERO_WEAPON_WALK_ATLASES.items():
+        hero_weapon_walk = build_uniform_grid_atlas(
+            Image.open(source_path).convert("RGBA"),
+            8,
+            4,
+            WALK_CELL_SIZE,
+        )
+        save_runtime_webp(
+            hero_weapon_walk,
+            f"easygame-hero-{weapon}-walk-v4.webp",
+            94,
+        )
+
+    for weapon, source_path in HERO_WEAPON_FIRE_ATLASES.items():
+        hero_weapon_fire = build_uniform_grid_atlas(
+            Image.open(source_path).convert("RGBA"),
+            8,
+            6,
+            WALK_CELL_SIZE,
+        )
+        save_runtime_webp(
+            hero_weapon_fire,
+            f"easygame-hero-{weapon}-fire-v1.webp",
+            94,
+        )
+
+    explosion = build_uniform_grid_atlas(
+        Image.open(EXPLOSION_ATLAS).convert("RGBA"),
+        4,
+        3,
+        192,
+    )
+    save_runtime_webp(explosion, "easygame-explosion-v3.webp", 95)
 
     zombie_heights = {
         "walker": 93,

@@ -1,4 +1,11 @@
-export type Direction = "up" | "down" | "left" | "right";
+export type CardinalDirection = "up" | "down" | "left" | "right";
+
+export type Direction =
+  | CardinalDirection
+  | "up-left"
+  | "up-right"
+  | "down-left"
+  | "down-right";
 
 export type CharacterId = "ranger" | "farmer" | "herbalist" | "smith";
 
@@ -44,7 +51,7 @@ export interface PublicZombie {
   y: number;
   vx: number;
   vy: number;
-  direction: Direction;
+  direction: CardinalDirection;
   health: number;
   maxHealth: number;
 }

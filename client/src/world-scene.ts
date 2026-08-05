@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import {
   ENVIRONMENT_ATLAS_KEY,
-  GAME_ATLAS_KEY,
+  EXPLOSION_ATLAS_KEY,
   TERRAIN_DIRT_KEY,
   TERRAIN_GRASS_KEY,
   TERRAIN_WILD_KEY,
@@ -142,6 +142,7 @@ export class WorldScene extends Phaser.Scene {
     const input = this.currentInput();
     const localEntity = this.entities.get(this.welcome.playerId);
     localEntity?.predictMovement(input, deltaSeconds, this.welcome.world);
+    localEntity?.setTriggerHeld(input.fire === true);
 
     for (const entity of this.entities.values()) {
       entity.update(deltaSeconds, time);
@@ -778,61 +779,122 @@ export class WorldScene extends Phaser.Scene {
   private showExplosion(x: number, y: number): void {
     let frameIndex = 0;
     const blast = this.add
-      .image(x, y, GAME_ATLAS_KEY, explosionFrame(frameIndex))
-      .setDisplaySize(150, 150)
+      .image(x, y, EXPLOSION_ATLAS_KEY, explosionFrame(frameIndex))
+      .setDisplaySize(224, 224)
+      .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(Math.round(y + 301));
     this.time.addEvent({
-      delay: 62,
-      repeat: 5,
+      delay: 52,
+      repeat: 11,
       callback: () => {
         frameIndex += 1;
         blast.setFrame(explosionFrame(frameIndex));
-        blast.setDisplaySize(150 + frameIndex * 5, 150 + frameIndex * 5);
-        if (frameIndex === 5) {
+        if (frameIndex === 11) {
           this.tweens.add({
             targets: blast,
             alpha: 0,
-            duration: 170,
+            duration: 240,
             onComplete: () => blast.destroy(),
           });
         }
       },
     });
-    const ring = this.add
-      .circle(x, y, 24, 0x000000, 0)
-      .setStrokeStyle(5, 0xff8a3d, 0.9)
+
+    const coreFlash = this.add
+      .circle(x, y, 25, 0xfff9d5, 0.96)
       .setBlendMode(Phaser.BlendModes.ADD)
-      .setDepth(Math.round(y + 299));
+      .setDepth(Math.round(y + 315));
     this.tweens.add({
-      targets: ring,
-      scale: 4.6,
+      targets: coreFlash,
+      scale: 3.1,
       alpha: 0,
-      duration: 360,
-      ease: "Quad.easeOut",
-      onComplete: () => {
-        ring.destroy();
-      },
+      duration: 155,
+      ease: "Cubic.easeOut",
+      onComplete: () => coreFlash.destroy(),
     });
-    for (let index = 0; index < 22; index += 1) {
-      const angle = (Math.PI * 2 * index) / 22 + Math.random() * 0.22;
-      const distance = Phaser.Math.Between(45, 120);
-      const color = [0xffdb72, 0xff8d42, 0xcc4934, 0x493e36][index % 4];
-      const debris = this.add
-        .rectangle(x, y, Phaser.Math.Between(3, 7), Phaser.Math.Between(3, 7), color, 0.95)
+
+    const ringStyles = [
+      { radius: 18, color: 0xfff1a1, width: 5, scale: 6.4, duration: 300 },
+      { radius: 26, color: 0xff743d, width: 4, scale: 5.1, duration: 430 },
+      { radius: 34, color: 0x9deaff, width: 2, scale: 4.2, duration: 560 },
+    ];
+    ringStyles.forEach((style, index) => {
+      const ring = this.add
+        .circle(x, y, style.radius, 0x000000, 0)
+        .setStrokeStyle(style.width, style.color, 0.9 - index * 0.16)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(Math.round(y + 299 - index));
+      this.tweens.add({
+        targets: ring,
+        scale: style.scale,
+        alpha: 0,
+        duration: style.duration,
+        ease: "Cubic.easeOut",
+        onComplete: () => ring.destroy(),
+      });
+    });
+
+    const scorch = this.add
+      .ellipse(x, y + 10, 108, 42, 0x190f0c, 0.5)
+      .setStrokeStyle(3, 0x8f3b23, 0.28)
+      .setDepth(Math.round(y - 2));
+    this.tweens.add({
+      targets: scorch,
+      alpha: 0,
+      duration: 7_500,
+      delay: 900,
+      ease: "Sine.easeIn",
+      onComplete: () => scorch.destroy(),
+    });
+
+    for (let index = 0; index < 36; index += 1) {
+      const angle = (Math.PI * 2 * index) / 36 + Math.random() * 0.18;
+      const distance = Phaser.Math.Between(64, 165);
+      const color = [0xfff2a1, 0xffbd4d, 0xff6b35, 0xdc382d][index % 4];
+      const spark = this.add
+        .rectangle(
+          x,
+          y,
+          Phaser.Math.Between(5, 13),
+          Phaser.Math.Between(2, 4),
+          color,
+          0.98,
+        )
+        .setRotation(angle)
+        .setBlendMode(Phaser.BlendModes.ADD)
         .setDepth(Math.round(y + 310));
       this.tweens.add({
-        targets: debris,
+        targets: spark,
         x: x + Math.cos(angle) * distance,
         y: y + Math.sin(angle) * distance,
-        angle: Phaser.Math.Between(-180, 180),
+        scaleX: 0.15,
+        scaleY: 0.35,
         alpha: 0,
-        scale: 0.25,
-        duration: Phaser.Math.Between(320, 580),
+        duration: Phaser.Math.Between(260, 610),
         ease: "Quad.easeOut",
-        onComplete: () => debris.destroy(),
+        onComplete: () => spark.destroy(),
       });
     }
-    this.cameras.main.shake(180, 0.006);
+
+    for (let index = 0; index < 14; index += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const ember = this.add
+        .circle(x, y, Phaser.Math.Between(2, 4), 0xff8a35, 0.82)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(Math.round(y + 304));
+      this.tweens.add({
+        targets: ember,
+        x: x + Math.cos(angle) * Phaser.Math.Between(30, 105),
+        y: y + Math.sin(angle) * Phaser.Math.Between(22, 75) - Phaser.Math.Between(8, 34),
+        alpha: 0,
+        scale: 0.2,
+        duration: Phaser.Math.Between(520, 920),
+        ease: "Sine.easeOut",
+        onComplete: () => ember.destroy(),
+      });
+    }
+    this.cameras.main.flash(95, 255, 224, 157, false, undefined, this);
+    this.cameras.main.shake(270, 0.009);
   }
 
   private showNotification(event: NotificationEvent): void {
@@ -867,6 +929,14 @@ function directionVector(direction: Direction): { x: number; y: number } {
       return { x: -1, y: 0 };
     case "right":
       return { x: 1, y: 0 };
+    case "up-left":
+      return { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
+    case "up-right":
+      return { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
+    case "down-left":
+      return { x: -Math.SQRT1_2, y: Math.SQRT1_2 };
+    case "down-right":
+      return { x: Math.SQRT1_2, y: Math.SQRT1_2 };
   }
 }
 
