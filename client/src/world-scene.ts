@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 import {
   WEAPON_COOLDOWN_MS,
-  WEAPON_MUZZLE_OFFSETS,
   directionVector,
+  weaponMuzzleOffset,
 } from "@easygame/shared";
 import {
   ENVIRONMENT_ATLAS_KEY,
@@ -596,7 +596,7 @@ export class WorldScene extends Phaser.Scene {
         event.weapon,
       );
     }
-    const muzzleOffset = WEAPON_MUZZLE_OFFSETS[event.weapon][event.direction];
+    const muzzleOffset = weaponMuzzleOffset(event.weapon, event.direction);
     const muzzle = {
       x: event.x + muzzleOffset.x,
       y: event.y + muzzleOffset.y,

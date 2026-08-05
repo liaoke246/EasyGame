@@ -136,9 +136,8 @@ function describeAsset(fileKey?: string): string {
   const labels: Record<string, string> = {
     "easygame-atlas-v2": "载入武器与战斗特效…",
     "easygame-environment-v2": "载入山谷建筑与景物…",
-    "easygame-hero-smg-walk-v4": "载入冲锋枪八帧步伐…",
-    "easygame-hero-shotgun-walk-v4": "载入霰弹枪八帧步伐…",
-    "easygame-hero-rocket-walk-v4": "载入火箭筒八帧步伐…",
+    "easygame-hero-walk-v3": "载入角色步伐…",
+    "easygame-weapon-overlay-v2": "装配武器与持枪动作…",
     "easygame-explosion-v3": "载入火箭爆炸特效…",
     "easygame-zombie-walker-walk-v2": "载入行者步伐…",
     "easygame-zombie-runner-walk-v2": "载入疾行者步伐…",
