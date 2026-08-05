@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import type {
   CardinalDirection,
-  Direction,
   WeaponId,
   ZombieKind,
 } from "./types";
@@ -12,11 +11,6 @@ export const HERO_WEAPON_WALK_ATLAS_KEYS: Record<WeaponId, string> = {
   smg: "easygame-hero-smg-walk-v4",
   shotgun: "easygame-hero-shotgun-walk-v4",
   rocket: "easygame-hero-rocket-walk-v4",
-};
-export const HERO_WEAPON_FIRE_ATLAS_KEYS: Record<WeaponId, string> = {
-  smg: "easygame-hero-smg-fire-v1",
-  shotgun: "easygame-hero-shotgun-fire-v1",
-  rocket: "easygame-hero-rocket-fire-v1",
 };
 export const EXPLOSION_ATLAS_KEY = "easygame-explosion-v3";
 export const ZOMBIE_WALK_ATLAS_KEYS: Record<ZombieKind, string> = {
@@ -71,9 +65,6 @@ export function preloadGameAtlas(scene: Phaser.Scene): void {
   for (const [weapon, key] of Object.entries(HERO_WEAPON_WALK_ATLAS_KEYS)) {
     scene.load.image(key, `/assets/easygame-hero-${weapon}-walk-v4.webp`);
   }
-  for (const [weapon, key] of Object.entries(HERO_WEAPON_FIRE_ATLAS_KEYS)) {
-    scene.load.image(key, `/assets/easygame-hero-${weapon}-fire-v1.webp`);
-  }
   for (const [kind, key] of Object.entries(ZOMBIE_WALK_ATLAS_KEYS)) {
     scene.load.image(key, `/assets/easygame-zombie-${kind}-walk-v2.webp`);
   }
@@ -123,37 +114,6 @@ export function registerGameAtlasFrames(scene: Phaser.Scene): void {
     });
   }
 
-  const aimDirections: Direction[] = [
-    "down",
-    "down-right",
-    "right",
-    "up-right",
-    "up",
-    "up-left",
-    "left",
-    "down-left",
-  ];
-  for (const [weapon, key] of Object.entries(
-    HERO_WEAPON_FIRE_ATLAS_KEYS,
-  ) as Array<[WeaponId, string]>) {
-    const fire = scene.textures.get(key);
-    for (let phase = 0; phase < 6; phase += 1) {
-      aimDirections.forEach((direction, column) => {
-        const name = heroWeaponFireFrame(weapon, direction, phase);
-        if (!fire.has(name)) {
-          fire.add(
-            name,
-            0,
-            column * cellSize,
-            phase * cellSize,
-            cellSize,
-            cellSize,
-          );
-        }
-      });
-    }
-  }
-
   const explosion = scene.textures.get(EXPLOSION_ATLAS_KEY);
   for (let frame = 0; frame < 12; frame += 1) {
     const name = explosionFrame(frame);
@@ -198,14 +158,6 @@ export function heroWeaponWalkFrame(
   frame: number,
 ): string {
   return `hero-${weapon}-walk-${direction}-${frame % 8}`;
-}
-
-export function heroWeaponFireFrame(
-  weapon: WeaponId,
-  direction: Direction,
-  phase: number,
-): string {
-  return `hero-${weapon}-fire-${direction}-${phase % 6}`;
 }
 
 export function zombieWalkFrame(

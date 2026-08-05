@@ -1,6 +1,6 @@
+import { directionFromAxes, directionVector } from "@easygame/shared";
 import type {
   CharacterId,
-  Direction,
   Obstacle,
   PlayerIdentity,
   PublicPlayer,
@@ -170,30 +170,6 @@ export function toPublicPlayer(player: PlayerState): PublicPlayer {
   };
 }
 
-export function directionVector(direction: Direction): {
-  x: number;
-  y: number;
-} {
-  switch (direction) {
-    case "up":
-      return { x: 0, y: -1 };
-    case "down":
-      return { x: 0, y: 1 };
-    case "left":
-      return { x: -1, y: 0 };
-    case "right":
-      return { x: 1, y: 0 };
-    case "up-left":
-      return { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
-    case "up-right":
-      return { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
-    case "down-left":
-      return { x: -Math.SQRT1_2, y: Math.SQRT1_2 };
-    case "down-right":
-      return { x: Math.SQRT1_2, y: Math.SQRT1_2 };
-  }
-}
-
 export function updatePlayerMovement(
   player: PlayerState,
   deltaSeconds: number,
@@ -241,15 +217,7 @@ export function updatePlayerMovement(
   }
 
   if (xAxis !== 0 || yAxis !== 0) {
-    if (xAxis !== 0 && yAxis !== 0) {
-      player.direction = `${yAxis > 0 ? "down" : "up"}-${
-        xAxis > 0 ? "right" : "left"
-      }` as Direction;
-    } else if (Math.abs(xAxis) > Math.abs(yAxis)) {
-      player.direction = xAxis > 0 ? "right" : "left";
-    } else {
-      player.direction = yAxis > 0 ? "down" : "up";
-    }
+    player.direction = directionFromAxes(xAxis, yAxis);
   }
 
   const nextX = player.x + player.vx * deltaSeconds;

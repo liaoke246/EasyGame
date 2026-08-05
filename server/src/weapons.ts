@@ -1,5 +1,10 @@
+import {
+  PROJECTILE_VISUAL_ELEVATION,
+  WEAPON_MUZZLE_OFFSETS,
+  directionVector,
+} from "@easygame/shared";
 import type { AttackEvent, WeaponId, WeaponTrace } from "./protocol.js";
-import { directionVector, type PlayerState } from "./world.js";
+import type { PlayerState } from "./world.js";
 import type { ZombieState } from "./zombies.js";
 
 export const WEAPON_COOLDOWN_MS: Record<WeaponId, number> = {
@@ -8,46 +13,9 @@ export const WEAPON_COOLDOWN_MS: Record<WeaponId, number> = {
   rocket: 1_050,
 };
 
-const MUZZLE_OFFSETS: Record<
-  WeaponId,
-  Record<PlayerState["direction"], { x: number; y: number }>
-> = {
-  smg: {
-    down: { x: 10, y: -8 },
-    "down-right": { x: 31, y: -19 },
-    up: { x: 0, y: -78 },
-    "up-right": { x: 31, y: -67 },
-    "up-left": { x: -31, y: -67 },
-    right: { x: 38, y: -40 },
-    left: { x: -38, y: -40 },
-    "down-left": { x: -31, y: -19 },
-  },
-  shotgun: {
-    down: { x: 0, y: -6 },
-    "down-right": { x: 38, y: -17 },
-    up: { x: 0, y: -91 },
-    "up-right": { x: 38, y: -73 },
-    "up-left": { x: -38, y: -73 },
-    right: { x: 44, y: -40 },
-    left: { x: -44, y: -40 },
-    "down-left": { x: -38, y: -17 },
-  },
-  rocket: {
-    down: { x: 0, y: -18 },
-    "down-right": { x: 45, y: -27 },
-    up: { x: 0, y: -91 },
-    "up-right": { x: 45, y: -73 },
-    "up-left": { x: -45, y: -73 },
-    right: { x: 56, y: -42 },
-    left: { x: -56, y: -42 },
-    "down-left": { x: -45, y: -27 },
-  },
-};
-
 // Player and zombie positions sit on the ground plane, while the weapon art is
 // drawn above it. Converting the visual muzzle back to the ground plane keeps
 // authoritative ray tests aligned with the sprite without aiming at its feet.
-export const PROJECTILE_VISUAL_ELEVATION = 40;
 
 export function isWeaponId(value: unknown): value is WeaponId {
   return value === "smg" || value === "shotgun" || value === "rocket";
@@ -179,7 +147,7 @@ export function weaponMuzzlePosition(
   attacker: PlayerState,
   weapon: WeaponId = attacker.weapon,
 ): { x: number; y: number } {
-  const offset = MUZZLE_OFFSETS[weapon][attacker.direction];
+  const offset = WEAPON_MUZZLE_OFFSETS[weapon][attacker.direction];
   return {
     x: attacker.x + offset.x,
     y: attacker.y + offset.y + PROJECTILE_VISUAL_ELEVATION,

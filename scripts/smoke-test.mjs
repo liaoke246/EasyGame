@@ -87,6 +87,25 @@ async function runMultiplayerCheck() {
       throw new Error("The test zombie was missing from the shared snapshot");
     }
 
+    const zombieMotionSnapshot = await waitForSnapshot(first, (snapshot) => {
+      const zombie = snapshot.zombies.find(
+        (candidate) => candidate.id === targetZombie.id,
+      );
+      return Boolean(zombie && Math.hypot(zombie.x - targetZombie.x, zombie.y - targetZombie.y) > 2);
+    });
+    const movedZombie = zombieMotionSnapshot.zombies.find(
+      (zombie) => zombie.id === targetZombie.id,
+    );
+    if (!movedZombie) {
+      throw new Error("Moving zombie was missing from the snapshot");
+    }
+    const zombieVector = cardinalVector(movedZombie.direction);
+    const zombieMovementX = movedZombie.x - targetZombie.x;
+    const zombieMovementY = movedZombie.y - targetZombie.y;
+    if (zombieMovementX * zombieVector.x + zombieMovementY * zombieVector.y <= 0) {
+      throw new Error("Zombie animation direction opposed its authoritative movement");
+    }
+
     const moveRight = otherPlayer.x > initialPlayer.x;
     first.emit("input", {
       up: false,
@@ -247,11 +266,26 @@ async function runMultiplayerCheck() {
     process.stdout.write(
       `Smoke test passed: two players synchronized; movement ${initialPlayer.x.toFixed(
         1,
-      )} → ${movedPlayer.x.toFixed(1)}; zombies, all three weapons, and 45-degree fire synchronized.\n`,
+      )} → ${movedPlayer.x.toFixed(1)}; forward-only zombies, all three weapons, and 45-degree fire synchronized.\n`,
     );
   } finally {
     first.disconnect();
     second.disconnect();
+  }
+}
+
+function cardinalVector(direction) {
+  switch (direction) {
+    case "up":
+      return { x: 0, y: -1 };
+    case "down":
+      return { x: 0, y: 1 };
+    case "left":
+      return { x: -1, y: 0 };
+    case "right":
+      return { x: 1, y: 0 };
+    default:
+      throw new Error(`Unexpected zombie direction: ${direction}`);
   }
 }
 

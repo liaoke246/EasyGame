@@ -89,6 +89,7 @@ export class ZombieView {
     this.targetY = state.y;
     this.velocityX = state.vx;
     this.velocityY = state.vy;
+    this.direction = state.direction;
     this.health = state.health;
     this.maxHealth = state.maxHealth;
     this.lastSnapshotAt = performance.now();
@@ -117,16 +118,12 @@ export class ZombieView {
       this.container.x,
       this.container.y,
     );
-    const movementX = this.container.x - this.previousRenderX;
-    const movementY = this.container.y - this.previousRenderY;
     this.previousRenderX = this.container.x;
     this.previousRenderY = this.container.y;
-    const moving = Math.hypot(this.velocityX, this.velocityY) > 1;
+    const moving =
+      distanceMoved > 0.02 && Math.hypot(this.velocityX, this.velocityY) > 0.5;
     if (moving) {
       this.walkDistance += distanceMoved;
-      if (distanceMoved > 0.025) {
-        this.updateFacingFromMovement(movementX, movementY);
-      }
     }
     const pixelsPerFrame =
       this.kind === "runner" ? 13 : this.kind === "brute" ? 14 : 15;
@@ -154,34 +151,35 @@ export class ZombieView {
     this.sprite.setTintFill(0xf8f1d4);
     this.scene.time.delayedCall(65, () => this.sprite.clearTint());
     spawnZombieParticles(this.scene, this.container.x, this.container.y - 18, killed);
-    this.scene.tweens.add({
-      targets: this.container,
-      scaleX: killed ? 1.16 : 1.06,
-      scaleY: killed ? 0.82 : 0.94,
-      yoyo: true,
-      duration: killed ? 110 : 65,
-      ease: "Quad.easeOut",
-    });
+    spawnImpactRing(this.scene, this.container.x, this.container.y - 30, killed);
   }
 
   destroy(): void {
     this.container.destroy(true);
   }
 
-  private updateFacingFromMovement(x: number, y: number): void {
-    const horizontalDistance = Math.abs(x);
-    const verticalDistance = Math.abs(y);
-    const currentlyHorizontal =
-      this.direction === "left" || this.direction === "right";
-    const useHorizontal =
-      horizontalDistance > verticalDistance * 1.2 ||
-      (currentlyHorizontal && horizontalDistance * 1.2 >= verticalDistance);
-    if (useHorizontal) {
-      this.direction = x > 0 ? "right" : "left";
-    } else {
-      this.direction = y > 0 ? "down" : "up";
-    }
-  }
+}
+
+function spawnImpactRing(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  killed: boolean,
+): void {
+  const ring = scene.add
+    .ellipse(x, y, killed ? 42 : 28, killed ? 22 : 15, 0xffffff, 0)
+    .setStrokeStyle(killed ? 3 : 2, killed ? 0xf0d67b : 0xe9eee2, 0.8)
+    .setDepth(Math.round(y + 180));
+  ring.setScale(0.45);
+  scene.tweens.add({
+    targets: ring,
+    scaleX: killed ? 1.65 : 1.25,
+    scaleY: killed ? 1.65 : 1.25,
+    alpha: 0,
+    duration: killed ? 220 : 130,
+    ease: "Cubic.easeOut",
+    onComplete: () => ring.destroy(),
+  });
 }
 
 function spawnZombieParticles(

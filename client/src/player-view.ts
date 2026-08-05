@@ -1,10 +1,16 @@
 import Phaser from "phaser";
 import {
-  HERO_WEAPON_FIRE_ATLAS_KEYS,
   HERO_WEAPON_WALK_ATLAS_KEYS,
-  heroWeaponFireFrame,
   heroWeaponWalkFrame,
 } from "./game-atlas";
+import {
+  WEAPON_MUZZLE_OFFSETS,
+  cardinalDirectionFromVector,
+  directionFromAxes,
+  directionVector,
+  visualCardinalDirection,
+} from "@easygame/shared";
+import { PlayerAnimationController } from "./player-animation";
 import type {
   CardinalDirection,
   Direction,
@@ -31,44 +37,6 @@ const MAX_EXTRAPOLATION_SECONDS = 0.14;
 const LOCAL_SNAP_DISTANCE = 170;
 const LOCAL_MOVING_CORRECTION_RADIUS = 44;
 const LOCAL_IDLE_CORRECTION_RADIUS = 1.5;
-const PLAYER_PIXELS_PER_WALK_FRAME = 12.5;
-
-const MUZZLE_OFFSETS: Record<
-  WeaponId,
-  Record<Direction, { x: number; y: number }>
-> = {
-  smg: {
-    down: { x: 10, y: -8 },
-    "down-right": { x: 31, y: -19 },
-    up: { x: 0, y: -78 },
-    "up-right": { x: 31, y: -67 },
-    "up-left": { x: -31, y: -67 },
-    right: { x: 38, y: -40 },
-    left: { x: -38, y: -40 },
-    "down-left": { x: -31, y: -19 },
-  },
-  shotgun: {
-    down: { x: 0, y: -6 },
-    "down-right": { x: 38, y: -17 },
-    up: { x: 0, y: -91 },
-    "up-right": { x: 38, y: -73 },
-    "up-left": { x: -38, y: -73 },
-    right: { x: 44, y: -40 },
-    left: { x: -44, y: -40 },
-    "down-left": { x: -38, y: -17 },
-  },
-  rocket: {
-    down: { x: 0, y: -18 },
-    "down-right": { x: 45, y: -27 },
-    up: { x: 0, y: -91 },
-    "up-right": { x: 45, y: -73 },
-    "up-left": { x: -45, y: -73 },
-    right: { x: 56, y: -42 },
-    left: { x: -56, y: -42 },
-    "down-left": { x: -45, y: -27 },
-  },
-};
-
 export class PlayerView {
   readonly container: Phaser.GameObjects.Container;
   private readonly shadow: Phaser.GameObjects.Ellipse;
@@ -78,6 +46,7 @@ export class PlayerView {
   private readonly healthTrack: Phaser.GameObjects.Rectangle;
   private readonly healthFill: Phaser.GameObjects.Rectangle;
   private direction: Direction;
+  private locomotionDirection: CardinalDirection;
   private weapon: PublicPlayer["weapon"];
   private desiredWeapon: PublicPlayer["weapon"];
   private targetX: number;
@@ -95,18 +64,11 @@ export class PlayerView {
   private estimatedLatencyMs = 0;
   private previousRenderX: number;
   private previousRenderY: number;
-  private walkDistance = 0;
-  private motionBlend = 0;
+  private readonly animation = new PlayerAnimationController();
   private currentFrame = "";
   private lastFootstepAt = 0;
-  private readonly recoilState = { amount: 0 };
   private readonly equipState = { offset: 0 };
   private weaponSwitchVersion = 0;
-  private triggerHeld = false;
-  private aimStartedAt = Number.NEGATIVE_INFINITY;
-  private firedAt = Number.NEGATIVE_INFINITY;
-  private releaseStartedAt = Number.NEGATIVE_INFINITY;
-  private attackWeapon: WeaponId | undefined;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -114,6 +76,7 @@ export class PlayerView {
     private readonly isLocal: boolean,
   ) {
     this.direction = state.direction;
+    this.locomotionDirection = visualCardinalDirection(state.direction);
     this.weapon = state.weapon;
     this.desiredWeapon = state.weapon;
     this.targetX = state.x;
@@ -126,7 +89,7 @@ export class PlayerView {
       0,
       -52,
       HERO_WEAPON_WALK_ATLAS_KEYS[state.weapon],
-      heroWeaponWalkFrame(state.weapon, walkDirection(state.direction), 0),
+      heroWeaponWalkFrame(state.weapon, this.locomotionDirection, 0),
     );
     this.sprite.setOrigin(0.5, 0.5).setDisplaySize(128, 128);
     this.nameLabel = scene.add
@@ -263,16 +226,20 @@ export class PlayerView {
     }
 
     if (this.localMoving) {
-      this.updateFacingDirection(xAxis, yAxis);
+      this.direction = directionFromAxes(xAxis, yAxis);
     }
 
     const nextX = this.container.x + this.velocityX * deltaSeconds;
     if (!positionCollides(nextX, this.container.y, world)) {
       this.container.x = nextX;
+    } else {
+      this.velocityX = 0;
     }
     const nextY = this.container.y + this.velocityY * deltaSeconds;
     if (!positionCollides(this.container.x, nextY, world)) {
       this.container.y = nextY;
+    } else {
+      this.velocityY = 0;
     }
   }
 
@@ -314,49 +281,50 @@ export class PlayerView {
       this.container.x,
       this.container.y,
     );
+    const movementX = this.container.x - this.previousRenderX;
+    const movementY = this.container.y - this.previousRenderY;
     this.previousRenderX = this.container.x;
     this.previousRenderY = this.container.y;
-    const moving =
-      distanceMoved > 0.035 || Math.hypot(this.velocityX, this.velocityY) > 5;
-    if (moving) {
-      this.walkDistance += Math.min(
-        distanceMoved,
-        PLAYER_SPEED * deltaSeconds * 1.35,
+    const now = performance.now();
+    const moving = distanceMoved > 0.025;
+    const velocityForFacingX = this.isLocal
+      ? this.velocityX
+      : this.serverVelocityX;
+    const velocityForFacingY = this.isLocal
+      ? this.velocityY
+      : this.serverVelocityY;
+    const followsVelocity =
+      movementX * velocityForFacingX + movementY * velocityForFacingY >= 0;
+    if (moving && followsVelocity) {
+      this.locomotionDirection = cardinalDirectionFromVector(
+        movementX,
+        movementY,
+        this.locomotionDirection,
       );
     }
-    const targetMotionBlend = moving ? 1 : 0;
-    this.motionBlend = Phaser.Math.Linear(
-      this.motionBlend,
-      targetMotionBlend,
-      1 - Math.exp(-18 * deltaSeconds),
+    this.animation.advanceMovement(
+      Math.min(distanceMoved, PLAYER_SPEED * deltaSeconds * 1.35),
+      moving,
     );
-    const walkFrame = moving
-      ? Math.floor(this.walkDistance / PLAYER_PIXELS_PER_WALK_FRAME) % 8
-      : 0;
-    const passingPose = [1, 3, 5, 7].includes(walkFrame);
-    const bodyBob = moving && passingPose ? -0.55 * this.motionBlend : 0;
-    const now = performance.now();
-    const actionPhase = this.actionPhase(now);
-    const renderedWeapon = this.attackWeapon ?? this.weapon;
-    const textureKey =
-      actionPhase === undefined
-        ? HERO_WEAPON_WALK_ATLAS_KEYS[this.weapon]
-        : HERO_WEAPON_FIRE_ATLAS_KEYS[renderedWeapon];
-    const nextFrame =
-      actionPhase === undefined
-        ? heroWeaponWalkFrame(
-            this.weapon,
-            walkDirection(this.direction),
-            walkFrame,
-          )
-        : heroWeaponFireFrame(renderedWeapon, this.direction, actionPhase);
+    const pose = this.animation.sample(
+      now,
+      this.direction,
+      this.locomotionDirection,
+      moving,
+    );
+    const textureKey = HERO_WEAPON_WALK_ATLAS_KEYS[this.weapon];
+    const nextFrame = heroWeaponWalkFrame(
+      this.weapon,
+      pose.direction,
+      pose.frame,
+    );
     const vector = directionVector(this.direction);
     this.sprite.setPosition(
-      -vector.x * this.recoilState.amount * 0.22,
+      -vector.x * pose.recoil * 0.22,
       -52 +
-        bodyBob +
+        pose.bodyOffsetY +
         this.equipState.offset -
-        vector.y * this.recoilState.amount * 0.22,
+        vector.y * pose.recoil * 0.22,
     );
     this.sprite.setAngle(0);
     const frameKey = `${textureKey}:${nextFrame}`;
@@ -364,18 +332,17 @@ export class PlayerView {
       this.currentFrame = frameKey;
       this.sprite.setTexture(textureKey, nextFrame);
       if (
-        actionPhase === undefined &&
+        pose.state === "walk" &&
         this.isLocal &&
-        moving &&
-        (walkFrame === 0 || walkFrame === 4) &&
+        pose.contactPose &&
         now - this.lastFootstepAt > 165
       ) {
         this.lastFootstepAt = now;
         this.showFootstep();
       }
     }
-    this.shadow.setScale(passingPose ? 0.97 : 1, 1);
-    this.shadow.setAlpha(passingPose ? 0.275 : 0.3);
+    this.shadow.setScale(pose.state === "walk" ? 0.985 : 1, 1);
+    this.shadow.setAlpha(pose.state === "walk" ? 0.285 : 0.3);
     this.container.setAlpha(this.respawning ? 0.24 : 1);
 
     const healthRatio = Phaser.Math.Clamp(
@@ -390,7 +357,6 @@ export class PlayerView {
   }
 
   destroy(): void {
-    this.scene.tweens.killTweensOf(this.recoilState);
     this.scene.tweens.killTweensOf(this.equipState);
     this.scene.tweens.killTweensOf(this.sprite);
     this.container.destroy(true);
@@ -408,28 +374,25 @@ export class PlayerView {
     this.scene.tweens.killTweensOf(this.sprite);
     this.scene.tweens.add({
       targets: this.equipState,
-      offset: 9,
-      duration: 70,
+      offset: 6,
+      duration: 85,
       ease: "Quad.easeIn",
     });
     this.scene.tweens.add({
       targets: this.sprite,
-      alpha: 0.18,
-      duration: 70,
+      alpha: 0.72,
+      duration: 85,
       ease: "Quad.easeIn",
       onComplete: () => {
         if (switchVersion !== this.weaponSwitchVersion) {
           return;
         }
         this.weapon = this.desiredWeapon;
-        if (this.triggerHeld) {
-          this.attackWeapon = this.weapon;
-        }
         this.currentFrame = "";
         this.scene.tweens.add({
           targets: this.equipState,
           offset: 0,
-          duration: 105,
+          duration: 120,
           ease: "Back.easeOut",
         });
         this.scene.tweens.add({
@@ -443,7 +406,7 @@ export class PlayerView {
   }
 
   getMuzzlePosition(): { x: number; y: number } {
-    const offset = MUZZLE_OFFSETS[this.weapon][this.direction];
+    const offset = WEAPON_MUZZLE_OFFSETS[this.weapon][this.direction];
     return {
       x: this.container.x + offset.x + this.sprite.x,
       y: this.container.y + offset.y + (this.sprite.y + 52),
@@ -451,37 +414,21 @@ export class PlayerView {
   }
 
   setTriggerHeld(held: boolean): void {
-    if (!this.isLocal || held === this.triggerHeld) {
+    if (!this.isLocal) {
       return;
     }
-    const now = performance.now();
-    this.triggerHeld = held;
-    this.currentFrame = "";
-    if (held) {
-      this.aimStartedAt = now;
-      this.releaseStartedAt = Number.NEGATIVE_INFINITY;
-      this.attackWeapon = this.weapon;
-    } else {
-      this.releaseStartedAt = now;
-    }
+    this.animation.setTriggerHeld(held, performance.now());
   }
 
   showRecoil(strength: number, firedWeapon: WeaponId): void {
     if (firedWeapon !== this.weapon) {
       this.forceWeapon(firedWeapon);
     }
-    this.firedAt = performance.now();
-    this.attackWeapon = firedWeapon;
-    this.currentFrame = "";
-    this.scene.tweens.killTweensOf(this.recoilState);
-    this.recoilState.amount = strength;
-    this.scene.tweens.add({
-      targets: this.recoilState,
-      amount: 0,
-      duration:
-        firedWeapon === "rocket" ? 190 : firedWeapon === "shotgun" ? 145 : 85,
-      ease: "Cubic.easeOut",
-    });
+    this.animation.fire(
+      strength,
+      firedWeapon === "rocket" ? 190 : firedWeapon === "shotgun" ? 145 : 85,
+      performance.now(),
+    );
   }
 
   private forceWeapon(weapon: WeaponId): void {
@@ -490,37 +437,9 @@ export class PlayerView {
     this.scene.tweens.killTweensOf(this.sprite);
     this.desiredWeapon = weapon;
     this.weapon = weapon;
-    if (this.triggerHeld) {
-      this.attackWeapon = weapon;
-    }
     this.currentFrame = "";
     this.equipState.offset = 0;
     this.sprite.setAlpha(1);
-  }
-
-  private actionPhase(now: number): number | undefined {
-    const sinceShot = now - this.firedAt;
-    if (sinceShot < 52) {
-      return 3;
-    }
-    if (sinceShot < 122) {
-      return 4;
-    }
-    if (this.triggerHeld) {
-      const aimingFor = now - this.aimStartedAt;
-      if (aimingFor < 48) {
-        return 0;
-      }
-      if (aimingFor < 96) {
-        return 1;
-      }
-      return 2;
-    }
-    if (now - this.releaseStartedAt < 92 || sinceShot < 214) {
-      return 5;
-    }
-    this.attackWeapon = undefined;
-    return undefined;
   }
 
   private applyLocalCorrection(
@@ -571,21 +490,6 @@ export class PlayerView {
     );
     this.container.x += (errorX / errorDistance) * correctionDistance;
     this.container.y += (errorY / errorDistance) * correctionDistance;
-  }
-
-  private updateFacingDirection(xAxis: number, yAxis: number): void {
-    if (xAxis !== 0 && yAxis !== 0) {
-      this.direction = `${yAxis > 0 ? "down" : "up"}-${
-        xAxis > 0 ? "right" : "left"
-      }`;
-      return;
-    }
-
-    if (Math.abs(xAxis) > Math.abs(yAxis)) {
-      this.direction = xAxis > 0 ? "right" : "left";
-    } else {
-      this.direction = yAxis > 0 ? "down" : "up";
-    }
   }
 
   private showFootstep(): void {
@@ -648,38 +552,4 @@ function positionCollides(
     const deltaY = y - closestY;
     return deltaX * deltaX + deltaY * deltaY < PLAYER_RADIUS * PLAYER_RADIUS;
   });
-}
-
-function directionVector(direction: Direction): { x: number; y: number } {
-  switch (direction) {
-    case "up":
-      return { x: 0, y: -1 };
-    case "down":
-      return { x: 0, y: 1 };
-    case "left":
-      return { x: -1, y: 0 };
-    case "right":
-      return { x: 1, y: 0 };
-    case "up-left":
-      return { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
-    case "up-right":
-      return { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
-    case "down-left":
-      return { x: -Math.SQRT1_2, y: Math.SQRT1_2 };
-    case "down-right":
-      return { x: Math.SQRT1_2, y: Math.SQRT1_2 };
-  }
-}
-
-function walkDirection(direction: Direction): CardinalDirection {
-  switch (direction) {
-    case "up-left":
-    case "down-left":
-      return "left";
-    case "up-right":
-    case "down-right":
-      return "right";
-    default:
-      return direction;
-  }
 }
