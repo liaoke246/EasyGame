@@ -81,7 +81,24 @@ if (existsSync(clientDistribution)) {
       maxAge: "1y",
     }),
   );
-  app.use(express.static(clientDistribution));
+  app.use(
+    express.static(clientDistribution, {
+      setHeaders(response, filePath) {
+        if (!filePath.endsWith(".unityweb")) {
+          return;
+        }
+
+        response.setHeader("Content-Encoding", "gzip");
+        if (filePath.endsWith(".wasm.unityweb")) {
+          response.setHeader("Content-Type", "application/wasm");
+        } else if (filePath.endsWith(".js.unityweb")) {
+          response.setHeader("Content-Type", "application/javascript");
+        } else {
+          response.setHeader("Content-Type", "application/octet-stream");
+        }
+      },
+    }),
+  );
   app.get("*", (request, response, next) => {
     if (request.path.startsWith("/socket.io")) {
       next();
