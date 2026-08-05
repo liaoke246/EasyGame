@@ -32,6 +32,7 @@ import {
 } from "./world.js";
 
 const port = Number(process.env.PORT ?? 3001);
+const host = process.env.HOST ?? "0.0.0.0";
 const app = express();
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
@@ -133,8 +134,8 @@ setInterval(() => {
   }
 }, 1_000 / TICK_RATE);
 
-httpServer.listen(port, "0.0.0.0", () => {
-  console.log(`EasyGame server listening on http://localhost:${port}`);
+httpServer.listen(port, host, () => {
+  console.log(`EasyGame server listening on http://${host}:${port}`);
 });
 
 function applyInput(player: PlayerState, payload: InputPayload): void {

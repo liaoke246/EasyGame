@@ -1,0 +1,24 @@
+[Unit]
+Description=EasyGame multiplayer server
+After=network.target
+
+[Service]
+Type=simple
+User=easygame
+Group=easygame
+WorkingDirectory=/srv/easygame/current
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3001
+Environment=DATA_DIR=/var/lib/easygame
+ExecStart=/usr/local/bin/node server/dist/index.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/easygame
+
+[Install]
+WantedBy=multi-user.target
