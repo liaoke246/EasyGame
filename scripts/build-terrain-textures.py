@@ -1,4 +1,5 @@
 from pathlib import Path
+from statistics import median
 
 from PIL import Image
 
@@ -15,7 +16,7 @@ ZOMBIE_WALK_ATLASES = {
     "runner": PROCESSED / "easygame-zombie-runner-walk-alpha-v1.png",
     "brute": PROCESSED / "easygame-zombie-brute-walk-alpha-v1.png",
 }
-WEAPON_OVERLAY_ATLAS = PROCESSED / "easygame-weapon-overlay-alpha-v1.png"
+WEAPON_OVERLAY_ATLAS = PROCESSED / "easygame-weapon-overlay-alpha-v2.png"
 
 TILES = {
     "grass": (18, 18, 308, 308),
@@ -105,6 +106,99 @@ def build_normalized_walk_atlas(
     return atlas
 
 
+def significant_alpha_bounds(frame: Image.Image) -> tuple[int, int, int, int]:
+    """Ignore tiny detached generation specks when measuring a sprite."""
+    alpha = frame.getchannel("A")
+    width, height = frame.size
+    pixels = alpha.tobytes()
+    visited = bytearray(width * height)
+    components: list[tuple[int, int, int, int, int]] = []
+
+    for start, value in enumerate(pixels):
+        if value < 16 or visited[start]:
+            continue
+        visited[start] = 1
+        stack = [start]
+        area = 0
+        min_x = width
+        min_y = height
+        max_x = 0
+        max_y = 0
+        while stack:
+            index = stack.pop()
+            x = index % width
+            y = index // width
+            area += 1
+            min_x = min(min_x, x)
+            min_y = min(min_y, y)
+            max_x = max(max_x, x)
+            max_y = max(max_y, y)
+            for neighbor in (index - 1, index + 1, index - width, index + width):
+                if neighbor < 0 or neighbor >= len(pixels) or visited[neighbor]:
+                    continue
+                neighbor_x = neighbor % width
+                if abs(neighbor_x - x) > 1 or pixels[neighbor] < 16:
+                    continue
+                visited[neighbor] = 1
+                stack.append(neighbor)
+        components.append((area, min_x, min_y, max_x + 1, max_y + 1))
+
+    if not components:
+        raise RuntimeError("Empty walk frame")
+    largest_area = max(component[0] for component in components)
+    minimum_area = max(12, round(largest_area * 0.02))
+    kept = [component for component in components if component[0] >= minimum_area]
+    return (
+        min(component[1] for component in kept),
+        min(component[2] for component in kept),
+        max(component[3] for component in kept),
+        max(component[4] for component in kept),
+    )
+
+
+def build_consistent_walk_atlas(
+    source: Image.Image,
+    target_reference_height: int,
+) -> Image.Image:
+    """Use one scale for every frame so gait silhouettes never pulse in size."""
+    atlas = Image.new(
+        "RGBA",
+        (WALK_CELL_SIZE * 4, WALK_CELL_SIZE * 4),
+        (0, 0, 0, 0),
+    )
+    columns = grid_bounds(source.width, 4)
+    rows = grid_bounds(source.height, 4)
+    frames: list[tuple[int, int, Image.Image, tuple[int, int, int, int]]] = []
+    measured_heights: list[int] = []
+    for row in range(4):
+        for column in range(4):
+            frame = source.crop(
+                (
+                    columns[column],
+                    rows[row],
+                    columns[column + 1],
+                    rows[row + 1],
+                )
+            )
+            bounds = significant_alpha_bounds(frame)
+            frames.append((row, column, frame, bounds))
+            measured_heights.append(bounds[3] - bounds[1])
+
+    shared_scale = target_reference_height / median(measured_heights)
+    for row, column, frame, bounds in frames:
+        character = frame.crop(bounds)
+        target_width = max(1, round(character.width * shared_scale))
+        target_height = max(1, round(character.height * shared_scale))
+        character = character.resize(
+            (target_width, target_height),
+            Image.Resampling.LANCZOS,
+        )
+        target_x = column * WALK_CELL_SIZE + (WALK_CELL_SIZE - target_width) // 2
+        target_y = row * WALK_CELL_SIZE + WALK_FOOT_Y - target_height
+        atlas.alpha_composite(character, (target_x, target_y))
+    return atlas
+
+
 def build_weapon_overlay_atlas(source: Image.Image) -> Image.Image:
     atlas = Image.new(
         "RGBA",
@@ -162,18 +256,18 @@ def main() -> None:
     save_runtime_webp(hero_walk, "easygame-hero-walk-v3.webp", 92)
 
     zombie_heights = {
-        "walker": [92, 92, 94, 94],
-        "runner": [88, 88, 90, 90],
-        "brute": [104, 104, 106, 106],
+        "walker": 93,
+        "runner": 89,
+        "brute": 105,
     }
     for kind, source_path in ZOMBIE_WALK_ATLASES.items():
-        zombie_walk = build_normalized_walk_atlas(
+        zombie_walk = build_consistent_walk_atlas(
             Image.open(source_path).convert("RGBA"),
             zombie_heights[kind],
         )
         save_runtime_webp(
             zombie_walk,
-            f"easygame-zombie-{kind}-walk-v1.webp",
+            f"easygame-zombie-{kind}-walk-v2.webp",
             92,
         )
 
@@ -182,7 +276,7 @@ def main() -> None:
     )
     save_runtime_webp(
         weapon_overlay,
-        "easygame-weapon-overlay-v1.webp",
+        "easygame-weapon-overlay-v2.webp",
         92,
     )
 
