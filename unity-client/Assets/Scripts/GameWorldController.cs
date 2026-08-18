@@ -214,7 +214,7 @@ namespace EasyGame
                 return;
             }
 
-            Vector3 origin = GameCoordinates.ToUnity(attack.x, attack.y, map.ServerHeight) + Vector3.up * 0.55f;
+            Vector3 origin = GameCoordinates.ToUnity(attack.x, attack.y, map.ServerHeight) + Vector3.up * 0.72f;
             if (players.TryGetValue(attack.attackerId, out PlayerAvatar attacker))
             {
                 attacker.TriggerFire(attack.weapon, attack.direction);
@@ -241,15 +241,15 @@ namespace EasyGame
             localPlayerId = "editor-player";
             WorldDefinition world = new WorldDefinition
             {
-                width = 2560f,
-                height = 1440f,
+                width = 3840f,
+                height = 2160f,
                 obstacles = new[]
                 {
-                    new ObstacleState { id = "preview-cabin", type = "cabin", x = 1760f, y = 190f, width = 330f, height = 245f },
-                    new ObstacleState { id = "preview-pond", type = "pond", x = 230f, y = 970f, width = 450f, height = 270f },
-                    new ObstacleState { id = "preview-tree", type = "tree", x = 720f, y = 130f, width = 78f, height = 92f },
-                    new ObstacleState { id = "preview-rock", type = "rock", x = 1510f, y = 285f, width = 56f, height = 44f },
-                    new ObstacleState { id = "preview-garden", type = "garden", x = 1830f, y = 1015f, width = 390f, height = 220f }
+                    new ObstacleState { id = "preview-cabin", type = "cabin", x = 3080f, y = 260f, width = 340f, height = 250f, hitboxInset = 8f },
+                    new ObstacleState { id = "preview-pond", type = "pond", x = 260f, y = 1330f, width = 520f, height = 310f, hitboxInset = 8f },
+                    new ObstacleState { id = "preview-tree", type = "tree", x = 870f, y = 940f, width = 82f, height = 94f, hitboxInset = 22f },
+                    new ObstacleState { id = "preview-rock", type = "rock", x = 2450f, y = 1430f, width = 68f, height = 52f, hitboxInset = 7f },
+                    new ObstacleState { id = "preview-garden", type = "garden", x = 2650f, y = 1690f, width = 470f, height = 250f, hitboxInset = 10f }
                 }
             };
             map.Build(world);
@@ -257,13 +257,13 @@ namespace EasyGame
             {
                 players = new[]
                 {
-                    new PlayerState { id = localPlayerId, displayId = "TRAVELER-1927", characterId = "ranger", roleName = "Ranger", color = "#4c956c", x = 1280f, y = 720f, direction = "down", health = 100, maxHealth = 100, weapon = "smg" }
+                    new PlayerState { id = localPlayerId, spawnSkin = "usagi", displayId = "NOVA-27", characterId = "ranger", roleName = "Ranger", color = "#4c956c", x = 1920f, y = 1080f, direction = "down", health = 100, maxHealth = 100, weapon = "smg" }
                 },
                 zombies = new[]
                 {
-                    new ZombieState { id = "walker", kind = "walker", x = 1080f, y = 610f, direction = "right", health = 70, maxHealth = 70 },
-                    new ZombieState { id = "runner", kind = "runner", x = 1460f, y = 620f, direction = "left", health = 45, maxHealth = 45 },
-                    new ZombieState { id = "brute", kind = "brute", x = 1510f, y = 860f, direction = "up", health = 150, maxHealth = 150 }
+                    new ZombieState { id = "walker", kind = "walker", x = 1700f, y = 960f, direction = "right", health = 70, maxHealth = 70 },
+                    new ZombieState { id = "runner", kind = "runner", x = 2160f, y = 970f, direction = "left", health = 45, maxHealth = 45 },
+                    new ZombieState { id = "brute", kind = "brute", x = 2250f, y = 1320f, direction = "up", health = 150, maxHealth = 150 }
                 },
                 rockets = new RocketState[0]
             });

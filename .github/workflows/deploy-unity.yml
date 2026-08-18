@@ -60,6 +60,7 @@ jobs:
           mkdir -p client/dist
           cp -a build/unity-webgl/. client/dist/
           npm run test:unity
+          npm run test:combat
           npm run test:smoke
 
       - name: Package release

@@ -31,7 +31,7 @@ namespace EasyGame
             foreach (ObstacleState obstacle in world.obstacles)
             {
                 Rect rect = ToRect(obstacle);
-                blockedAreas.Add(rect);
+                blockedAreas.Add(ToCollisionRect(obstacle));
                 DrawObstacle(obstacle, rect);
             }
         }
@@ -63,6 +63,19 @@ namespace EasyGame
             return new Rect(x, z, obstacle.width * GameCoordinates.WorldScale, obstacle.height * GameCoordinates.WorldScale);
         }
 
+        private Rect ToCollisionRect(ObstacleState obstacle)
+        {
+            float maximumInset = Mathf.Max(0f, Mathf.Min(obstacle.width, obstacle.height) * 0.5f - 1f);
+            float inset = Mathf.Clamp(obstacle.hitboxInset, 0f, maximumInset);
+            float x = (obstacle.x + inset) * GameCoordinates.WorldScale;
+            float z = (ServerHeight - obstacle.y - obstacle.height + inset) * GameCoordinates.WorldScale;
+            return new Rect(
+                x,
+                z,
+                (obstacle.width - inset * 2f) * GameCoordinates.WorldScale,
+                (obstacle.height - inset * 2f) * GameCoordinates.WorldScale);
+        }
+
         private void DrawGroundDetails()
         {
             System.Random random = new System.Random(8127);
@@ -73,7 +86,8 @@ namespace EasyGame
                 new Color(0.23f, 0.27f, 0.14f),
                 new Color(0.17f, 0.25f, 0.18f)
             };
-            for (int index = 0; index < 100; index++)
+            int detailCount = Mathf.Clamp(Mathf.RoundToInt(width * height * 0.42f), 120, 360);
+            for (int index = 0; index < detailCount; index++)
             {
                 float x = 0.3f + (float)random.NextDouble() * (width - 0.6f);
                 float z = 0.3f + (float)random.NextDouble() * (height - 0.6f);

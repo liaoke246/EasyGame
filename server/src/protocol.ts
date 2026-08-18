@@ -8,6 +8,8 @@ export type { CardinalDirection, Direction, WeaponId } from "@easygame/shared";
 
 export type CharacterId = "ranger" | "farmer" | "herbalist" | "smith";
 
+export type SpawnSkin = "default" | "usagi";
+
 export type ZombieKind = "walker" | "runner" | "brute";
 
 export interface Obstacle {
@@ -17,6 +19,7 @@ export interface Obstacle {
   y: number;
   width: number;
   height: number;
+  hitboxInset?: number;
 }
 
 export interface PlayerIdentity {
@@ -28,6 +31,7 @@ export interface PlayerIdentity {
 
 export interface PublicPlayer extends PlayerIdentity {
   id: string;
+  spawnSkin: SpawnSkin;
   x: number;
   y: number;
   vx: number;

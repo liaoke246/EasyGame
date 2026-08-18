@@ -56,6 +56,18 @@ export function weaponMuzzleOffset(
   };
 }
 
+export function weaponBallisticMuzzleOffset(
+  weapon: WeaponId,
+  direction: Direction,
+): Vector2 {
+  const vector = directionVector(direction);
+  const distance = WEAPON_MUZZLE_DISTANCES[weapon];
+  return {
+    x: vector.x * distance,
+    y: vector.y * distance,
+  };
+}
+
 export function directionAngleDegrees(direction: Direction): number {
   const vector = directionVector(direction);
   return (Math.atan2(vector.y, vector.x) * 180) / Math.PI;

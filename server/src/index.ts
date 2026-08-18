@@ -21,6 +21,7 @@ import {
   WORLD_WIDTH,
   createPlayer,
   randomSpawn,
+  rollSpawnSkin,
   toPublicPlayer,
   updatePlayerMovement,
   type PlayerState,
@@ -317,6 +318,7 @@ function defeatPlayerByZombie(victim: PlayerState): void {
     const spawn = randomSpawn();
     victim.x = spawn.x;
     victim.y = spawn.y;
+    victim.spawnSkin = rollSpawnSkin();
     victim.health = victim.maxHealth;
     victim.respawning = false;
     victim.knockbackEndsAt = 0;

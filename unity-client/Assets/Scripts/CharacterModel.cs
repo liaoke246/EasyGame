@@ -23,6 +23,7 @@ namespace EasyGame
         private Quaternion weaponRestRotation;
         private Quaternion facingTarget = Quaternion.identity;
         private string currentWeapon = "smg";
+        private string currentSkin = "default";
         private string pendingWeapon;
         private float walkPhase;
         private float movementAmount;
@@ -37,7 +38,7 @@ namespace EasyGame
         public Transform Muzzle => muzzle;
         public string CurrentWeapon => currentWeapon;
 
-        public void BuildPlayer(Color uniformColor, string characterId)
+        public void BuildPlayer(Color uniformColor, string characterId, string spawnSkin = "default")
         {
             if (initialized)
             {
@@ -45,9 +46,39 @@ namespace EasyGame
             }
             initialized = true;
             zombie = false;
-            BuildBody(uniformColor, characterId, false);
+            currentSkin = NormalizeSkin(spawnSkin);
+            BuildBody(uniformColor, characterId, false, currentSkin);
             BuildWeapons();
             ActivateWeapon("smg");
+        }
+
+        public void SetPlayerAppearance(Color uniformColor, string characterId, string spawnSkin)
+        {
+            if (zombie)
+            {
+                return;
+            }
+            string normalized = NormalizeSkin(spawnSkin);
+            if (normalized == currentSkin)
+            {
+                return;
+            }
+
+            string equippedWeapon = currentWeapon;
+            if (modelRoot != null)
+            {
+                Destroy(modelRoot.gameObject);
+            }
+            weapons.Clear();
+            activeWeapon = null;
+            muzzle = null;
+            pendingWeapon = null;
+            baseModelScale = 1f;
+            currentSkin = normalized;
+            BuildBody(uniformColor, characterId, false, currentSkin);
+            BuildWeapons();
+            ActivateWeapon(weapons.ContainsKey(equippedWeapon) ? equippedWeapon : "smg");
+            modelRoot.localScale = respawning ? Vector3.zero : Vector3.one;
         }
 
         public void BuildZombie(string kind)
@@ -59,7 +90,7 @@ namespace EasyGame
             initialized = true;
             zombie = true;
             Color coat = kind == "runner" ? new Color(0.42f, 0.25f, 0.2f) : new Color(0.25f, 0.32f, 0.22f);
-            BuildBody(coat, kind, true);
+            BuildBody(coat, kind, true, "default");
             baseModelScale = kind == "brute" ? 1.22f : kind == "runner" ? 0.94f : 1f;
             modelRoot.localScale = Vector3.one * baseModelScale;
         }
@@ -186,8 +217,14 @@ namespace EasyGame
             }
         }
 
-        private void BuildBody(Color uniform, string variant, bool isZombie)
+        private void BuildBody(Color uniform, string variant, bool isZombie, string spawnSkin)
         {
+            if (!isZombie && spawnSkin == "usagi")
+            {
+                BuildUsagiBody();
+                return;
+            }
+
             modelRoot = VisualFactory.Empty(transform, "CompleteCharacter", Vector3.zero);
             bodyRoot = VisualFactory.Empty(modelRoot, "Spine", new Vector3(0f, 0.72f, 0f));
             Color outline = new Color(0.075f, 0.07f, 0.06f);
@@ -224,6 +261,42 @@ namespace EasyGame
             rightLegRestPosition = rightLeg.localPosition;
             leftArm = BuildArm(bodyRoot, "LeftArm", -0.35f, uniform, skin, outline);
             rightArm = BuildArm(bodyRoot, "RightArm", 0.35f, uniform, skin, outline);
+            rightHandSocket = VisualFactory.Empty(rightArm, "RightHandSocket", new Vector3(0f, -0.49f, 0f));
+        }
+
+        private void BuildUsagiBody()
+        {
+            modelRoot = VisualFactory.Empty(transform, "CompleteCharacter", Vector3.zero);
+            bodyRoot = VisualFactory.Empty(modelRoot, "Spine", new Vector3(0f, 0.7f, 0f));
+            Color outline = new Color(0.07f, 0.055f, 0.035f);
+            Color yellow = new Color(1f, 0.73f, 0.15f);
+            Color yellowLight = new Color(1f, 0.86f, 0.34f);
+            Color yellowDark = new Color(0.68f, 0.4f, 0.07f);
+            Color innerEar = new Color(1f, 0.52f, 0.45f);
+
+            VisualFactory.Sphere(bodyRoot, "RabbitTorso", new Vector3(0f, 0.055f, 0.02f), new Vector3(0.57f, 0.61f, 0.42f), yellow);
+            VisualFactory.Box(bodyRoot, "UtilityBelt", new Vector3(0f, -0.2f, 0.04f), new Vector3(0.56f, 0.09f, 0.38f), yellowDark);
+            VisualFactory.Box(bodyRoot, "Buckle", new Vector3(0f, -0.195f, 0.235f), new Vector3(0.12f, 0.075f, 0.025f), new Color(0.95f, 0.82f, 0.35f));
+            VisualFactory.Sphere(bodyRoot, "WhiteTail", new Vector3(0f, -0.02f, -0.29f), new Vector3(0.31f, 0.31f, 0.31f), new Color(0.96f, 0.95f, 0.86f));
+
+            Transform neck = VisualFactory.Empty(bodyRoot, "Neck", new Vector3(0f, 0.41f, 0f));
+            VisualFactory.Sphere(neck, "RabbitHead", new Vector3(0f, 0.23f, 0.015f), new Vector3(0.5f, 0.48f, 0.46f), yellowLight);
+            VisualFactory.Sphere(neck, "LeftEar", new Vector3(-0.14f, 0.67f, 0f), new Vector3(0.17f, 0.52f, 0.16f), yellowLight).localRotation = Quaternion.Euler(0f, 0f, -7f);
+            VisualFactory.Sphere(neck, "RightEar", new Vector3(0.14f, 0.67f, 0f), new Vector3(0.17f, 0.52f, 0.16f), yellowLight).localRotation = Quaternion.Euler(0f, 0f, 7f);
+            VisualFactory.Sphere(neck, "LeftInnerEar", new Vector3(-0.14f, 0.67f, 0.085f), new Vector3(0.075f, 0.34f, 0.035f), innerEar).localRotation = Quaternion.Euler(0f, 0f, -7f);
+            VisualFactory.Sphere(neck, "RightInnerEar", new Vector3(0.14f, 0.67f, 0.085f), new Vector3(0.075f, 0.34f, 0.035f), innerEar).localRotation = Quaternion.Euler(0f, 0f, 7f);
+            VisualFactory.Sphere(neck, "LeftEye", new Vector3(-0.105f, 0.285f, 0.235f), new Vector3(0.055f, 0.07f, 0.035f), outline);
+            VisualFactory.Sphere(neck, "RightEye", new Vector3(0.105f, 0.285f, 0.235f), new Vector3(0.055f, 0.07f, 0.035f), outline);
+            VisualFactory.Sphere(neck, "LeftMuzzle", new Vector3(-0.055f, 0.14f, 0.242f), new Vector3(0.14f, 0.11f, 0.055f), new Color(1f, 0.9f, 0.55f));
+            VisualFactory.Sphere(neck, "RightMuzzle", new Vector3(0.055f, 0.14f, 0.242f), new Vector3(0.14f, 0.11f, 0.055f), new Color(1f, 0.9f, 0.55f));
+            VisualFactory.Sphere(neck, "Nose", new Vector3(0f, 0.17f, 0.285f), new Vector3(0.055f, 0.045f, 0.035f), innerEar);
+
+            leftLeg = BuildLeg(modelRoot, "LeftLeg", -0.15f, yellow, outline);
+            rightLeg = BuildLeg(modelRoot, "RightLeg", 0.15f, yellow, outline);
+            leftLegRestPosition = leftLeg.localPosition;
+            rightLegRestPosition = rightLeg.localPosition;
+            leftArm = BuildArm(bodyRoot, "LeftArm", -0.35f, yellow, yellowLight, outline);
+            rightArm = BuildArm(bodyRoot, "RightArm", 0.35f, yellow, yellowLight, outline);
             rightHandSocket = VisualFactory.Empty(rightArm, "RightHandSocket", new Vector3(0f, -0.49f, 0f));
         }
 
@@ -331,6 +404,11 @@ namespace EasyGame
                 case "smith": return new Color(0.33f, 0.18f, 0.14f);
                 default: return new Color(0.18f, 0.28f, 0.18f);
             }
+        }
+
+        private static string NormalizeSkin(string spawnSkin)
+        {
+            return spawnSkin == "usagi" ? "usagi" : "default";
         }
     }
 }
