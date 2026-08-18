@@ -20,6 +20,7 @@ namespace EasyGame
         public float y;
         public float width;
         public float height;
+        public float hitboxInset;
     }
 
     [Serializable]
@@ -43,6 +44,7 @@ namespace EasyGame
     public sealed class PlayerState
     {
         public string id;
+        public string spawnSkin;
         public string displayId;
         public string characterId;
         public string roleName;

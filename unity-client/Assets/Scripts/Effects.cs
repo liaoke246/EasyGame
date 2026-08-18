@@ -30,20 +30,13 @@ namespace EasyGame
         public static void Tracer(Vector3 origin, Vector3 destination, bool hit, string weapon)
         {
             GameObject lineObject = new GameObject("Ballistic Tracer");
-            LineRenderer line = lineObject.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
-            line.positionCount = 2;
-            line.SetPosition(0, origin);
-            line.SetPosition(1, destination + Vector3.up * 0.32f);
-            line.widthMultiplier = weapon == "shotgun" ? 0.018f : 0.025f;
-            line.numCapVertices = 4;
-            Color color = hit ? new Color(1f, 0.48f, 0.12f) : new Color(1f, 0.82f, 0.3f);
-            line.sharedMaterial = VisualFactory.Material(color, true);
-            lineObject.AddComponent<FxLifetime>().Lifetime = weapon == "shotgun" ? 0.07f : 0.1f;
-            if (hit)
-            {
-                Burst(destination + Vector3.up * 0.28f, 7, new Color(1f, 0.5f, 0.12f), new Color(0.45f, 0.07f, 0.02f), 0.18f, 1.1f, 0.025f, 0.06f);
-            }
+            destination.y = origin.y;
+            lineObject.AddComponent<TracerFx>().Configure(origin, destination, hit, weapon);
+        }
+
+        public static void ImpactSpark(Vector3 position)
+        {
+            Burst(position, 8, new Color(1f, 0.58f, 0.16f), new Color(0.45f, 0.07f, 0.02f), 0.2f, 1.25f, 0.025f, 0.065f);
         }
 
         public static void Explosion(Vector3 position, CameraRig cameraRig)
@@ -212,6 +205,65 @@ namespace EasyGame
             {
                 Destroy(gameObject);
             }
+        }
+    }
+
+    public sealed class TracerFx : MonoBehaviour
+    {
+        private LineRenderer line;
+        private Vector3 origin;
+        private Vector3 destination;
+        private float duration;
+        private float age;
+        private bool hit;
+        private bool completed;
+        private float baseWidth;
+
+        public void Configure(Vector3 start, Vector3 end, bool impacted, string weapon)
+        {
+            origin = start;
+            destination = end;
+            hit = impacted;
+            float distance = Vector3.Distance(origin, destination);
+            float speed = weapon == "shotgun" ? 92f : 76f;
+            duration = Mathf.Clamp(distance / speed, 0.035f, weapon == "shotgun" ? 0.085f : 0.13f);
+
+            line = gameObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.positionCount = 2;
+            line.numCapVertices = 6;
+            baseWidth = weapon == "shotgun" ? 0.012f : 0.024f;
+            line.widthMultiplier = baseWidth;
+            Color color = impacted ? new Color(1f, 0.55f, 0.14f) : new Color(1f, 0.86f, 0.36f);
+            line.sharedMaterial = VisualFactory.Material(color, true);
+            line.SetPosition(0, origin);
+            line.SetPosition(1, origin);
+        }
+
+        private void Update()
+        {
+            if (completed || line == null)
+            {
+                return;
+            }
+            age += Time.deltaTime;
+            float progress = Mathf.Clamp01(age / Mathf.Max(0.01f, duration));
+            float tailProgress = Mathf.Max(0f, progress - 0.24f);
+            float easedHead = 1f - Mathf.Pow(1f - progress, 2f);
+            line.SetPosition(0, Vector3.Lerp(origin, destination, tailProgress));
+            line.SetPosition(1, Vector3.Lerp(origin, destination, easedHead));
+            line.widthMultiplier = baseWidth * Mathf.Lerp(1f, 0.82f, progress);
+
+            if (progress < 1f)
+            {
+                return;
+            }
+            completed = true;
+            if (hit)
+            {
+                Effects.ImpactSpark(destination);
+            }
+            Destroy(gameObject, 0.035f);
         }
     }
 }

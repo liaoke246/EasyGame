@@ -53,13 +53,18 @@ export async function getOrCreateIdentity(
       const character = CHARACTER_OPTIONS.find(
         (candidate) => candidate.characterId === existing.characterId,
       );
+      const legacyDisplayId = /^(?:旅人|TRAVELER)-/i.test(existing.displayId);
       if (
         character &&
         (existing.roleName !== character.roleName ||
-          existing.color !== character.color)
+          existing.color !== character.color ||
+          legacyDisplayId)
       ) {
         existing.roleName = character.roleName;
         existing.color = character.color;
+        if (legacyDisplayId) {
+          existing.displayId = createUniqueDisplayId();
+        }
         await persistIdentities();
       }
       return existing;
@@ -88,14 +93,29 @@ function createUniqueDisplayId(): string {
     Array.from(identities.values(), (identity) => identity.displayId),
   );
 
+  const callsigns = [
+    "NOVA",
+    "EMBER",
+    "BOLT",
+    "MOSS",
+    "VIPER",
+    "PIXEL",
+    "ROOK",
+    "ECHO",
+    "COMET",
+    "LUNAR",
+    "RAVEN",
+    "MAPLE",
+  ];
+
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const candidate = `旅人-${randomInt(1000, 10_000)}`;
+    const candidate = `${callsigns[randomInt(callsigns.length)]}-${randomInt(10, 100)}`;
     if (!existingIds.has(candidate)) {
       return candidate;
     }
   }
 
-  return `旅人-${randomUUID().slice(0, 6).toUpperCase()}`;
+  return `SCOUT-${randomUUID().slice(0, 4).toUpperCase()}`;
 }
 
 async function persistIdentities(): Promise<void> {

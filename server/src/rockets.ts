@@ -6,7 +6,7 @@ import {
   type PlayerState,
 } from "./world.js";
 import { weaponMuzzlePosition } from "./weapons.js";
-import type { ZombieState } from "./zombies.js";
+import { zombieCollisionRadius, type ZombieState } from "./zombies.js";
 
 const ROCKET_SPEED = 430;
 const ROCKET_RADIUS = 8;
@@ -60,7 +60,7 @@ export function updateRocket(
 
     const hitWall = positionCollides(rocket.x, rocket.y, ROCKET_RADIUS);
     const hitZombie = living.some((zombie) => {
-      const radius = zombie.kind === "brute" ? 25 : 18;
+      const radius = zombieCollisionRadius(zombie.kind);
       return (
         Math.hypot(zombie.x - rocket.x, zombie.y - rocket.y) <=
         radius + ROCKET_RADIUS

@@ -7,6 +7,7 @@ const required = [
   "Assets/Scripts/GameBootstrap.cs",
   "Assets/Scripts/CharacterModel.cs",
   "Assets/Scripts/GameWorldController.cs",
+  "Assets/Scripts/WorldHealthBar.cs",
   "Assets/Scripts/WebSocketBridge.cs",
   "Assets/Plugins/WebGL/EasyGameSocket.jslib",
   "Assets/WebGLTemplates/EasyGame/index.html",
@@ -29,6 +30,8 @@ assert.match(model, /RightHandSocket/);
 assert.match(model, /AddMuzzle\(root/);
 assert.match(model, /RequestWeapon/);
 assert.match(model, /TriggerFire/);
+assert.match(model, /BuildUsagiBody/);
+assert.match(model, /WhiteTail/);
 assert.doesNotMatch(model, /Resources\.Load|SpriteRenderer/);
 
 const bridge = await readFile(`${root}/Assets/Plugins/WebGL/EasyGameSocket.jslib`, "utf8");
@@ -44,6 +47,14 @@ assert.match(world, /OptimisticFire/);
 assert.match(world, /attack\.phase == "impact" && attack\.weapon == "rocket"/);
 assert.match(world, /attacker\.Muzzle\.position/);
 assert.match(world, /owner\.Muzzle\.position/);
+
+const healthBar = await readFile(`${root}/Assets/Scripts/WorldHealthBar.cs`, "utf8");
+assert.match(healthBar, /Character Name/);
+assert.match(healthBar, /SetValue/);
+
+const effects = await readFile(`${root}/Assets/Scripts/Effects.cs`, "utf8");
+assert.match(effects, /TracerFx/);
+assert.match(effects, /Vector3\.Lerp\(origin, destination/);
 
 const template = await readFile(`${root}/Assets/WebGLTemplates/EasyGame/index.html`, "utf8");
 assert.match(template, /socket\.io\/socket\.io\.js/);

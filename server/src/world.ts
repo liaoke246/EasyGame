@@ -4,12 +4,13 @@ import type {
   Obstacle,
   PlayerIdentity,
   PublicPlayer,
+  SpawnSkin,
 } from "./protocol.js";
 
-export const WORLD_WIDTH = 2560;
-export const WORLD_HEIGHT = 1440;
+export const WORLD_WIDTH = 3840;
+export const WORLD_HEIGHT = 2160;
 export const PLAYER_SPEED = 205;
-export const PLAYER_RADIUS = 15;
+export const PLAYER_RADIUS = 22;
 export const MOVE_ACCELERATION = 2_600;
 export const TURN_ACCELERATION = 4_200;
 export const STOP_DECELERATION = 3_600;
@@ -18,43 +19,47 @@ export const SNAPSHOT_RATE = 15;
 export const ATTACK_COOLDOWN_MS = 620;
 export const ATTACK_DURATION_MS = 180;
 export const RESPAWN_DELAY_MS = 1_250;
+export const USAGI_SPAWN_CHANCE = 0.12;
 
 export const OBSTACLES: Obstacle[] = [
-  { id: "cabin", type: "cabin", x: 1_760, y: 190, width: 330, height: 245 },
-  { id: "cabin-2", type: "cabin", x: 380, y: 235, width: 300, height: 225 },
-  { id: "pond", type: "pond", x: 230, y: 970, width: 450, height: 270 },
-  { id: "garden", type: "garden", x: 1_830, y: 1_015, width: 390, height: 220 },
-  { id: "tree-nw-1", type: "tree", x: 90, y: 80, width: 78, height: 92 },
-  { id: "tree-nw-2", type: "tree", x: 220, y: 135, width: 78, height: 92 },
-  { id: "tree-nw-3", type: "tree", x: 720, y: 80, width: 78, height: 92 },
-  { id: "tree-west-1", type: "tree", x: 80, y: 540, width: 78, height: 92 },
-  { id: "tree-west-2", type: "tree", x: 180, y: 700, width: 78, height: 92 },
-  { id: "tree-north", type: "tree", x: 1_180, y: 70, width: 78, height: 92 },
-  { id: "tree-ne-1", type: "tree", x: 2_310, y: 110, width: 78, height: 92 },
-  { id: "tree-ne-2", type: "tree", x: 2_180, y: 270, width: 78, height: 92 },
-  { id: "tree-east-1", type: "tree", x: 2_390, y: 610, width: 78, height: 92 },
-  { id: "tree-east-2", type: "tree", x: 2_300, y: 840, width: 78, height: 92 },
-  { id: "tree-south-1", type: "tree", x: 840, y: 1_285, width: 78, height: 92 },
-  { id: "tree-south-2", type: "tree", x: 1_060, y: 1_300, width: 78, height: 92 },
-  { id: "tree-south-3", type: "tree", x: 1_550, y: 1_285, width: 78, height: 92 },
-  { id: "tree-south-4", type: "tree", x: 2_360, y: 1_260, width: 78, height: 92 },
-  { id: "rock-1", type: "rock", x: 850, y: 330, width: 58, height: 44 },
-  { id: "rock-2", type: "rock", x: 1_590, y: 1_080, width: 62, height: 48 },
-  { id: "rock-3", type: "rock", x: 720, y: 930, width: 54, height: 42 },
-  { id: "rock-4", type: "rock", x: 2_210, y: 650, width: 64, height: 48 },
-  { id: "rock-5", type: "rock", x: 1_510, y: 285, width: 56, height: 44 },
+  { id: "cabin-nw", type: "cabin", x: 390, y: 300, width: 330, height: 245, hitboxInset: 8 },
+  { id: "cabin-ne", type: "cabin", x: 3_080, y: 260, width: 340, height: 250, hitboxInset: 8 },
+  { id: "cabin-south", type: "cabin", x: 1_770, y: 1_680, width: 330, height: 245, hitboxInset: 8 },
+  { id: "pond-west", type: "pond", x: 260, y: 1_330, width: 520, height: 310, hitboxInset: 8 },
+  { id: "pond-east", type: "pond", x: 3_010, y: 1_070, width: 490, height: 290, hitboxInset: 8 },
+  { id: "garden-north", type: "garden", x: 1_160, y: 300, width: 430, height: 230, hitboxInset: 10 },
+  { id: "garden-se", type: "garden", x: 2_650, y: 1_690, width: 470, height: 250, hitboxInset: 10 },
+  { id: "tree-nw-1", type: "tree", x: 100, y: 90, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-nw-2", type: "tree", x: 850, y: 120, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-north", type: "tree", x: 2_040, y: 90, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-ne", type: "tree", x: 3_620, y: 160, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-west-1", type: "tree", x: 100, y: 720, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-west-2", type: "tree", x: 870, y: 940, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-east-1", type: "tree", x: 3_620, y: 740, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-east-2", type: "tree", x: 3_480, y: 1_620, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-south-1", type: "tree", x: 720, y: 1_970, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-south-2", type: "tree", x: 1_330, y: 2_000, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-south-3", type: "tree", x: 2_380, y: 1_980, width: 82, height: 94, hitboxInset: 22 },
+  { id: "tree-south-4", type: "tree", x: 3_550, y: 2_000, width: 82, height: 94, hitboxInset: 22 },
+  { id: "rock-1", type: "rock", x: 980, y: 690, width: 62, height: 48, hitboxInset: 7 },
+  { id: "rock-2", type: "rock", x: 2_780, y: 700, width: 66, height: 50, hitboxInset: 7 },
+  { id: "rock-3", type: "rock", x: 1_150, y: 1_520, width: 58, height: 46, hitboxInset: 6 },
+  { id: "rock-4", type: "rock", x: 2_450, y: 1_430, width: 68, height: 52, hitboxInset: 7 },
+  { id: "rock-5", type: "rock", x: 3_450, y: 880, width: 60, height: 46, hitboxInset: 6 },
+  { id: "rock-6", type: "rock", x: 520, y: 1_850, width: 64, height: 48, hitboxInset: 7 },
 ];
 
 export const SPAWN_POINTS = [
-  { x: 1_135, y: 630 },
-  { x: 1_280, y: 620 },
-  { x: 1_425, y: 630 },
-  { x: 1_145, y: 800 },
-  { x: 1_280, y: 820 },
-  { x: 1_415, y: 800 },
+  { x: 1_720, y: 960 },
+  { x: 1_920, y: 940 },
+  { x: 2_120, y: 960 },
+  { x: 1_730, y: 1_190 },
+  { x: 1_920, y: 1_220 },
+  { x: 2_110, y: 1_190 },
 ];
 
 let testSpawnIndex = 0;
+let testSkinIndex = 0;
 
 export const CHARACTER_OPTIONS: Array<
   PlayerIdentity & { characterId: CharacterId }
@@ -118,6 +123,15 @@ export function randomSpawn(): { x: number; y: number } {
   };
 }
 
+export function rollSpawnSkin(): SpawnSkin {
+  if (process.env.TEST_MODE === "1") {
+    const skin = testSkinIndex % 2 === 0 ? "usagi" : "default";
+    testSkinIndex += 1;
+    return skin;
+  }
+  return Math.random() < USAGI_SPAWN_CHANCE ? "usagi" : "default";
+}
+
 export function createPlayer(
   id: string,
   guestToken: string,
@@ -128,6 +142,7 @@ export function createPlayer(
     id,
     guestToken,
     ...identity,
+    spawnSkin: rollSpawnSkin(),
     x: spawn.x,
     y: spawn.y,
     vx: 0,
@@ -152,6 +167,7 @@ export function createPlayer(
 export function toPublicPlayer(player: PlayerState): PublicPlayer {
   return {
     id: player.id,
+    spawnSkin: player.spawnSkin,
     displayId: player.displayId,
     characterId: player.characterId,
     roleName: player.roleName,
@@ -277,11 +293,28 @@ function circleIntersectsRect(
   rect: Obstacle,
   radius: number,
 ): boolean {
-  const closestX = clamp(centerX, rect.x, rect.x + rect.width);
-  const closestY = clamp(centerY, rect.y, rect.y + rect.height);
+  const bounds = obstacleCollisionBounds(rect);
+  const closestX = clamp(centerX, bounds.minX, bounds.maxX);
+  const closestY = clamp(centerY, bounds.minY, bounds.maxY);
   const deltaX = centerX - closestX;
   const deltaY = centerY - closestY;
   return deltaX * deltaX + deltaY * deltaY < radius * radius;
+}
+
+export function obstacleCollisionBounds(rect: Obstacle): {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+} {
+  const maximumInset = Math.max(0, Math.min(rect.width, rect.height) * 0.5 - 1);
+  const inset = clamp(rect.hitboxInset ?? 0, 0, maximumInset);
+  return {
+    minX: rect.x + inset,
+    minY: rect.y + inset,
+    maxX: rect.x + rect.width - inset,
+    maxY: rect.y + rect.height - inset,
+  };
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {

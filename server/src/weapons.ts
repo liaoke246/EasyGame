@@ -1,16 +1,17 @@
 import {
-  PROJECTILE_VISUAL_ELEVATION,
   WEAPON_COOLDOWN_MS,
   directionVector,
-  weaponMuzzleOffset,
+  weaponBallisticMuzzleOffset,
 } from "@easygame/shared";
 import type { AttackEvent, WeaponId, WeaponTrace } from "./protocol.js";
-import type { PlayerState } from "./world.js";
-import type { ZombieState } from "./zombies.js";
-
-// Player and zombie positions sit on the ground plane, while the weapon art is
-// drawn above it. Converting the visual muzzle back to the ground plane keeps
-// authoritative ray tests aligned with the sprite without aiming at its feet.
+import {
+  OBSTACLES,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+  obstacleCollisionBounds,
+  type PlayerState,
+} from "./world.js";
+import { zombieCollisionRadius, type ZombieState } from "./zombies.js";
 
 export function isWeaponId(value: unknown): value is WeaponId {
   return value === "smg" || value === "shotgun" || value === "rocket";
@@ -35,11 +36,12 @@ export function fireWeapon(
   attacker.attacking = true;
 
   const living = Array.from(zombies).filter((zombie) => zombie.health > 0);
+  const origin = weaponMuzzlePosition(attacker);
   const result =
     attacker.weapon === "smg"
-      ? fireSmg(attacker, living)
+      ? fireSmg(origin, attacker, living)
       : attacker.weapon === "shotgun"
-        ? fireShotgun(attacker, living)
+        ? fireShotgun(origin, attacker, living)
         : { hitZombieIds: new Set<string>(), traces: [] };
 
   return {
@@ -47,8 +49,8 @@ export function fireWeapon(
     weapon: attacker.weapon,
     phase: "fire",
     direction: attacker.direction,
-    x: attacker.x,
-    y: attacker.y,
+    x: origin.x,
+    y: origin.y,
     hitPlayerIds: [],
     hitZombieIds: Array.from(result.hitZombieIds),
     killedZombieIds: [],
@@ -57,36 +59,34 @@ export function fireWeapon(
 }
 
 function fireSmg(
+  origin: { x: number; y: number },
   attacker: PlayerState,
   zombies: ZombieState[],
 ): FireResult {
-  const origin = weaponMuzzlePosition(attacker);
-  const hit = nearestRayTarget(origin, attacker, zombies, 520, 18);
-  if (hit) {
-    hit.health = Math.max(0, hit.health - 14);
+  const result = traceBallistic(origin, attacker, zombies, 560, 3.5);
+  if (result.target) {
+    result.target.health = Math.max(0, result.target.health - 14);
   }
-  const end = hit ?? rayEnd(origin, attacker, 520, 0);
   return {
-    hitZombieIds: new Set(hit ? [hit.id] : []),
-    traces: [{ endX: end.x, endY: end.y, hit: Boolean(hit) }],
+    hitZombieIds: new Set(result.target ? [result.target.id] : []),
+    traces: [{ endX: result.endX, endY: result.endY, hit: result.impacted }],
   };
 }
 
 function fireShotgun(
+  origin: { x: number; y: number },
   attacker: PlayerState,
   zombies: ZombieState[],
 ): FireResult {
-  const origin = weaponMuzzlePosition(attacker);
   const hitZombieIds = new Set<string>();
   const traces: WeaponTrace[] = [];
   for (const angle of [-16, -10, -5, 0, 5, 10, 16]) {
-    const hit = nearestRayTarget(origin, attacker, zombies, 310, 16, angle);
-    if (hit) {
-      hit.health = Math.max(0, hit.health - 13);
-      hitZombieIds.add(hit.id);
+    const result = traceBallistic(origin, attacker, zombies, 330, 2.5, angle);
+    if (result.target) {
+      result.target.health = Math.max(0, result.target.health - 13);
+      hitZombieIds.add(result.target.id);
     }
-    const end = hit ?? rayEnd(origin, attacker, 310, angle);
-    traces.push({ endX: end.x, endY: end.y, hit: Boolean(hit) });
+    traces.push({ endX: result.endX, endY: result.endY, hit: result.impacted });
   }
   return { hitZombieIds, traces };
 }
@@ -96,56 +96,135 @@ interface FireResult {
   traces: WeaponTrace[];
 }
 
-function nearestRayTarget(
+interface BallisticResult {
+  target?: ZombieState;
+  endX: number;
+  endY: number;
+  impacted: boolean;
+}
+
+function traceBallistic(
   origin: { x: number; y: number },
   attacker: PlayerState,
   zombies: ZombieState[],
   range: number,
-  halfWidth: number,
+  projectileRadius: number,
   angleDegrees = 0,
-): ZombieState | undefined {
+): BallisticResult {
   const vector = rotatedDirection(attacker, angleDegrees);
-  let nearest: ZombieState | undefined;
-  let nearestForward = range + 1;
-  for (const zombie of zombies) {
-    const relativeX = zombie.x - origin.x;
-    const relativeY = zombie.y - origin.y;
-    const forward = relativeX * vector.x + relativeY * vector.y;
-    const side = Math.abs(relativeX * -vector.y + relativeY * vector.x);
-    if (
-      forward > 0 &&
-      forward <= range &&
-      side <= halfWidth &&
-      forward < nearestForward
-    ) {
-      nearest = zombie;
-      nearestForward = forward;
+  let nearestDistance = worldBoundaryDistance(origin, vector, range, projectileRadius);
+  let nearestTarget: ZombieState | undefined;
+  let impacted = nearestDistance < range;
+
+  for (const obstacle of OBSTACLES) {
+    const bounds = obstacleCollisionBounds(obstacle);
+    const distance = rayBoxDistance(
+      origin,
+      vector,
+      bounds.minX - projectileRadius,
+      bounds.minY - projectileRadius,
+      bounds.maxX + projectileRadius,
+      bounds.maxY + projectileRadius,
+      nearestDistance,
+    );
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestTarget = undefined;
+      impacted = true;
     }
   }
-  return nearest;
+
+  for (const zombie of zombies) {
+    const distance = rayCircleDistance(
+      origin,
+      vector,
+      zombie.x,
+      zombie.y,
+      zombieCollisionRadius(zombie.kind) + projectileRadius,
+    );
+    if (distance >= 0 && distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestTarget = zombie;
+      impacted = true;
+    }
+  }
+
+  return {
+    target: nearestTarget,
+    endX: origin.x + vector.x * nearestDistance,
+    endY: origin.y + vector.y * nearestDistance,
+    impacted,
+  };
 }
 
-function rayEnd(
+function worldBoundaryDistance(
   origin: { x: number; y: number },
-  attacker: PlayerState,
+  vector: { x: number; y: number },
   range: number,
-  angleDegrees: number,
-): { x: number; y: number } {
-  const vector = rotatedDirection(attacker, angleDegrees);
-  return {
-    x: origin.x + vector.x * range,
-    y: origin.y + vector.y * range,
-  };
+  radius: number,
+): number {
+  let distance = range;
+  if (vector.x > 0) distance = Math.min(distance, (WORLD_WIDTH - radius - origin.x) / vector.x);
+  if (vector.x < 0) distance = Math.min(distance, (radius - origin.x) / vector.x);
+  if (vector.y > 0) distance = Math.min(distance, (WORLD_HEIGHT - radius - origin.y) / vector.y);
+  if (vector.y < 0) distance = Math.min(distance, (radius - origin.y) / vector.y);
+  return Math.max(0, distance);
+}
+
+function rayCircleDistance(
+  origin: { x: number; y: number },
+  vector: { x: number; y: number },
+  centerX: number,
+  centerY: number,
+  radius: number,
+): number {
+  const relativeX = centerX - origin.x;
+  const relativeY = centerY - origin.y;
+  const forward = relativeX * vector.x + relativeY * vector.y;
+  if (forward <= 0) return -1;
+  const sideSquared = relativeX * relativeX + relativeY * relativeY - forward * forward;
+  const radiusSquared = radius * radius;
+  if (sideSquared > radiusSquared) return -1;
+  return Math.max(0, forward - Math.sqrt(radiusSquared - sideSquared));
+}
+
+function rayBoxDistance(
+  origin: { x: number; y: number },
+  vector: { x: number; y: number },
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
+  limit: number,
+): number {
+  let near = 0;
+  let far = limit;
+  for (const [position, direction, minimum, maximum] of [
+    [origin.x, vector.x, minX, maxX],
+    [origin.y, vector.y, minY, maxY],
+  ] as const) {
+    if (Math.abs(direction) < 1e-9) {
+      if (position < minimum || position > maximum) return Number.POSITIVE_INFINITY;
+      continue;
+    }
+    let first = (minimum - position) / direction;
+    let second = (maximum - position) / direction;
+    if (first > second) [first, second] = [second, first];
+    near = Math.max(near, first);
+    far = Math.min(far, second);
+    if (near > far) return Number.POSITIVE_INFINITY;
+  }
+  return near >= 0 && near <= limit ? near : Number.POSITIVE_INFINITY;
 }
 
 export function weaponMuzzlePosition(
   attacker: PlayerState,
   weapon: WeaponId = attacker.weapon,
 ): { x: number; y: number } {
-  const offset = weaponMuzzleOffset(weapon, attacker.direction);
+  const offset = weaponBallisticMuzzleOffset(weapon, attacker.direction);
   return {
     x: attacker.x + offset.x,
-    y: attacker.y + offset.y + PROJECTILE_VISUAL_ELEVATION,
+    y: attacker.y + offset.y,
   };
 }
 

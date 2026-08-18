@@ -43,8 +43,8 @@ jobs:
       - name: Verify Unity client structure
         run: npm run test:unity
 
-      - name: Run multiplayer smoke test
-        run: npm run test:animation && npm run test:smoke
+      - name: Run gameplay regression tests
+        run: npm run test:animation && npm run test:combat && npm run test:smoke
 
       - name: Package release
         run: |

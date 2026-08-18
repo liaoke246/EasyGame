@@ -9,8 +9,6 @@ import {
   type PlayerState,
 } from "./world.js";
 
-const ZOMBIE_RADIUS = 17;
-const CONTACT_DISTANCE = PLAYER_RADIUS + ZOMBIE_RADIUS + 4;
 const CONTACT_DAMAGE = 12;
 const CONTACT_COOLDOWN_MS = 850;
 
@@ -25,6 +23,10 @@ const ZOMBIE_STATS: Record<
 
 export interface ZombieState extends PublicZombie {
   lastAttackAt: number;
+}
+
+export function zombieCollisionRadius(kind: ZombieKind): number {
+  return kind === "brute" ? 29 : kind === "runner" ? 18 : 22;
 }
 
 export function createZombie(index: number): ZombieState {
@@ -60,7 +62,8 @@ export function updateZombie(
   const deltaX = target.x - zombie.x;
   const deltaY = target.y - zombie.y;
   const distance = Math.hypot(deltaX, deltaY);
-  if (distance <= CONTACT_DISTANCE) {
+  const zombieRadius = zombieCollisionRadius(zombie.kind);
+  if (distance <= PLAYER_RADIUS + zombieRadius + 3) {
     zombie.vx = 0;
     zombie.vy = 0;
     if (now - zombie.lastAttackAt >= CONTACT_COOLDOWN_MS) {
@@ -80,11 +83,11 @@ export function updateZombie(
   const previousY = zombie.y;
 
   const nextX = zombie.x + requestedVelocityX * deltaSeconds;
-  if (!positionCollides(nextX, zombie.y)) {
+  if (!positionCollides(nextX, zombie.y, zombieRadius)) {
     zombie.x = nextX;
   }
   const nextY = zombie.y + requestedVelocityY * deltaSeconds;
-  if (!positionCollides(zombie.x, nextY)) {
+  if (!positionCollides(zombie.x, nextY, zombieRadius)) {
     zombie.y = nextY;
   }
   const movementX = zombie.x - previousX;

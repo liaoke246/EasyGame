@@ -8,6 +8,7 @@ namespace EasyGame
         private Vector3 targetPosition;
         private bool receivedState;
         private float worldHeight;
+        private WorldHealthBar healthBar;
 
         public string ZombieId { get; private set; }
 
@@ -18,6 +19,11 @@ namespace EasyGame
             gameObject.name = $"Zombie {state.kind} {state.id}";
             model = gameObject.AddComponent<CharacterModel>();
             model.BuildZombie(state.kind);
+            GameObject barObject = new GameObject("Zombie Health");
+            barObject.transform.SetParent(transform, false);
+            healthBar = barObject.AddComponent<WorldHealthBar>();
+            float barHeight = state.kind == "brute" ? 2.18f : 1.88f;
+            healthBar.Initialize(null, barHeight, state.kind == "brute" ? new Color(1f, 0.46f, 0.08f) : new Color(0.92f, 0.18f, 0.12f));
             ApplyNetworkState(state, true);
         }
 
@@ -31,6 +37,7 @@ namespace EasyGame
             }
             float speed = Mathf.Sqrt(state.vx * state.vx + state.vy * state.vy) * GameCoordinates.WorldScale;
             model.ApplyMotion(state.direction, speed, false, state.health <= 0);
+            healthBar.SetValue(state.health, state.maxHealth);
         }
 
         private void LateUpdate()

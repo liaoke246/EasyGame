@@ -9,6 +9,7 @@ import {
   directionAngleDegrees,
   directionFromAxes,
   weaponMuzzleOffset,
+  weaponBallisticMuzzleOffset,
 } from "../shared/dist/index.js";
 import { PlayerAnimationController } from "../client/src/player-animation.ts";
 
@@ -91,6 +92,12 @@ for (const weapon of ["smg", "shotgun", "rocket"]) {
       Math.abs(cross) < 1e-9,
       `${weapon} ${direction} barrel and projectile must share one direction`,
     );
+
+    const ballistic = weaponBallisticMuzzleOffset(weapon, direction);
+    assert.ok(
+      Math.abs(ballistic.x * facing.y - ballistic.y * facing.x) < 1e-9,
+      `${weapon} ${direction} authoritative ray must remain on the barrel axis`,
+    );
   }
 }
 
@@ -141,7 +148,7 @@ assert.match(worldSceneSource, /fillPoints/);
 const serverWeaponSource = await readFile("server/src/weapons.ts", "utf8");
 assert.match(
   serverWeaponSource,
-  /weaponMuzzleOffset\(weapon, attacker\.direction\)/,
+  /weaponBallisticMuzzleOffset\(weapon, attacker\.direction\)/,
   "Authoritative hit tests must use the shared barrel-tip transform",
 );
 

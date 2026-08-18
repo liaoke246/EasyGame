@@ -51,10 +51,21 @@ async function runMultiplayerCheck() {
   const second = io(url, { transports: ["websocket"], forceNew: true });
 
   try {
-    const [firstWelcome] = await Promise.all([
+    const [firstWelcome, secondWelcome] = await Promise.all([
       onceEvent(first, "welcome"),
       onceEvent(second, "welcome"),
     ]);
+    if (
+      firstWelcome.world.width !== 3_840 ||
+      firstWelcome.world.height !== 2_160
+    ) {
+      throw new Error("Expanded authoritative world dimensions were not synchronized");
+    }
+    for (const welcome of [firstWelcome, secondWelcome]) {
+      if (!/^[A-Z]+-(?:[0-9]{2}|[A-F0-9]{4})$/.test(welcome.identity.displayId)) {
+        throw new Error(`Random callsign was not WebGL-safe: ${welcome.identity.displayId}`);
+      }
+    }
     const probe = { sequence: 7, clientSentAt: Date.now() };
     const pongPromise = onceEvent(first, "network:pong");
     first.emit("network:ping", probe);
@@ -81,6 +92,12 @@ async function runMultiplayerCheck() {
     );
     if (!otherPlayer) {
       throw new Error("Second player was missing from the shared snapshot");
+    }
+    const synchronizedSkins = new Set(
+      twoPlayerSnapshot.players.map((player) => player.spawnSkin),
+    );
+    if (!synchronizedSkins.has("usagi") || !synchronizedSkins.has("default")) {
+      throw new Error("Spawn-randomized Usagi appearance was not synchronized");
     }
     const targetZombie = twoPlayerSnapshot.zombies[0];
     if (!targetZombie) {

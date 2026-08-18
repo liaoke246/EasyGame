@@ -4,7 +4,9 @@ namespace EasyGame
 {
     public sealed class RocketVisual : MonoBehaviour
     {
+        private const float ProjectileHeight = 0.72f;
         private Vector3 targetPosition;
+        private Vector3 networkVelocity;
         private ParticleSystem trail;
         private float worldHeight;
 
@@ -22,17 +24,19 @@ namespace EasyGame
             ApplyNetworkState(state, !visualMuzzle.HasValue);
             if (visualMuzzle.HasValue)
             {
-                transform.position = visualMuzzle.Value;
+                Vector3 spawn = visualMuzzle.Value;
+                spawn.y = ProjectileHeight;
+                transform.position = spawn;
             }
         }
 
         public void ApplyNetworkState(RocketState state, bool immediate = false)
         {
-            targetPosition = GameCoordinates.ToUnity(state.x, state.y, worldHeight) + Vector3.up * 0.42f;
-            Vector3 velocity = new Vector3(state.vx, 0f, -state.vy);
-            if (velocity.sqrMagnitude > 0.01f)
+            targetPosition = GameCoordinates.ToUnity(state.x, state.y, worldHeight) + Vector3.up * ProjectileHeight;
+            networkVelocity = new Vector3(state.vx, 0f, -state.vy) * GameCoordinates.WorldScale;
+            if (networkVelocity.sqrMagnitude > 0.01f)
             {
-                transform.rotation = Quaternion.LookRotation(velocity.normalized, Vector3.up);
+                transform.rotation = Quaternion.LookRotation(networkVelocity.normalized, Vector3.up);
             }
             if (immediate)
             {
@@ -42,7 +46,8 @@ namespace EasyGame
 
         private void Update()
         {
-            transform.position = Vector3.Lerp(transform.position, targetPosition, 1f - Mathf.Exp(-18f * Time.deltaTime));
+            targetPosition += networkVelocity * Time.deltaTime;
+            transform.position = Vector3.Lerp(transform.position, targetPosition, 1f - Mathf.Exp(-24f * Time.deltaTime));
         }
     }
 }
