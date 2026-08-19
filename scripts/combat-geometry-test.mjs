@@ -4,7 +4,7 @@ import {
   SMG_RANGE,
   fireWeapon,
 } from "../server/dist/weapons.js";
-import { ROCKET_RANGE } from "../server/dist/rockets.js";
+import { ROCKET_RANGE, ROCKET_SPEED } from "../server/dist/rockets.js";
 import { zombieHitRadius } from "../server/dist/zombies.js";
 import {
   PLAYER_RADIUS,
@@ -19,6 +19,7 @@ assert.equal(PLAYER_RADIUS, 22);
 assert.equal(SMG_RANGE, 1_100);
 assert.equal(SHOTGUN_RANGE, 520);
 assert.equal(ROCKET_RANGE, 1_050);
+assert.equal(ROCKET_SPEED, 900);
 assert.equal(zombieHitRadius("walker"), 34);
 assert.equal(zombieHitRadius("runner"), 32);
 assert.equal(zombieHitRadius("brute"), 41);

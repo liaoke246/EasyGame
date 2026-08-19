@@ -17,7 +17,9 @@ mergeInto(LibraryManager.library, {
 
     var socket = io({
       auth: { guestToken: guestToken },
-      transports: ["websocket", "polling"]
+      transports: ["polling", "websocket"],
+      tryAllTransports: true,
+      timeout: 12000
     });
     Module.easyGameSocket = socket;
 
@@ -26,6 +28,9 @@ mergeInto(LibraryManager.library, {
     });
     socket.on("disconnect", function (reason) {
       SendMessage(receiverName, "OnDisconnected", reason || "disconnected");
+    });
+    socket.on("connect_error", function (error) {
+      SendMessage(receiverName, "OnDisconnected", error && error.message ? error.message : "connection failed");
     });
     socket.on("welcome", function (payload) {
       try {

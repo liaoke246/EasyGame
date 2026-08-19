@@ -136,7 +136,7 @@ io.on("connection", async (socket) => {
   socket.emit("snapshot", createSnapshot());
   io.emit("notification", {
     kind: "join",
-    text: `${identity.displayId} 进入了竞技场`,
+    text: `${identity.displayId} joined the room`,
   });
 
   socket.on("input", (payload) => {
@@ -161,7 +161,7 @@ io.on("connection", async (socket) => {
     players.delete(socket.id);
     io.emit("notification", {
       kind: "leave",
-      text: `${player.displayId} 离开了竞技场`,
+      text: `${player.displayId} left the room`,
     });
   });
 });
@@ -269,8 +269,8 @@ function performWeaponFire(attacker: PlayerState, now: number): void {
 
   if (event.killedZombieIds.length > 0) {
     io.emit("notification", {
-      kind: "defeat",
-      text: `${attacker.displayId} 清除了 ${event.killedZombieIds.length} 只僵尸`,
+      kind: "hit",
+      text: `${attacker.displayId} eliminated ${event.killedZombieIds.length} infected`,
     });
   }
 }
@@ -316,8 +316,8 @@ function resolveRocketImpact(
 
   if (owner && killedZombieIds.length > 0) {
     io.emit("notification", {
-      kind: "defeat",
-      text: `${owner.displayId} 清除了 ${killedZombieIds.length} 只僵尸`,
+      kind: "hit",
+      text: `${owner.displayId} eliminated ${killedZombieIds.length} infected`,
     });
   }
 }
@@ -331,7 +331,7 @@ function defeatPlayerByZombie(victim: PlayerState): void {
 
   io.emit("notification", {
     kind: "defeat",
-    text: `${victim.displayId} 被僵尸包围了`,
+    text: `${victim.displayId} was overrun`,
   });
 
   setTimeout(() => {
