@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import { isDirection } from "@easygame/shared";
 import { getOrCreateIdentity, initializeIdentityStore } from "./identity-store.js";
 import type {
   ClientToServerEvents,
@@ -219,6 +220,7 @@ function applyInput(player: PlayerState, payload: InputPayload): void {
   player.input.down = payload.down === true;
   player.input.left = payload.left === true;
   player.input.right = payload.right === true;
+  player.input.direction = isDirection(payload.direction) ? payload.direction : null;
   player.firing = payload.fire === true || payload.attack === true;
   if (isWeaponId(payload.weapon)) {
     player.weapon = payload.weapon;
@@ -304,7 +306,7 @@ function defeatPlayerByZombie(victim: PlayerState): void {
   victim.firing = false;
   victim.vx = 0;
   victim.vy = 0;
-  victim.input = { up: false, down: false, left: false, right: false };
+  victim.input = { up: false, down: false, left: false, right: false, direction: null };
 
   io.emit("notification", {
     kind: "defeat",

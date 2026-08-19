@@ -98,6 +98,7 @@ export interface PlayerState extends PublicPlayer {
     down: boolean;
     left: boolean;
     right: boolean;
+    direction: PublicPlayer["direction"] | null;
   };
   lastAttackAt: number;
   attackEndsAt: number;
@@ -155,7 +156,7 @@ export function createPlayer(
     respawning: false,
     weapon: "smg",
     firing: false,
-    input: { up: false, down: false, left: false, right: false },
+    input: { up: false, down: false, left: false, right: false, direction: null },
     lastAttackAt: -ATTACK_COOLDOWN_MS,
     attackEndsAt: 0,
     knockbackX: 0,
@@ -232,7 +233,9 @@ export function updatePlayerMovement(
     }
   }
 
-  if (xAxis !== 0 || yAxis !== 0) {
+  if (player.input.direction) {
+    player.direction = player.input.direction;
+  } else if (xAxis !== 0 || yAxis !== 0) {
     player.direction = directionFromAxes(xAxis, yAxis);
   }
 
