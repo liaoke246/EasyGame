@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
-import { isDirection } from "@easygame/shared";
+import { directionFromAxes, directionVector, isDirection } from "@easygame/shared";
 import { getOrCreateIdentity, initializeIdentityStore } from "./identity-store.js";
 import type {
   ClientToServerEvents,
@@ -221,6 +221,25 @@ function applyInput(player: PlayerState, payload: InputPayload): void {
   player.input.left = payload.left === true;
   player.input.right = payload.right === true;
   player.input.direction = isDirection(payload.direction) ? payload.direction : null;
+  const rawAimX = Number(payload.aimX);
+  const rawAimY = Number(payload.aimY);
+  const aimMagnitude = Math.hypot(rawAimX, rawAimY);
+  if (Number.isFinite(aimMagnitude) && aimMagnitude >= 0.1) {
+    player.aimX = rawAimX / aimMagnitude;
+    player.aimY = rawAimY / aimMagnitude;
+  } else if (player.input.direction) {
+    const aim = directionVector(player.input.direction);
+    player.aimX = aim.x;
+    player.aimY = aim.y;
+  } else {
+    const xAxis = Number(player.input.right) - Number(player.input.left);
+    const yAxis = Number(player.input.down) - Number(player.input.up);
+    if (xAxis !== 0 || yAxis !== 0) {
+      const aim = directionVector(directionFromAxes(xAxis, yAxis));
+      player.aimX = aim.x;
+      player.aimY = aim.y;
+    }
+  }
   player.firing = payload.fire === true || payload.attack === true;
   if (isWeaponId(payload.weapon)) {
     player.weapon = payload.weapon;
@@ -279,6 +298,8 @@ function resolveRocketImpact(
     weapon: "rocket",
     phase: "impact",
     direction: rocket.direction,
+    aimX: rocket.vx / Math.max(1, Math.hypot(rocket.vx, rocket.vy)),
+    aimY: rocket.vy / Math.max(1, Math.hypot(rocket.vx, rocket.vy)),
     x: impact.x,
     y: impact.y,
     hitPlayerIds: [],

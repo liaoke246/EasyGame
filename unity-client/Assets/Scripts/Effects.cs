@@ -215,55 +215,50 @@ namespace EasyGame
         private Vector3 destination;
         private float duration;
         private float age;
-        private bool hit;
-        private bool completed;
         private float baseWidth;
+        private Color baseColor;
 
         public void Configure(Vector3 start, Vector3 end, bool impacted, string weapon)
         {
             origin = start;
             destination = end;
-            hit = impacted;
-            float distance = Vector3.Distance(origin, destination);
-            float speed = weapon == "shotgun" ? 92f : 76f;
-            duration = Mathf.Clamp(distance / speed, 0.035f, weapon == "shotgun" ? 0.085f : 0.13f);
+            duration = weapon == "shotgun" ? 0.065f : 0.085f;
 
             line = gameObject.AddComponent<LineRenderer>();
             line.useWorldSpace = true;
             line.positionCount = 2;
             line.numCapVertices = 6;
-            baseWidth = weapon == "shotgun" ? 0.012f : 0.024f;
+            line.numCornerVertices = 0;
+            baseWidth = weapon == "shotgun" ? 0.01f : 0.018f;
             line.widthMultiplier = baseWidth;
-            Color color = impacted ? new Color(1f, 0.55f, 0.14f) : new Color(1f, 0.86f, 0.36f);
-            line.sharedMaterial = VisualFactory.Material(color, true);
+            baseColor = impacted ? new Color(1f, 0.55f, 0.14f) : new Color(1f, 0.86f, 0.36f);
+            line.sharedMaterial = VisualFactory.Material(baseColor, true);
             line.SetPosition(0, origin);
-            line.SetPosition(1, origin);
+            line.SetPosition(1, destination);
+            if (impacted)
+            {
+                Effects.ImpactSpark(destination);
+            }
         }
 
         private void Update()
         {
-            if (completed || line == null)
+            if (line == null)
             {
                 return;
             }
             age += Time.deltaTime;
             float progress = Mathf.Clamp01(age / Mathf.Max(0.01f, duration));
-            float tailProgress = Mathf.Max(0f, progress - 0.24f);
-            float easedHead = 1f - Mathf.Pow(1f - progress, 2f);
-            line.SetPosition(0, Vector3.Lerp(origin, destination, tailProgress));
-            line.SetPosition(1, Vector3.Lerp(origin, destination, easedHead));
-            line.widthMultiplier = baseWidth * Mathf.Lerp(1f, 0.82f, progress);
+            float alpha = 1f - progress;
+            Color fading = new Color(baseColor.r, baseColor.g, baseColor.b, alpha);
+            line.startColor = fading;
+            line.endColor = fading;
+            line.widthMultiplier = baseWidth * Mathf.Lerp(1f, 0.45f, progress);
 
-            if (progress < 1f)
+            if (progress >= 1f)
             {
-                return;
+                Destroy(gameObject);
             }
-            completed = true;
-            if (hit)
-            {
-                Effects.ImpactSpark(destination);
-            }
-            Destroy(gameObject, 0.035f);
         }
     }
 }

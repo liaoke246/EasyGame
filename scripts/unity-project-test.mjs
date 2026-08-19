@@ -46,11 +46,16 @@ assert.match(world, /SimulateLocal/);
 assert.match(world, /OptimisticFire/);
 assert.match(world, /attack\.phase == "impact" && attack\.weapon == "rocket"/);
 assert.match(world, /attacker\.Muzzle\.position/);
-assert.match(world, /owner\.Muzzle\.position/);
+assert.match(world, /rocket\.Initialize\(state, map\.ServerHeight\)/);
 assert.match(world, /OnMobileInput/);
 assert.match(world, /mobileMovement/);
 assert.match(world, /mobileAim/);
 assert.match(world, /mobileFire/);
+assert.match(world, /TryGetPointerAim/);
+assert.match(world, /aimX = lastAim\.x/);
+
+assert.match(model, /AimRotation/);
+assert.match(model, /Quaternion\.LookRotation\(continuousAim\.normalized/);
 
 const healthBar = await readFile(`${root}/Assets/Scripts/WorldHealthBar.cs`, "utf8");
 assert.match(healthBar, /Character Name/);
@@ -58,7 +63,14 @@ assert.match(healthBar, /SetValue/);
 
 const effects = await readFile(`${root}/Assets/Scripts/Effects.cs`, "utf8");
 assert.match(effects, /TracerFx/);
-assert.match(effects, /Vector3\.Lerp\(origin, destination/);
+assert.match(effects, /line\.SetPosition\(0, origin\)/);
+assert.match(effects, /line\.SetPosition\(1, destination\)/);
+assert.doesNotMatch(effects, /Vector3\.Lerp\(origin, destination/);
+
+const rocketVisual = await readFile(`${root}/Assets/Scripts/RocketVisual.cs`, "utf8");
+assert.match(rocketVisual, /lateralError/);
+assert.match(rocketVisual, /alongError/);
+assert.doesNotMatch(rocketVisual, /Vector3\.Lerp\(transform\.position, targetPosition/);
 
 const template = await readFile(`${root}/Assets/WebGLTemplates/EasyGame/index.html`, "utf8");
 assert.match(template, /socket\.io\/socket\.io\.js/);

@@ -12,7 +12,7 @@ namespace EasyGame
 
         public string RocketId { get; private set; }
 
-        public void Initialize(RocketState state, float mapHeight, Vector3? visualMuzzle = null)
+        public void Initialize(RocketState state, float mapHeight)
         {
             RocketId = state.id;
             worldHeight = mapHeight;
@@ -21,13 +21,7 @@ namespace EasyGame
             shell.localRotation = Quaternion.Euler(90f, 0f, 0f);
             VisualFactory.Cylinder(transform, "Warhead", new Vector3(0f, 0.22f, 0.25f), new Vector3(0.09f, 0.1f, 0.09f), new Color(0.42f, 0.15f, 0.08f)).localRotation = Quaternion.Euler(90f, 0f, 0f);
             trail = Effects.CreateRocketTrail(transform);
-            ApplyNetworkState(state, !visualMuzzle.HasValue);
-            if (visualMuzzle.HasValue)
-            {
-                Vector3 spawn = visualMuzzle.Value;
-                spawn.y = ProjectileHeight;
-                transform.position = spawn;
-            }
+            ApplyNetworkState(state, true);
         }
 
         public void ApplyNetworkState(RocketState state, bool immediate = false)
@@ -41,13 +35,30 @@ namespace EasyGame
             if (immediate)
             {
                 transform.position = targetPosition;
+                return;
+            }
+            if (networkVelocity.sqrMagnitude > 0.01f)
+            {
+                Vector3 direction = networkVelocity.normalized;
+                Vector3 error = targetPosition - transform.position;
+                Vector3 lateralError = error - direction * Vector3.Dot(error, direction);
+                transform.position += lateralError;
             }
         }
 
         private void Update()
         {
             targetPosition += networkVelocity * Time.deltaTime;
-            transform.position = Vector3.Lerp(transform.position, targetPosition, 1f - Mathf.Exp(-24f * Time.deltaTime));
+            if (networkVelocity.sqrMagnitude < 0.01f)
+            {
+                transform.position = targetPosition;
+                return;
+            }
+            Vector3 direction = networkVelocity.normalized;
+            float speed = networkVelocity.magnitude;
+            float alongError = Vector3.Dot(targetPosition - transform.position, direction);
+            float correction = Mathf.Clamp(alongError * 10f, -speed * 0.35f, speed * 0.35f);
+            transform.position += direction * Mathf.Max(0f, speed + correction) * Time.deltaTime;
         }
     }
 }

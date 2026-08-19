@@ -21,6 +21,7 @@ namespace EasyGame
         private float weaponReadyAt;
         private Vector2 mobileMovement;
         private Vector2 mobileAim;
+        private Vector2 lastAim = Vector2.down;
         private bool mobileFire;
         private bool demoMode;
 
@@ -80,19 +81,24 @@ namespace EasyGame
             }
             if (mobileAim.sqrMagnitude > 0.04f)
             {
-                lastDirection = DirectionFromInput(mobileAim.x, mobileAim.y);
+                lastAim = mobileAim.normalized;
+            }
+            else if (!Application.isMobilePlatform && TryGetPointerAim(out Vector2 pointerAim))
+            {
+                lastAim = pointerAim;
             }
             else if (movement.sqrMagnitude > 0.01f)
             {
-                lastDirection = DirectionFromInput(horizontal, vertical);
+                lastAim = movement.normalized;
             }
+            lastDirection = DirectionFromInput(lastAim.x, lastAim.y);
 
             if (Input.GetKeyDown(KeyCode.Alpha1)) SelectWeapon("smg");
             if (Input.GetKeyDown(KeyCode.Alpha2)) SelectWeapon("shotgun");
             if (Input.GetKeyDown(KeyCode.Alpha3)) SelectWeapon("rocket");
             bool triggerHeld = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0) || mobileFire;
             bool firing = triggerHeld && Time.time >= weaponReadyAt;
-            localPlayer.SimulateLocal(movement, lastDirection, firing, Time.deltaTime, map);
+            localPlayer.SimulateLocal(movement, lastAim, lastDirection, firing, Time.deltaTime, map);
             if (firing)
             {
                 OptimisticFire();
@@ -109,7 +115,9 @@ namespace EasyGame
                     right = horizontal > 0.1f,
                     fire = firing,
                     weapon = selectedWeapon,
-                    direction = lastDirection
+                    direction = lastDirection,
+                    aimX = lastAim.x,
+                    aimY = -lastAim.y
                 });
             }
         }
@@ -164,7 +172,7 @@ namespace EasyGame
             }
             float cooldown = selectedWeapon == "smg" ? 0.095f : selectedWeapon == "shotgun" ? 0.62f : 1.05f;
             nextOptimisticFireAt = Time.time + cooldown;
-            localPlayer.TriggerFire(selectedWeapon, lastDirection);
+            localPlayer.TriggerFire(selectedWeapon, lastDirection, lastAim.x, -lastAim.y);
             Effects.MuzzleFlash(localPlayer.Muzzle, selectedWeapon);
         }
 
@@ -242,12 +250,7 @@ namespace EasyGame
                 if (!rockets.TryGetValue(state.id, out RocketVisual rocket))
                 {
                     rocket = new GameObject("Rocket").AddComponent<RocketVisual>();
-                    Vector3? visualMuzzle = null;
-                    if (players.TryGetValue(state.ownerId, out PlayerAvatar owner))
-                    {
-                        visualMuzzle = owner.Muzzle.position;
-                    }
-                    rocket.Initialize(state, map.ServerHeight, visualMuzzle);
+                    rocket.Initialize(state, map.ServerHeight);
                     rockets[state.id] = rocket;
                 }
                 rocket.ApplyNetworkState(state);
@@ -270,7 +273,7 @@ namespace EasyGame
             Vector3 origin = GameCoordinates.ToUnity(attack.x, attack.y, map.ServerHeight) + Vector3.up * 0.72f;
             if (players.TryGetValue(attack.attackerId, out PlayerAvatar attacker))
             {
-                attacker.TriggerFire(attack.weapon, attack.direction);
+                attacker.TriggerFire(attack.weapon, attack.direction, attack.aimX, attack.aimY);
                 origin = attacker.Muzzle.position;
                 if (attack.attackerId != localPlayerId)
                 {
@@ -336,6 +339,30 @@ namespace EasyGame
                 return horizontal;
             }
             return vertical;
+        }
+
+        private bool TryGetPointerAim(out Vector2 aim)
+        {
+            aim = Vector2.zero;
+            Camera activeCamera = Camera.main;
+            if (activeCamera == null || localPlayer == null)
+            {
+                return false;
+            }
+            Ray ray = activeCamera.ScreenPointToRay(Input.mousePosition);
+            Plane ground = new Plane(Vector3.up, Vector3.zero);
+            if (!ground.Raycast(ray, out float distance))
+            {
+                return false;
+            }
+            Vector3 delta = ray.GetPoint(distance) - localPlayer.transform.position;
+            aim = new Vector2(delta.x, delta.z);
+            if (aim.sqrMagnitude < 0.01f)
+            {
+                return false;
+            }
+            aim.Normalize();
+            return true;
         }
 
         private static void RemoveMissing<T>(Dictionary<string, T> collection, HashSet<string> seen) where T : Component

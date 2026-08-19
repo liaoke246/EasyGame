@@ -148,9 +148,10 @@ assert.match(worldSceneSource, /fillPoints/);
 const serverWeaponSource = await readFile("server/src/weapons.ts", "utf8");
 assert.match(
   serverWeaponSource,
-  /weaponBallisticMuzzleOffset\(weapon, attacker\.direction\)/,
-  "Authoritative hit tests must use the shared barrel-tip transform",
+  /playerAimVector\(attacker\)/,
+  "Authoritative hit tests must use the player's normalized continuous aim",
 );
+assert.match(serverWeaponSource, /WEAPON_MUZZLE_DISTANCES\[weapon\]/);
 
 await assert.rejects(
   access("client/src/game-atlas.ts"),
@@ -159,5 +160,5 @@ await assert.rejects(
 );
 
 process.stdout.write(
-  "Animation invariants passed: procedural block characters, continuous gait, eight-way aim, and shared barrel-tip geometry.\n",
+  "Animation invariants passed: procedural block characters, continuous gait, 360-degree authoritative aim, and shared barrel-tip geometry.\n",
 );
