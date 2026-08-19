@@ -135,6 +135,7 @@ namespace EasyGame
         public bool right;
         public bool fire;
         public string weapon;
+        public string direction;
     }
 
     [Serializable]

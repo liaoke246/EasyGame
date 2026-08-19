@@ -104,6 +104,7 @@ export interface InputPayload {
   attack?: boolean;
   fire?: boolean;
   weapon?: WeaponId;
+  direction?: Direction;
 }
 
 export interface WeaponTrace {

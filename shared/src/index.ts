@@ -44,6 +44,10 @@ export function directionVector(direction: Direction): Vector2 {
   return DIRECTION_VECTORS[direction];
 }
 
+export function isDirection(value: unknown): value is Direction {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(DIRECTION_VECTORS, value);
+}
+
 export function weaponMuzzleOffset(
   weapon: WeaponId,
   direction: Direction,

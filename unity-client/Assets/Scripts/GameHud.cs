@@ -93,7 +93,10 @@ namespace EasyGame
             GUI.Label(new Rect(logicalWidth - 315f, 60f, 280f, 22f), $"PING {stats.LatencyMs} ms   LOST {stats.PacketLossPercent}%", smallStyle);
 
             GUI.Label(new Rect(logicalWidth * 0.5f - 160f, 24f, 320f, 30f), $"SURVIVORS {onlineCount}   INFECTED {zombieCount}", centerStyle);
-            GUI.Label(new Rect(logicalWidth * 0.5f - 220f, logicalHeight - 52f, 440f, 28f), "WASD MOVE   SPACE FIRE   1 / 2 / 3 SWITCH", centerStyle);
+            string controls = Application.isMobilePlatform
+                ? "LEFT STICK MOVE   RIGHT STICK AIM / FIRE"
+                : "WASD MOVE   SPACE FIRE   1 / 2 / 3 SWITCH";
+            GUI.Label(new Rect(logicalWidth * 0.5f - 250f, logicalHeight - 52f, 500f, 28f), controls, centerStyle);
 
             while (feed.Count > 0 && feed.Peek().ExpiresAt <= Time.time)
             {

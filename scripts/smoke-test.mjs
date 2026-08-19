@@ -263,9 +263,10 @@ async function runMultiplayerCheck() {
       up: true,
       down: false,
       left: false,
-      right: true,
+      right: false,
       fire: true,
       weapon: "smg",
+      direction: "up-right",
     });
     const diagonalFire = await diagonalFirePromise;
     first.emit("input", {
@@ -277,13 +278,13 @@ async function runMultiplayerCheck() {
       weapon: "smg",
     });
     if (diagonalFire.direction !== "up-right") {
-      throw new Error("Diagonal input did not produce a 45-degree shot");
+      throw new Error("Independent mobile aim did not produce a 45-degree shot while moving up");
     }
 
     process.stdout.write(
       `Smoke test passed: two players synchronized; movement ${initialPlayer.x.toFixed(
         1,
-      )} → ${movedPlayer.x.toFixed(1)}; forward-only zombies, all three weapons, and 45-degree fire synchronized.\n`,
+      )} → ${movedPlayer.x.toFixed(1)}; forward-only zombies, all three weapons, and independent 45-degree mobile aim synchronized.\n`,
     );
   } finally {
     first.disconnect();

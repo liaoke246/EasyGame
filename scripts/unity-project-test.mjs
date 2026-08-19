@@ -47,6 +47,10 @@ assert.match(world, /OptimisticFire/);
 assert.match(world, /attack\.phase == "impact" && attack\.weapon == "rocket"/);
 assert.match(world, /attacker\.Muzzle\.position/);
 assert.match(world, /owner\.Muzzle\.position/);
+assert.match(world, /OnMobileInput/);
+assert.match(world, /mobileMovement/);
+assert.match(world, /mobileAim/);
+assert.match(world, /mobileFire/);
 
 const healthBar = await readFile(`${root}/Assets/Scripts/WorldHealthBar.cs`, "utf8");
 assert.match(healthBar, /Character Name/);
@@ -60,6 +64,20 @@ const template = await readFile(`${root}/Assets/WebGLTemplates/EasyGame/index.ht
 assert.match(template, /socket\.io\/socket\.io\.js/);
 assert.match(template, /createUnityInstance/);
 assert.match(template, /id="progress"/);
+assert.match(template, /id="mobile-controls"/);
+assert.match(template, /data-mobile-weapon="rocket"/);
+assert.match(template, /OnMobileInput/);
+assert.match(template, /pointerdown/);
+
+const prebuiltPage = await readFile(`${root}/PrebuiltWebGL/index.html`, "utf8");
+for (const mobileMarker of [
+  'id="move-stick"',
+  'id="aim-stick"',
+  'data-mobile-weapon="rocket"',
+  '"OnMobileInput"',
+]) {
+  assert.match(prebuiltPage, new RegExp(mobileMarker));
+}
 
 const server = await readFile("server/src/index.ts", "utf8");
 assert.match(server, /Content-Encoding", "gzip/);

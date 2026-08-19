@@ -7,8 +7,8 @@
     <style>
       :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", system-ui, sans-serif; }
       * { box-sizing: border-box; }
-      html, body, #unity-container { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #09100c; }
-      #unity-canvas { display: block; width: 100%; height: 100%; background: #0e1812; outline: none; }
+      html, body, #unity-container { width: 100%; height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; background: #09100c; }
+      #unity-canvas { display: block; width: 100%; height: 100%; touch-action: none; background: #0e1812; outline: none; }
       #loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 42%, #243e2b 0, #101c14 42%, #070b09 100%); transition: opacity .45s ease; }
       #loader::before { content: ""; position: absolute; inset: -20%; opacity: .22; background-image: repeating-linear-gradient(120deg, transparent 0 42px, rgba(255,255,255,.04) 43px 44px); animation: drift 12s linear infinite; }
       .loader-card { position: relative; width: min(520px, calc(100vw - 44px)); padding: 42px; border: 1px solid rgba(227,197,116,.3); border-radius: 10px; background: rgba(8,16,11,.84); box-shadow: 0 30px 90px rgba(0,0,0,.54), inset 0 0 50px rgba(96,133,75,.08); }
@@ -19,12 +19,46 @@
       #progress { width: 0; height: 100%; background: linear-gradient(90deg, #557846, #d2b75f 70%, #fff0a1); box-shadow: 0 0 20px rgba(223,196,100,.65); transition: width .16s ease; }
       #progress-label { display: flex; justify-content: space-between; margin-top: 11px; color: #a5b3a5; font-size: 12px; }
       #error { display: none; margin-top: 18px; color: #ff8c72; font-size: 13px; line-height: 1.5; }
+      #mobile-controls { position: fixed; inset: 0; z-index: 8; display: none; pointer-events: none; user-select: none; -webkit-user-select: none; touch-action: none; }
+      .mobile-stick { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); width: clamp(112px, 22vw, 154px); aspect-ratio: 1; border: 1px solid rgba(255,240,181,.32); border-radius: 50%; pointer-events: auto; touch-action: none; background: radial-gradient(circle, rgba(120,150,96,.14) 0 38%, rgba(8,16,11,.56) 40% 67%, rgba(208,181,94,.12) 69% 100%); box-shadow: inset 0 0 28px rgba(0,0,0,.48), 0 8px 34px rgba(0,0,0,.34); backdrop-filter: blur(3px); }
+      #move-stick { left: max(22px, env(safe-area-inset-left)); }
+      #aim-stick { right: max(22px, env(safe-area-inset-right)); }
+      .stick-knob { position: absolute; left: 50%; top: 50%; width: 42%; aspect-ratio: 1; transform: translate(-50%, -50%); border: 2px solid rgba(255,239,179,.64); border-radius: 50%; background: radial-gradient(circle at 36% 30%, rgba(255,244,192,.76), rgba(179,148,64,.5) 38%, rgba(45,58,39,.9) 100%); box-shadow: 0 6px 18px rgba(0,0,0,.52), inset 0 1px 4px rgba(255,255,255,.36); will-change: transform; }
+      .stick-label { position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%); white-space: nowrap; color: rgba(241,229,188,.82); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-shadow: 0 2px 5px #000; }
+      #mobile-weapons { position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); display: flex; gap: 8px; transform: translateX(-50%); pointer-events: auto; }
+      .mobile-weapon { min-width: 66px; height: 44px; padding: 0 10px; border: 1px solid rgba(225,204,139,.38); border-radius: 8px; color: #d8d4bf; font: 800 11px/1 system-ui, sans-serif; letter-spacing: .04em; background: rgba(7,14,10,.72); box-shadow: 0 7px 20px rgba(0,0,0,.35); touch-action: manipulation; }
+      .mobile-weapon.is-selected { border-color: #ffe286; color: #fff1b5; background: linear-gradient(180deg, rgba(145,113,38,.84), rgba(65,57,28,.9)); box-shadow: 0 0 18px rgba(235,196,76,.28); }
+      #mobile-orientation { position: absolute; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 12px; border-radius: 20px; color: rgba(239,229,195,.84); font-size: 11px; font-weight: 700; letter-spacing: .08em; background: rgba(6,12,9,.58); opacity: 0; transition: opacity .2s ease; }
+      @media (pointer: coarse), (max-width: 900px) {
+        body.mobile-ready #mobile-controls { display: block; }
+      }
+      body.mobile-ready.force-mobile #mobile-controls { display: block; }
+      @media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+        #mobile-orientation { opacity: 1; }
+        #mobile-weapons { bottom: max(178px, calc(env(safe-area-inset-bottom) + 166px)); }
+      }
       @keyframes drift { to { transform: translate3d(12%, 8%, 0); } }
     </style>
   </head>
   <body>
     <div id="unity-container">
       <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+    <div id="mobile-controls" aria-hidden="true">
+      <div id="mobile-orientation">横屏体验更佳</div>
+      <div id="move-stick" class="mobile-stick" aria-label="移动摇杆">
+        <div class="stick-knob"></div>
+        <div class="stick-label">移动</div>
+      </div>
+      <div id="mobile-weapons" aria-label="武器切换">
+        <button class="mobile-weapon is-selected" type="button" data-mobile-weapon="smg">冲锋枪</button>
+        <button class="mobile-weapon" type="button" data-mobile-weapon="shotgun">霰弹枪</button>
+        <button class="mobile-weapon" type="button" data-mobile-weapon="rocket">火箭筒</button>
+      </div>
+      <div id="aim-stick" class="mobile-stick" aria-label="瞄准射击摇杆">
+        <div class="stick-knob"></div>
+        <div class="stick-label">瞄准 / 射击</div>
+      </div>
     </div>
     <div id="loader">
       <div class="loader-card">
@@ -44,6 +78,10 @@
       const percent = document.querySelector("#percent");
       const phase = document.querySelector("#phase");
       const error = document.querySelector("#error");
+      const mobileControls = document.querySelector("#mobile-controls");
+      let unityInstance = null;
+      let mobileFramePending = false;
+      const mobileInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, weapon: "smg" };
       const buildUrl = "Build";
       const loaderUrl = buildUrl + "/unity-webgl.loader.js";
       const config = {
@@ -64,6 +102,122 @@
       };
       const script = document.createElement("script");
       script.src = loaderUrl;
+
+      const sendMobileInput = () => {
+        mobileFramePending = false;
+        if (unityInstance) {
+          unityInstance.SendMessage("EasyGame Unity Runtime", "OnMobileInput", JSON.stringify(mobileInput));
+        }
+      };
+
+      const queueMobileInput = () => {
+        if (!mobileFramePending) {
+          mobileFramePending = true;
+          requestAnimationFrame(sendMobileInput);
+        }
+      };
+
+      const bindStick = (element, kind) => {
+        const knob = element.querySelector(".stick-knob");
+        let activePointer = null;
+
+        const update = event => {
+          const rect = element.getBoundingClientRect();
+          const centerX = rect.left + rect.width * .5;
+          const centerY = rect.top + rect.height * .5;
+          const radius = rect.width * .31;
+          let dx = event.clientX - centerX;
+          let dy = event.clientY - centerY;
+          const distance = Math.hypot(dx, dy);
+          if (distance > radius) {
+            dx = dx / distance * radius;
+            dy = dy / distance * radius;
+          }
+          knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+          const x = Math.abs(dx / radius) < .12 ? 0 : dx / radius;
+          const y = Math.abs(dy / radius) < .12 ? 0 : -dy / radius;
+          if (kind === "move") {
+            mobileInput.moveX = x;
+            mobileInput.moveY = y;
+          } else {
+            mobileInput.aimX = x;
+            mobileInput.aimY = y;
+            mobileInput.fire = true;
+          }
+          queueMobileInput();
+        };
+
+        const release = event => {
+          if (event && activePointer !== event.pointerId) return;
+          const pointerToRelease = activePointer;
+          activePointer = null;
+          if (pointerToRelease !== null && element.hasPointerCapture(pointerToRelease)) {
+            element.releasePointerCapture(pointerToRelease);
+          }
+          knob.style.transform = "translate(-50%, -50%)";
+          if (kind === "move") {
+            mobileInput.moveX = 0;
+            mobileInput.moveY = 0;
+          } else {
+            mobileInput.aimX = 0;
+            mobileInput.aimY = 0;
+            mobileInput.fire = false;
+          }
+          queueMobileInput();
+        };
+
+        element.addEventListener("pointerdown", event => {
+          event.preventDefault();
+          activePointer = event.pointerId;
+          try { element.setPointerCapture(activePointer); } catch (_) {}
+          update(event);
+        });
+        element.addEventListener("pointermove", event => {
+          if (event.pointerId === activePointer) {
+            event.preventDefault();
+            update(event);
+          }
+        });
+        element.addEventListener("pointerup", release);
+        element.addEventListener("pointercancel", release);
+        element.addEventListener("lostpointercapture", () => {
+          if (activePointer !== null) release();
+        });
+
+        return () => release();
+      };
+
+      const initializeMobileControls = instance => {
+        unityInstance = instance;
+        document.body.classList.add("mobile-ready");
+        if (new URLSearchParams(location.search).has("mobile")) {
+          document.body.classList.add("force-mobile");
+        }
+        mobileControls.setAttribute("aria-hidden", "false");
+        const resetMove = bindStick(document.querySelector("#move-stick"), "move");
+        const resetAim = bindStick(document.querySelector("#aim-stick"), "aim");
+        document.querySelectorAll("[data-mobile-weapon]").forEach(button => {
+          button.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            mobileInput.weapon = button.dataset.mobileWeapon;
+            document.querySelectorAll("[data-mobile-weapon]").forEach(item => item.classList.toggle("is-selected", item === button));
+            queueMobileInput();
+          });
+        });
+        const resetAll = () => {
+          resetMove();
+          resetAim();
+          mobileInput.fire = false;
+          queueMobileInput();
+        };
+        window.addEventListener("blur", resetAll);
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) resetAll();
+        });
+        mobileControls.addEventListener("contextmenu", event => event.preventDefault());
+        sendMobileInput();
+      };
+
       script.onload = () => {
         phase.textContent = "正在构建生存世界";
         createUnityInstance(canvas, config, value => {
@@ -71,7 +225,8 @@
           progress.style.width = amount + "%";
           percent.textContent = amount + "%";
           if (value > .75) phase.textContent = "正在连接实时服务器";
-        }).then(() => {
+        }).then(instance => {
+          initializeMobileControls(instance);
           loader.style.opacity = "0";
           setTimeout(() => loader.remove(), 480);
         }).catch(message => {

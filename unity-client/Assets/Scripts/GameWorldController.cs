@@ -19,7 +19,21 @@ namespace EasyGame
         private float nextInputAt;
         private float nextOptimisticFireAt;
         private float weaponReadyAt;
+        private Vector2 mobileMovement;
+        private Vector2 mobileAim;
+        private bool mobileFire;
         private bool demoMode;
+
+        [System.Serializable]
+        private sealed class MobileInputState
+        {
+            public float moveX;
+            public float moveY;
+            public float aimX;
+            public float aimY;
+            public bool fire;
+            public string weapon;
+        }
 
         public void Initialize(WebSocketBridge bridge, WorldMap worldMap, CameraRig rig, GameHud gameHud)
         {
@@ -54,14 +68,21 @@ namespace EasyGame
                 return;
             }
 
-            float horizontal = (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
-            float vertical = (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
+            float keyboardHorizontal = (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
+            float keyboardVertical = (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) ? 1f : 0f) - (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
+            Vector2 digitalMobileMovement = mobileMovement.sqrMagnitude > 0.02f ? mobileMovement.normalized : Vector2.zero;
+            float horizontal = Mathf.Clamp(keyboardHorizontal + digitalMobileMovement.x, -1f, 1f);
+            float vertical = Mathf.Clamp(keyboardVertical + digitalMobileMovement.y, -1f, 1f);
             Vector2 movement = new Vector2(horizontal, vertical);
             if (movement.sqrMagnitude > 1f)
             {
                 movement.Normalize();
             }
-            if (movement.sqrMagnitude > 0.01f)
+            if (mobileAim.sqrMagnitude > 0.04f)
+            {
+                lastDirection = DirectionFromInput(mobileAim.x, mobileAim.y);
+            }
+            else if (movement.sqrMagnitude > 0.01f)
             {
                 lastDirection = DirectionFromInput(horizontal, vertical);
             }
@@ -69,7 +90,7 @@ namespace EasyGame
             if (Input.GetKeyDown(KeyCode.Alpha1)) SelectWeapon("smg");
             if (Input.GetKeyDown(KeyCode.Alpha2)) SelectWeapon("shotgun");
             if (Input.GetKeyDown(KeyCode.Alpha3)) SelectWeapon("rocket");
-            bool triggerHeld = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+            bool triggerHeld = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0) || mobileFire;
             bool firing = triggerHeld && Time.time >= weaponReadyAt;
             localPlayer.SimulateLocal(movement, lastDirection, firing, Time.deltaTime, map);
             if (firing)
@@ -87,9 +108,41 @@ namespace EasyGame
                     left = horizontal < -0.1f,
                     right = horizontal > 0.1f,
                     fire = firing,
-                    weapon = selectedWeapon
+                    weapon = selectedWeapon,
+                    direction = lastDirection
                 });
             }
+        }
+
+        public void OnMobileInput(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+            {
+                ResetMobileInput();
+                return;
+            }
+
+            MobileInputState state = JsonUtility.FromJson<MobileInputState>(json);
+            if (state == null)
+            {
+                ResetMobileInput();
+                return;
+            }
+
+            mobileMovement = Vector2.ClampMagnitude(new Vector2(state.moveX, state.moveY), 1f);
+            mobileAim = Vector2.ClampMagnitude(new Vector2(state.aimX, state.aimY), 1f);
+            mobileFire = state.fire;
+            if (state.weapon == "smg" || state.weapon == "shotgun" || state.weapon == "rocket")
+            {
+                SelectWeapon(state.weapon);
+            }
+        }
+
+        public void ResetMobileInput()
+        {
+            mobileMovement = Vector2.zero;
+            mobileAim = Vector2.zero;
+            mobileFire = false;
         }
 
         private void SelectWeapon(string weapon)
