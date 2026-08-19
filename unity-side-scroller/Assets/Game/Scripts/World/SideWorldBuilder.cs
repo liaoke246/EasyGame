@@ -24,6 +24,25 @@ namespace EasyGame.SideScroller.World
             CreateLandmarks();
         }
 
+        public void BuildServerCollision()
+        {
+            if (built)
+            {
+                return;
+            }
+
+            built = true;
+            CreateServerRectangle("Ground Collision", new Vector2(54f, -5f), new Vector2(137f, 3f));
+            CreateServerPlatform("Platform -2 to 7", -2, 7, -1);
+            CreateServerPlatform("Platform 12 to 20", 12, 20, 1);
+            CreateServerPlatform("Platform 25 to 32", 25, 32, -1);
+            CreateServerPlatform("Platform 38 to 48", 38, 48, 2);
+            CreateServerPlatform("Platform 54 to 61", 54, 61, 0);
+            CreateServerPlatform("Platform 67 to 76", 67, 76, 2);
+            CreateServerPlatform("Platform 82 to 91", 82, 91, -1);
+            CreateServerPlatform("Platform 98 to 108", 98, 108, 1);
+        }
+
         private static void CreateBackground()
         {
             CreateRectangle("Sky", new Vector3(54f, 1f, 4f), new Vector3(136f, 20f, 1f), new Color(0.055f, 0.105f, 0.15f), -20);
@@ -88,6 +107,19 @@ namespace EasyGame.SideScroller.World
             {
                 map.SetTile(new Vector3Int(x, y, 0), tile);
             }
+        }
+
+        private static void CreateServerPlatform(string name, int startX, int endX, int y)
+        {
+            float width = endX - startX + 1f;
+            CreateServerRectangle(name, new Vector2((startX + endX) * 0.5f, y), new Vector2(width, 1f));
+        }
+
+        private static void CreateServerRectangle(string name, Vector2 position, Vector2 size)
+        {
+            GameObject collision = new GameObject(name, typeof(BoxCollider2D));
+            collision.transform.position = position;
+            collision.GetComponent<BoxCollider2D>().size = size;
         }
 
         private static void CreateLandmarks()

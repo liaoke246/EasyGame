@@ -1,4 +1,5 @@
 using EasyGame.SideScroller.Network;
+using Mirror;
 using UnityEngine;
 
 namespace EasyGame.SideScroller.UI
@@ -9,6 +10,11 @@ namespace EasyGame.SideScroller.UI
 
         private void OnGUI()
         {
+            if (Utils.IsHeadless())
+            {
+                return;
+            }
+
             style ??= new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,

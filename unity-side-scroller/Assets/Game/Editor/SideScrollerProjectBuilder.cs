@@ -133,10 +133,7 @@ namespace EasyGame.SideScroller.Editor
                 scenes = new[] { ScenePath },
                 locationPathName = output,
                 target = target,
-                // A normal standalone player launched with -batchmode -nographics is
-                // used so the lightweight Linux/Windows build-support modules are
-                // sufficient; no separate Dedicated Server module is required.
-                subtarget = (int)StandaloneBuildSubtarget.Player,
+                subtarget = (int)StandaloneBuildSubtarget.Server,
                 options = BuildOptions.CleanBuildCache,
             };
 

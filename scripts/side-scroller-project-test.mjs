@@ -48,6 +48,13 @@ const world = await readFile(`${root}/Assets/Game/Scripts/World/SideWorldBuilder
 assert.match(world, /Tilemap/);
 assert.match(world, /TilemapCollider2D/);
 assert.match(world, /FillPlatform/);
+assert.match(world, /BuildServerCollision/);
+assert.match(world, /BoxCollider2D/);
+
+const bootstrap = await readFile(`${root}/Assets/Game/Scripts/Core/SideScrollerBootstrap.cs`, "utf8");
+assert.match(bootstrap, /Utils\.IsHeadless\(\)/);
+assert.match(bootstrap, /world\.BuildServerCollision\(\)/);
+assert.match(bootstrap, /headless world initialized: collision-only/);
 
 const animation = await readFile(`${root}/Assets/Game/Editor/SideScrollerProjectBuilder.cs`, "utf8");
 for (const state of ["Idle", "Run", "Jump", "Fall", "Attack", "Hit", "Death"]) {
@@ -55,6 +62,7 @@ for (const state of ["Idle", "Run", "Jump", "Fall", "Attack", "Hit", "Death"]) {
 }
 assert.match(animation, /SimpleWebTransport/);
 assert.match(animation, /StandaloneLinux64/);
+assert.match(animation, /StandaloneBuildSubtarget\.Server/);
 assert.match(animation, /HeadlessStartOptions\.AutoStartServer/);
 
 const networkPlayer = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs`, "utf8");
