@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b443e81b9da072145bc814d73408c2b5, type: 3}
+  m_Name: PlayerMovement
+  m_EditorClassIdentifier: Assembly-CSharp::EasyGame.SideScroller.Data.PlayerMovementConfig
+  moveSpeed: 7.25
+  groundAcceleration: 58
+  groundDeceleration: 72
+  airControl: 0.72
+  jumpVelocity: 12.8
+  coyoteTime: 0.12
+  jumpBuffer: 0.14
+  jumpCutMultiplier: 0.48
+  fallGravityMultiplier: 1.75
+  lowJumpGravityMultiplier: 1.32
+  gravityScale: 3.15
+  maxFallSpeed: 19
+  groundProbeDistance: 0.12
+  groundProbeWidth: 0.78

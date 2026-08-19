@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07100d">
+  <title>EasyGame · 选择游戏</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    * { box-sizing: border-box; }
+    body { min-height: 100dvh; margin: 0; color: #edf0e7; background: #07100d; overflow-x: hidden; }
+    body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background:
+      radial-gradient(circle at 18% 18%, rgba(52,128,92,.22), transparent 34%),
+      radial-gradient(circle at 82% 70%, rgba(179,122,39,.14), transparent 36%),
+      repeating-linear-gradient(118deg, transparent 0 52px, rgba(255,255,255,.018) 53px 54px); }
+    main { position: relative; width: min(1180px, calc(100% - 34px)); margin: auto; padding: clamp(44px,8vh,96px) 0 56px; }
+    header { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; margin-bottom: 34px; }
+    .kicker { color: #dbc278; font-size: 12px; font-weight: 900; letter-spacing: .24em; }
+    h1 { max-width: 720px; margin: 12px 0 0; font-size: clamp(36px,7vw,76px); line-height: .98; letter-spacing: -.055em; }
+    header p { max-width: 330px; margin: 0; color: #99a59f; font-size: 14px; line-height: 1.7; }
+    .games { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; }
+    .game { position: relative; min-height: 430px; overflow: hidden; border: 1px solid rgba(222,205,142,.18); border-radius: 24px; color: inherit; background: #101b17; text-decoration: none; box-shadow: 0 28px 80px rgba(0,0,0,.35); transition: transform .28s ease,border-color .28s ease; isolation: isolate; }
+    .game:hover { transform: translateY(-7px); border-color: rgba(224,199,111,.62); }
+    .art { position: absolute; inset: 0; opacity: .92; transition: transform .5s ease; }
+    .game:hover .art { transform: scale(1.025); }
+    .arena .art { background:
+      radial-gradient(circle at 25% 35%, rgba(204,112,51,.9) 0 2%, transparent 2.4%),
+      radial-gradient(circle at 70% 25%, rgba(121,179,65,.38), transparent 22%),
+      repeating-linear-gradient(35deg, transparent 0 38px, rgba(10,30,16,.6) 39px 50px),
+      linear-gradient(145deg,#334721,#142518 60%,#08110d); }
+    .rails .art { background:
+      linear-gradient(0deg, #273625 0 16%, transparent 16%),
+      linear-gradient(90deg, transparent 0 8%,#182622 8% 18%,transparent 18% 31%,#20302c 31% 45%,transparent 45% 63%,#1a2927 63% 79%,transparent 79%),
+      radial-gradient(circle at 72% 30%, rgba(222,181,81,.22), transparent 25%),
+      linear-gradient(150deg,#18363b,#0b171b 58%,#080e0e); }
+    .rail-line { position: absolute; left: 0; right: 0; bottom: 79px; height: 4px; background: #917642; box-shadow: 0 13px #3f4938,0 26px #171c17; transform: skewY(-2deg); opacity: .75; }
+    .content { position: absolute; inset: auto 0 0; z-index: 2; padding: 36px; background: linear-gradient(transparent,rgba(5,10,8,.93) 35%); }
+    .tag { display: inline-flex; padding: 6px 10px; border: 1px solid rgba(229,202,119,.3); border-radius: 999px; color: #e7ce84; background: rgba(8,15,12,.58); font-size: 11px; font-weight: 900; letter-spacing: .12em; }
+    h2 { margin: 13px 0 7px; font-size: clamp(28px,4vw,44px); letter-spacing: -.035em; }
+    .desc { max-width: 500px; margin: 0; color: #b5beb7; line-height: 1.65; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .meta span { padding: 6px 9px; border-radius: 7px; color: #cad0ca; background: rgba(255,255,255,.07); font-size: 12px; }
+    .launch { position: absolute; top: 24px; right: 24px; z-index: 3; display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; color: #142018; background: #e0c873; font-size: 23px; font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,.28); }
+    footer { margin-top: 24px; color: #68766f; font-size: 12px; text-align: center; }
+    @media (max-width: 760px) { header { grid-template-columns: 1fr; } header p { max-width: 560px; } .games { grid-template-columns: 1fr; } .game { min-height: 390px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><div class="kicker">EASYGAME // SURVIVAL NETWORK</div><h1>选择作战区域</h1></div>
+      <p>两个游戏完全独立。原有游戏保持原样，新横版项目会按照可运行、可验证的阶段逐步扩展为多人 Zombie RPG。</p>
+    </header>
+    <section class="games" aria-label="游戏列表">
+      <a class="game arena" href="/arena/">
+        <div class="art"></div><span class="launch">→</span>
+        <div class="content">
+          <span class="tag">现有游戏 · LIVE</span><h2>尸潮余生</h2>
+          <p class="desc">保留现在的俯视角多人僵尸生存玩法、三种武器和完整线上房间。</p>
+          <div class="meta"><span>多人联机</span><span>俯视角</span><span>即时射击</span></div>
+        </div>
+      </a>
+      <a class="game rails" href="/side-scroller/">
+        <div class="art"><i class="rail-line"></i></div><span class="launch">→</span>
+        <div class="content">
+          <span class="tag">新游戏 · PHASE 1–2</span><h2>Dead Rails</h2>
+          <p class="desc">全新独立的 2D 横版僵尸 RPG。当前开放跑跳与地图手感测试，Mirror 联机服随后接入。</p>
+          <div class="meta"><span>横版卷轴</span><span>平台跳跃</span><span>升级刷装</span></div>
+        </div>
+      </a>
+    </section>
+    <footer>© EasyGame · 原创玩法与合法授权素材</footer>
+  </main>
+</body>
+</html>
