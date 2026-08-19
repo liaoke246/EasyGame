@@ -41,13 +41,26 @@ namespace EasyGame.SideScroller.Network
                 config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
             }
 
-            if (transform.Find("Visual") == null)
+            Transform existingVisual = transform.Find("Visual");
+            if (Utils.IsHeadless())
+            {
+                visualRoot = existingVisual;
+                if (visualRoot != null)
+                {
+                    visualRoot.gameObject.SetActive(false);
+                }
+                if (animator != null)
+                {
+                    animator.enabled = false;
+                }
+            }
+            else if (existingVisual == null)
             {
                 visualRoot = RuntimePlayerVisual.Create(transform, ColorForObject(GetComponent<NetworkIdentity>().netId));
             }
             else
             {
-                visualRoot = transform.Find("Visual");
+                visualRoot = existingVisual;
             }
 
             input.enabled = false;

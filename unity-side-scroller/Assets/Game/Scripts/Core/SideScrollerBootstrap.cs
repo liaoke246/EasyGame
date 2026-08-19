@@ -4,6 +4,7 @@ using EasyGame.SideScroller.Player;
 using EasyGame.SideScroller.Network;
 using EasyGame.SideScroller.UI;
 using EasyGame.SideScroller.World;
+using Mirror;
 using UnityEngine;
 
 namespace EasyGame.SideScroller.Core
@@ -21,6 +22,13 @@ namespace EasyGame.SideScroller.Core
             {
                 world = gameObject.AddComponent<SideWorldBuilder>();
             }
+            if (Utils.IsHeadless())
+            {
+                world.BuildServerCollision();
+                Debug.Log("EasyGame 2D headless world initialized: collision-only.");
+                return;
+            }
+
             world.Build();
 
             if (!SideScrollerNetworkManager.NetworkingRequested)
