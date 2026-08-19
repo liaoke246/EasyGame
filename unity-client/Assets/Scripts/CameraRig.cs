@@ -26,12 +26,13 @@ namespace EasyGame
             {
                 return;
             }
-            Vector3 desired = target.position + new Vector3(0f, 13.2f, -8.8f);
-            Vector3 position = Vector3.SmoothDamp(transform.position, desired, ref velocity, 0.13f, 100f, Time.deltaTime);
+            Vector3 desired = target.position + new Vector3(0f, 22f, 0f);
+            Vector3 position = Vector3.SmoothDamp(transform.position, desired, ref velocity, 0.12f, 120f, Time.deltaTime);
             if (Time.time < shakeUntil)
             {
                 float fade = Mathf.InverseLerp(shakeUntil, shakeUntil - 0.28f, Time.time);
-                position += Random.insideUnitSphere * shakeStrength * fade;
+                Vector2 shake = Random.insideUnitCircle * shakeStrength * fade;
+                position += new Vector3(shake.x, 0f, shake.y);
             }
             else
             {

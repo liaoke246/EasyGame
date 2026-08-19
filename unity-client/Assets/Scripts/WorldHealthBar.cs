@@ -12,9 +12,9 @@ namespace EasyGame
         private Color healthyColor;
         private Color dangerColor;
 
-        public void Initialize(string displayName, float height, Color fullHealthColor)
+        public void Initialize(string displayName, float screenOffset, Color fullHealthColor)
         {
-            transform.localPosition = new Vector3(0f, height, 0f);
+            transform.localPosition = new Vector3(0f, 0.18f, screenOffset);
             healthyColor = fullHealthColor;
             dangerColor = new Color(0.95f, 0.16f, 0.09f);
 

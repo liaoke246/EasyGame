@@ -17,9 +17,15 @@ namespace EasyGame
             RocketId = state.id;
             worldHeight = mapHeight;
             gameObject.name = $"Rocket {state.id}";
-            Transform shell = VisualFactory.Cylinder(transform, "Shell", new Vector3(0f, 0.22f, 0f), new Vector3(0.075f, 0.24f, 0.075f), new Color(0.28f, 0.34f, 0.19f));
-            shell.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            VisualFactory.Cylinder(transform, "Warhead", new Vector3(0f, 0.22f, 0.25f), new Vector3(0.09f, 0.1f, 0.09f), new Color(0.42f, 0.15f, 0.08f)).localRotation = Quaternion.Euler(90f, 0f, 0f);
+            TopDownArt.CreateWorldSprite(
+                transform,
+                "2D Rocket Shell",
+                "Weapons/weapon_silencer",
+                new Vector3(0f, 0f, 0f),
+                new Vector2(0.56f, 0.18f),
+                24,
+                90f,
+                new Color(0.72f, 0.82f, 0.4f));
             trail = Effects.CreateRocketTrail(transform);
             ApplyNetworkState(state, true);
         }

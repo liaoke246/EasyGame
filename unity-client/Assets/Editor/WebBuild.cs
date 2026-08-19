@@ -24,8 +24,8 @@ namespace EasyGame.Editor
         {
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
             PlayerSettings.companyName = "EasyGame";
-            PlayerSettings.productName = "Block Crisis";
-            PlayerSettings.bundleVersion = "0.2.0";
+            PlayerSettings.productName = "EasyGame: Outbreak";
+            PlayerSettings.bundleVersion = "0.3.0";
             PlayerSettings.runInBackground = true;
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.WebGL.template = "PROJECT:EasyGame";

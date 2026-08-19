@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>方块危机 · Block Crisis</title>
+    <title>尸潮余生 · EasyGame Outbreak</title>
     <style>
       :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", system-ui, sans-serif; }
       * { box-sizing: border-box; }
@@ -62,9 +62,9 @@
     </div>
     <div id="loader">
       <div class="loader-card">
-        <div class="eyebrow">EASYGAME // SURVIVAL NETWORK</div>
-        <h1>方块危机</h1>
-        <p class="subtitle">BLOCK CRISIS · UNITY EDITION</p>
+        <div class="eyebrow">EASYGAME // TOP-DOWN SURVIVAL</div>
+        <h1>尸潮余生</h1>
+        <p class="subtitle">OUTBREAK · 2D NETWORK EDITION</p>
         <div class="track"><div id="progress"></div></div>
         <div id="progress-label"><span id="phase">正在载入战区</span><span id="percent">0%</span></div>
         <div id="error"></div>
@@ -83,16 +83,17 @@
       let mobileFramePending = false;
       const mobileInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, weapon: "smg" };
       const buildUrl = "Build";
-      const loaderUrl = buildUrl + "/unity-webgl.loader.js";
+      const releaseVersion = "0.3.0";
+      const loaderUrl = buildUrl + "/unity-webgl.loader.js?v=" + releaseVersion;
       const config = {
         arguments: [],
-        dataUrl: buildUrl + "/unity-webgl.data.unityweb",
-        frameworkUrl: buildUrl + "/unity-webgl.framework.js.unityweb",
-        codeUrl: buildUrl + "/unity-webgl.wasm.unityweb",
+        dataUrl: buildUrl + "/unity-webgl.data.unityweb?v=" + releaseVersion,
+        frameworkUrl: buildUrl + "/unity-webgl.framework.js.unityweb?v=" + releaseVersion,
+        codeUrl: buildUrl + "/unity-webgl.wasm.unityweb?v=" + releaseVersion,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "EasyGame",
-        productName: "Block Crisis",
-        productVersion: "0.2.0",
+        productName: "EasyGame Outbreak",
+        productVersion: "0.3.0",
         showBanner: (message, type) => {
           if (type === "error") {
             error.style.display = "block";

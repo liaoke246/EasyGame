@@ -6,6 +6,7 @@ const required = [
   "Assets/Scenes/Game.unity",
   "Assets/Scripts/GameBootstrap.cs",
   "Assets/Scripts/CharacterModel.cs",
+  "Assets/Scripts/TopDownArt.cs",
   "Assets/Scripts/GameWorldController.cs",
   "Assets/Scripts/WorldHealthBar.cs",
   "Assets/Scripts/WebSocketBridge.cs",
@@ -14,6 +15,10 @@ const required = [
   "Assets/Editor/WebBuild.cs",
   "Packages/manifest.json",
   "ProjectSettings/ProjectVersion.txt",
+  "Assets/Resources/Art/KenneyTopdown/License.txt",
+  "Assets/Resources/Art/KenneyTopdown/Characters/Survivor1/survivor1_machine.png",
+  "Assets/Resources/Art/KenneyTopdown/Characters/Zombie1/zoimbie1_hold.png",
+  "Assets/Resources/Art/KenneyTopdown/Tiles/tile_01.png",
   "PrebuiltWebGL/index.html",
   "PrebuiltWebGL/Build/unity-webgl.data.unityweb",
   "PrebuiltWebGL/Build/unity-webgl.framework.js.unityweb",
@@ -24,15 +29,20 @@ const required = [
 await Promise.all(required.map(path => access(`${root}/${path}`)));
 
 const model = await readFile(`${root}/Assets/Scripts/CharacterModel.cs`, "utf8");
-assert.match(model, /leftArm = BuildArm/);
-assert.match(model, /rightArm = BuildArm/);
-assert.match(model, /RightHandSocket/);
-assert.match(model, /AddMuzzle\(root/);
+assert.match(model, /Unified Character Sprite/);
+assert.match(model, /TopDownArt\.LoadSprite/);
+assert.match(model, /Complete2DCharacter/);
+assert.match(model, /VisualFactory\.Empty\(transform, "Muzzle"/);
 assert.match(model, /RequestWeapon/);
 assert.match(model, /TriggerFire/);
-assert.match(model, /BuildUsagiBody/);
-assert.match(model, /WhiteTail/);
-assert.doesNotMatch(model, /Resources\.Load|SpriteRenderer/);
+assert.match(model, /spawnSkin == "usagi"/);
+assert.match(model, /SpriteRenderer/);
+assert.doesNotMatch(model, /BuildArm|BuildLeg|RightHandSocket/);
+
+const topDownArt = await readFile(`${root}/Assets/Scripts/TopDownArt.cs`, "utf8");
+assert.match(topDownArt, /Resources\.Load<Texture2D>/);
+assert.match(topDownArt, /Sprite\.Create/);
+assert.match(topDownArt, /CreateTiledPlane/);
 
 const bridge = await readFile(`${root}/Assets/Plugins/WebGL/EasyGameSocket.jslib`, "utf8");
 for (const eventName of ["welcome", "snapshot", "attack", "notification", "network:pong"]) {
@@ -96,4 +106,4 @@ assert.match(server, /Content-Encoding", "gzip/);
 assert.match(server, /\.wasm\.unityweb/);
 assert.match(server, /application\/wasm/);
 
-process.stdout.write("Unity migration invariants passed: fixed character hierarchy, weapon muzzle sockets, Socket.IO bridge, optimistic input, collision-timed rocket effects, and a deployable WebGL release are present.\n");
+process.stdout.write("Unity invariants passed: unified 2D sprites, muzzle-aligned weapons, top-down licensed art, Socket.IO bridge, optimistic input, collision-timed rocket effects, and a deployable WebGL release are present.\n");
