@@ -43,7 +43,19 @@ async function runMultiplayerCheck() {
   const health = await healthResponse.json();
   const pageResponse = await fetch(url);
   const page = await pageResponse.text();
-  if (!health.ok || pageResponse.status !== 200 || !page.includes("尸潮余生")) {
+  const arenaResponse = await fetch(`${url}/arena/`);
+  const arenaPage = await arenaResponse.text();
+  const sideScrollerResponse = await fetch(`${url}/side-scroller/`);
+  const sideScrollerPage = await sideScrollerResponse.text();
+  if (
+    !health.ok ||
+    pageResponse.status !== 200 ||
+    !page.includes("选择作战区域") ||
+    arenaResponse.status !== 200 ||
+    !arenaPage.includes("尸潮余生") ||
+    sideScrollerResponse.status !== 200 ||
+    !sideScrollerPage.includes("Dead Rails")
+  ) {
     throw new Error("Production HTTP entry point or health check failed");
   }
 

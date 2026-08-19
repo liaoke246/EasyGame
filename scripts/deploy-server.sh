@@ -33,13 +33,16 @@ rm -f -- "$archive_path"
 
 cd "$release_dir"
 /usr/local/bin/npm ci --omit=dev --ignore-scripts
+chmod 755 unity-side-scroller/PrebuiltServerLinux/DeadRailsServer.x86_64
 
 ln -sfn "$release_dir" "$current_link"
 
-if sudo /bin/systemctl restart easygame.service; then
+if sudo /bin/systemctl restart easygame.service && \
+   sudo /bin/systemctl restart easygame-side-scroller.service; then
   for _ in {1..20}; do
     if /usr/bin/curl --fail --silent --show-error \
-      http://127.0.0.1:3001/health >/dev/null; then
+      http://127.0.0.1:3001/health >/dev/null && \
+      /usr/bin/ss -lnt | /usr/bin/grep -q ':27777 '; then
       echo "Deployment healthy: $commit_sha"
       exit 0
     fi
@@ -51,5 +54,6 @@ echo "Deployment failed health check; rolling back" >&2
 if [[ -n "$previous_release" && -d "$previous_release" ]]; then
   ln -sfn "$previous_release" "$current_link"
   sudo /bin/systemctl restart easygame.service
+  sudo /bin/systemctl restart easygame-side-scroller.service
 fi
 exit 1

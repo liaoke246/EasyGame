@@ -34,17 +34,17 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install verified Unity WebGL release
-        run: |
-          rm -rf client/dist
-          mkdir -p client/dist
-          cp -a unity-client/PrebuiltWebGL/. client/dist/
+      - name: Assemble game lobby and verified Unity WebGL releases
+        run: npm run build:web-release
 
-      - name: Verify Unity client structure
-        run: npm run test:unity
+      - name: Verify Unity client structures
+        run: npm run test:unity && npm run test:side-scroller
 
       - name: Run gameplay regression tests
         run: npm run test:animation && npm run test:combat && npm run test:smoke
+
+      - name: Verify Mirror Linux server release
+        run: test -x unity-side-scroller/PrebuiltServerLinux/DeadRailsServer.x86_64
 
       - name: Package release
         run: |
@@ -52,7 +52,8 @@ jobs:
             package.json package-lock.json \
             client/package.json client/dist \
             server/package.json server/dist \
-            shared/package.json shared/dist
+            shared/package.json shared/dist \
+            unity-side-scroller/PrebuiltServerLinux
 
       - name: Configure SSH
         env:

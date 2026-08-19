@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#091016">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>EasyGame Dead Rails</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, "PingFang SC", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #091016; touch-action: none; }
+    #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; background: #091016; outline: 0; }
+    #loader { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: radial-gradient(circle at 50% 42%, #1b343a, #091016 62%); transition: opacity .35s ease; }
+    .loader-card { width: min(430px, calc(100vw - 42px)); padding: 30px; border: 1px solid rgba(229,198,113,.36); border-radius: 16px; background: rgba(7,15,20,.88); box-shadow: 0 24px 80px rgba(0,0,0,.48); }
+    .eyebrow { color: #d7bc71; font-size: 12px; font-weight: 800; letter-spacing: .2em; }
+    h1 { margin: 9px 0 18px; font-size: clamp(24px, 5vw, 42px); }
+    .track { height: 6px; overflow: hidden; border-radius: 10px; background: #1d2a2f; }
+    #progress { width: 0; height: 100%; background: linear-gradient(90deg,#51c7a6,#e5c671); transition: width .18s ease; }
+    #status { margin-top: 12px; color: #9eaaa6; font-size: 12px; }
+    #back { position: fixed; z-index: 10; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #e9e7de; background: rgba(5,12,16,.64); text-decoration: none; backdrop-filter: blur(10px); }
+    #mobile-controls { display: none; position: fixed; inset: 0; z-index: 9; pointer-events: none; }
+    .control { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); width: clamp(58px, 17vw, 86px); height: clamp(58px, 17vw, 86px); border: 1px solid rgba(229,198,113,.48); border-radius: 50%; color: #fff; background: rgba(11,22,26,.58); font-size: 22px; font-weight: 900; pointer-events: auto; user-select: none; -webkit-user-select: none; }
+    #left { left: max(16px, env(safe-area-inset-left)); }
+    #right { left: calc(max(16px, env(safe-area-inset-left)) + clamp(70px, 20vw, 100px)); }
+    #jump { right: max(16px, env(safe-area-inset-right)); color: #12201d; background: rgba(91,213,178,.8); }
+    #attack { right: calc(max(16px, env(safe-area-inset-right)) + clamp(70px, 20vw, 100px)); }
+    @media (pointer: coarse), (max-width: 900px) { #mobile-controls { display: block; } #back { font-size: 12px; } }
+    @media (orientation: portrait) { .control { bottom: max(28px, env(safe-area-inset-bottom)); } }
+  </style>
+</head>
+<body>
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+  <a id="back" href="/">← 游戏大厅</a>
+  <div id="mobile-controls" aria-label="手机操作">
+    <button id="left" class="control" aria-label="向左">◀</button>
+    <button id="right" class="control" aria-label="向右">▶</button>
+    <button id="attack" class="control" aria-label="攻击">ATK</button>
+    <button id="jump" class="control" aria-label="跳跃">JUMP</button>
+  </div>
+  <div id="loader">
+    <div class="loader-card">
+      <div class="eyebrow">EASYGAME // 2D CO-OP</div>
+      <h1>Dead Rails</h1>
+      <div class="track"><div id="progress"></div></div>
+      <div id="status">正在装载横版生存区…</div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.querySelector("#unity-canvas");
+    const loader = document.querySelector("#loader");
+    const progress = document.querySelector("#progress");
+    const status = document.querySelector("#status");
+    const buildUrl = "Build";
+    const releaseVersion = "0.1.0";
+    const loaderUrl = buildUrl + "/PrebuiltWebGL.loader.js?v=" + releaseVersion;
+    const config = {
+      arguments: [],
+      dataUrl: buildUrl + "/PrebuiltWebGL.data.unityweb?v=" + releaseVersion,
+      frameworkUrl: buildUrl + "/PrebuiltWebGL.framework.js.unityweb?v=" + releaseVersion,
+      codeUrl: buildUrl + "/PrebuiltWebGL.wasm.unityweb?v=" + releaseVersion,
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "EasyGame",
+      productName: "EasyGame Dead Rails",
+      productVersion: "0.1.0",
+    };
+
+    function emitKey(type, code, key) {
+      window.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
+      canvas.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
+      canvas.focus();
+    }
+
+    function bindHold(id, code, key) {
+      const button = document.querySelector(id);
+      const down = event => { event.preventDefault(); emitKey("keydown", code, key); };
+      const up = event => { event.preventDefault(); emitKey("keyup", code, key); };
+      button.addEventListener("pointerdown", down);
+      button.addEventListener("pointerup", up);
+      button.addEventListener("pointercancel", up);
+      button.addEventListener("pointerleave", up);
+    }
+    bindHold("#left", "ArrowLeft", "ArrowLeft");
+    bindHold("#right", "ArrowRight", "ArrowRight");
+    bindHold("#jump", "Space", " ");
+    bindHold("#attack", "KeyJ", "j");
+
+    const script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = () => createUnityInstance(canvas, config, value => {
+      progress.style.width = Math.round(value * 100) + "%";
+      status.textContent = `正在装载横版生存区… ${Math.round(value * 100)}%`;
+    }).then(() => {
+      loader.style.opacity = "0";
+      setTimeout(() => loader.remove(), 380);
+      canvas.focus();
+    }).catch(message => {
+      status.textContent = "加载失败：" + message;
+    });
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

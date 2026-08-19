@@ -43,16 +43,22 @@ cat >/etc/sudoers.d/easygame-deploy <<'EOF'
 easygame ALL=(root) NOPASSWD: /bin/systemctl restart easygame.service
 easygame ALL=(root) NOPASSWD: /bin/systemctl is-active easygame.service
 easygame ALL=(root) NOPASSWD: /bin/systemctl status easygame.service
+easygame ALL=(root) NOPASSWD: /bin/systemctl restart easygame-side-scroller.service
+easygame ALL=(root) NOPASSWD: /bin/systemctl is-active easygame-side-scroller.service
+easygame ALL=(root) NOPASSWD: /bin/systemctl status easygame-side-scroller.service
 EOF
 chmod 440 /etc/sudoers.d/easygame-deploy
 visudo --check --file=/etc/sudoers.d/easygame-deploy
 
 install -m 644 /tmp/easygame.service /etc/systemd/system/easygame.service
+install -m 644 /tmp/easygame-side-scroller.service \
+  /etc/systemd/system/easygame-side-scroller.service
 install -m 644 /tmp/easygame.nginx.conf \
   /www/server/panel/vhost/nginx/easygame.conf
 
 systemctl daemon-reload
 systemctl enable easygame.service
+systemctl enable easygame-side-scroller.service
 nginx -t
 systemctl reload nginx
 

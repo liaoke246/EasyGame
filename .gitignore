@@ -27,3 +27,22 @@ unity-client/*.slnx
 unity-client/*.suo
 unity-client/*.user
 unity-client/*.userprefs
+
+# Independent Unity side-scroller project
+unity-side-scroller/[Ll]ibrary/
+unity-side-scroller/[Tt]emp/
+unity-side-scroller/[Oo]bj/
+unity-side-scroller/[Ll]ogs/
+unity-side-scroller/[Uu]ser[Ss]ettings/
+unity-side-scroller/.vscode/
+unity-side-scroller/[Bb]uild/
+unity-side-scroller/[Bb]uilds/
+unity-side-scroller/MemoryCaptures/
+unity-side-scroller/Recordings/
+unity-side-scroller/*.csproj
+unity-side-scroller/*.sln
+unity-side-scroller/*.slnx
+unity-side-scroller/*.suo
+unity-side-scroller/*.user
+unity-side-scroller/*.userprefs
+unity-side-scroller/PrebuiltServerWindows/
