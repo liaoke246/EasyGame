@@ -1,3 +1,4 @@
+using EasyGame.SideScroller.Core;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -5,8 +6,28 @@ namespace EasyGame.SideScroller.World
 {
     public sealed class SideWorldBuilder : MonoBehaviour
     {
-        public static readonly Bounds MapBounds = new Bounds(new Vector3(54f, 1f, 0f), new Vector3(136f, 20f, 4f));
-        public static readonly Vector3 PlayerSpawn = new Vector3(-7f, -2.15f, 0f);
+        private const int WorldStartX = -14;
+        private const int WorldEndX = 122;
+        private const int FloorSurfaceRow = -4;
+        private const int FloorBottomRow = -6;
+
+        private static readonly PlatformDefinition[] Platforms =
+        {
+            new PlatformDefinition(-2, 7, -1),
+            new PlatformDefinition(12, 20, 1),
+            new PlatformDefinition(25, 32, -1),
+            new PlatformDefinition(38, 48, 2),
+            new PlatformDefinition(54, 61, 0),
+            new PlatformDefinition(67, 76, 2),
+            new PlatformDefinition(82, 91, -1),
+            new PlatformDefinition(98, 108, 1),
+        };
+
+        public static readonly Bounds MapBounds = new Bounds(new Vector3(54.5f, 1f, 0f), new Vector3(137f, 20f, 4f));
+        public const float FloorSurfaceY = FloorSurfaceRow + 1f;
+        public const float PlayerSpawnSpacing = 2.25f;
+        public static readonly Vector3 PlayerSpawnFeet = new Vector3(-7f, FloorSurfaceY, 0f);
+        public static readonly Vector3 PlayerSpawn = ActorGeometry2D.RootPositionForFeet(PlayerSpawnFeet, ActorGeometry2D.HumanoidFeetLocalY);
 
         private bool built;
 
@@ -31,15 +52,16 @@ namespace EasyGame.SideScroller.World
             }
 
             built = true;
-            CreateServerRectangle("Ground Collision", new Vector2(54f, -5f), new Vector2(137f, 3f));
-            CreateServerPlatform("Platform -2 to 7", -2, 7, -1);
-            CreateServerPlatform("Platform 12 to 20", 12, 20, 1);
-            CreateServerPlatform("Platform 25 to 32", 25, 32, -1);
-            CreateServerPlatform("Platform 38 to 48", 38, 48, 2);
-            CreateServerPlatform("Platform 54 to 61", 54, 61, 0);
-            CreateServerPlatform("Platform 67 to 76", 67, 76, 2);
-            CreateServerPlatform("Platform 82 to 91", 82, 91, -1);
-            CreateServerPlatform("Platform 98 to 108", 98, 108, 1);
+            float groundWidth = WorldEndX - WorldStartX + 1f;
+            float groundHeight = FloorSurfaceRow - FloorBottomRow + 1f;
+            CreateServerRectangle(
+                "Ground Collision",
+                new Vector2((WorldStartX + WorldEndX + 1f) * 0.5f, (FloorBottomRow + FloorSurfaceRow + 1f) * 0.5f),
+                new Vector2(groundWidth, groundHeight));
+            foreach (PlatformDefinition platform in Platforms)
+            {
+                CreateServerPlatform(platform);
+            }
         }
 
         private static void CreateBackground()
@@ -81,21 +103,19 @@ namespace EasyGame.SideScroller.World
             Tile platformMiddle = CreateRuntimeTile("Platform Middle", "ground-top");
             Tile platformRight = CreateRuntimeTile("Platform Right", "ground-right");
 
-            for (int x = -14; x <= 122; x++)
+            for (int x = WorldStartX; x <= WorldEndX; x++)
             {
-                tilemap.SetTile(new Vector3Int(x, -4, 0), surface);
-                tilemap.SetTile(new Vector3Int(x, -5, 0), ground);
-                tilemap.SetTile(new Vector3Int(x, -6, 0), ground);
+                tilemap.SetTile(new Vector3Int(x, FloorSurfaceRow, 0), surface);
+                for (int y = FloorBottomRow; y < FloorSurfaceRow; y++)
+                {
+                    tilemap.SetTile(new Vector3Int(x, y, 0), ground);
+                }
             }
 
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, -2, 7, -1);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 12, 20, 1);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 25, 32, -1);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 38, 48, 2);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 54, 61, 0);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 67, 76, 2);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 82, 91, -1);
-            FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, 98, 108, 1);
+            foreach (PlatformDefinition platform in Platforms)
+            {
+                FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, platform.StartX, platform.EndX, platform.Row);
+            }
         }
 
         private static void FillPlatform(Tilemap map, Tile left, Tile middle, Tile right, int startX, int endX, int y)
@@ -106,10 +126,11 @@ namespace EasyGame.SideScroller.World
             }
         }
 
-        private static void CreateServerPlatform(string name, int startX, int endX, int y)
+        private static void CreateServerPlatform(PlatformDefinition platform)
         {
-            float width = endX - startX + 1f;
-            CreateServerRectangle(name, new Vector2((startX + endX) * 0.5f, y), new Vector2(width, 1f));
+            float width = platform.EndX - platform.StartX + 1f;
+            Vector2 center = new Vector2((platform.StartX + platform.EndX + 1f) * 0.5f, platform.Row + 0.5f);
+            CreateServerRectangle($"Platform {platform.StartX} to {platform.EndX}", center, new Vector2(width, 1f));
         }
 
         private static void CreateServerRectangle(string name, Vector2 position, Vector2 size)
@@ -187,6 +208,20 @@ namespace EasyGame.SideScroller.World
             SpriteRenderer renderer = item.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
             renderer.sortingOrder = order;
+        }
+
+        private readonly struct PlatformDefinition
+        {
+            public PlatformDefinition(int startX, int endX, int row)
+            {
+                StartX = startX;
+                EndX = endX;
+                Row = row;
+            }
+
+            public int StartX { get; }
+            public int EndX { get; }
+            public int Row { get; }
         }
     }
 }

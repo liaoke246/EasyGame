@@ -153,7 +153,7 @@ namespace EasyGame.SideScroller.Enemies
                 return;
             }
 
-            Collider2D[] hits = Physics2D.OverlapBoxAll(transform.position, new Vector2(0.9f, 0.72f), 0f);
+            Collider2D[] hits = Physics2D.OverlapBoxAll(ActorGeometry2D.BodyCenter(bodyCollider), new Vector2(0.9f, 0.72f), 0f);
             foreach (Collider2D hit in hits)
             {
                 if (hit.TryGetComponent(out SideScrollerNetworkPlayer player) && !player.IsDefeated)
@@ -188,7 +188,7 @@ namespace EasyGame.SideScroller.Enemies
             string[] names = { "GREEN SLIME", "BLUE SLIME", "RED SLIME" };
             Color[] colors = { new Color(0.3f, 0.85f, 0.4f), new Color(0.26f, 0.62f, 0.95f), new Color(0.95f, 0.3f, 0.25f) };
             int index = Mathf.Abs(colorVariant) % names.Length;
-            PixelHudDrawing.WorldBar(transform.position + new Vector3(0f, 0.76f, 0f), names[index], health / (float)MaxHealth, colors[index], 70f);
+            PixelHudDrawing.WorldBar(ActorGeometry2D.HeadWorldPosition(bodyCollider, 0.16f), names[index], health / (float)MaxHealth, colors[index], 70f);
         }
     }
 }

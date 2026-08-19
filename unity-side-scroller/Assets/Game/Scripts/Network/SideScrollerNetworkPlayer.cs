@@ -60,7 +60,7 @@ namespace EasyGame.SideScroller.Network
                 config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
             }
 
-            Transform existingVisual = transform.Find("Visual");
+            Transform existingVisual = transform.Find(RuntimePlayerVisual.FeetAnchorName);
             if (Utils.IsHeadless())
             {
                 visualRoot = existingVisual;
@@ -267,7 +267,8 @@ namespace EasyGame.SideScroller.Network
         [Server]
         private void ResolveAttackHits()
         {
-            Vector2 center = new Vector2(transform.position.x + facing * 0.82f, transform.position.y);
+            Vector2 bodyCenter = ActorGeometry2D.BodyCenter(bodyCollider);
+            Vector2 center = new Vector2(bodyCenter.x + facing * 0.82f, bodyCenter.y);
             Collider2D[] hits = Physics2D.OverlapBoxAll(center, new Vector2(1.45f, 1.25f), 0f);
             foreach (Collider2D hit in hits)
             {
@@ -341,7 +342,7 @@ namespace EasyGame.SideScroller.Network
         private void ServerRespawn()
         {
             int spawnIndex = connectionToClient != null ? Mathf.Abs(connectionToClient.connectionId) % 4 : 0;
-            transform.position = SideWorldBuilder.PlayerSpawn + new Vector3(spawnIndex * 1.5f, 0f, 0f);
+            transform.position = SideWorldBuilder.PlayerSpawn + new Vector3(spawnIndex * SideWorldBuilder.PlayerSpawnSpacing, 0f, 0f);
             body.linearVelocity = Vector2.zero;
             bodyCollider.enabled = true;
             health = MaxHealthValue;
@@ -387,14 +388,14 @@ namespace EasyGame.SideScroller.Network
 
         private void OnGUI()
         {
-            if (!isClient || Utils.IsHeadless())
+            if (!isClient || Utils.IsHeadless() || isLocalPlayer)
             {
                 return;
             }
 
-            string label = defeated ? $"{displayName}  RESPAWNING" : $"{displayName}  K{kills}/D{deaths}";
+            string label = defeated ? $"{displayName}  RESPAWN" : displayName;
             Color color = isLocalPlayer ? new Color(0.34f, 0.9f, 0.66f) : new Color(0.95f, 0.68f, 0.25f);
-            PixelHudDrawing.WorldBar(transform.position + new Vector3(0f, 1.25f, 0f), label, health / (float)MaxHealthValue, color, 96f);
+            PixelHudDrawing.WorldBar(ActorGeometry2D.HeadWorldPosition(bodyCollider, 0.18f), label, health / (float)MaxHealthValue, color, 96f);
         }
 
         private static Color ColorForObject(uint objectId)

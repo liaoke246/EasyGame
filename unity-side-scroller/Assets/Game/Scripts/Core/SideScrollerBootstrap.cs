@@ -12,13 +12,15 @@ namespace EasyGame.SideScroller.Core
     [RequireComponent(typeof(MobileInputBridge))]
     public sealed class SideScrollerBootstrap : MonoBehaviour
     {
-        private void Start()
+        private SideWorldBuilder world;
+
+        private void Awake()
         {
             Application.targetFrameRate = 120;
             QualitySettings.vSyncCount = 0;
             Physics2D.gravity = new Vector2(0f, -9.81f);
 
-            SideWorldBuilder world = GetComponent<SideWorldBuilder>();
+            world = GetComponent<SideWorldBuilder>();
             if (world == null)
             {
                 world = gameObject.AddComponent<SideWorldBuilder>();
@@ -26,11 +28,20 @@ namespace EasyGame.SideScroller.Core
             if (Utils.IsHeadless())
             {
                 world.BuildServerCollision();
-                Debug.Log("EasyGame 2D headless world initialized: collision-only.");
+            }
+            else
+            {
+                world.Build();
+            }
+        }
+
+        private void Start()
+        {
+            if (Utils.IsHeadless())
+            {
+                Debug.Log("EasyGame 2D headless world initialized before network startup: collision-only.");
                 return;
             }
-
-            world.Build();
 
             if (!SideScrollerNetworkManager.NetworkingRequested)
             {
@@ -53,8 +64,7 @@ namespace EasyGame.SideScroller.Core
             body.mass = 1f;
 
             CapsuleCollider2D collider = player.AddComponent<CapsuleCollider2D>();
-            collider.size = new Vector2(0.72f, 1.48f);
-            collider.offset = new Vector2(0f, 0.02f);
+            ActorGeometry2D.ConfigureHumanoid(collider);
             collider.sharedMaterial = new PhysicsMaterial2D("Player Material")
             {
                 friction = 0f,

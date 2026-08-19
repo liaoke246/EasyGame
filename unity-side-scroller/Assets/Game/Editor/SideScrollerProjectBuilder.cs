@@ -94,6 +94,26 @@ namespace EasyGame.SideScroller.Editor
             BuildDedicatedServer(output, BuildTarget.StandaloneWindows64);
         }
 
+        public static void BuildWindowsNetworkQaCommandLine()
+        {
+            string output = CommandLineValue("-serverOutput") ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/NetworkQA/DeadRailsQaServer.exe"));
+            PrepareProject();
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? throw new InvalidOperationException("QA server output directory is invalid."));
+            BuildPlayerOptions options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = output,
+                target = BuildTarget.StandaloneWindows64,
+                subtarget = (int)StandaloneBuildSubtarget.Player,
+                options = BuildOptions.CleanBuildCache,
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new InvalidOperationException($"EasyGame 2D network QA build failed: {report.summary.result} ({report.summary.totalErrors} errors)");
+            }
+        }
+
         [MenuItem("EasyGame 2D/Build Linux Dedicated Server")]
         public static void BuildLinuxServerFromMenu()
         {
@@ -195,12 +215,17 @@ namespace EasyGame.SideScroller.Editor
                 }
 
                 const float pixelsPerUnit = 32f;
+                bool usesFeetAnchor = path.Contains("/Characters/") || path.Contains("/Enemies/Slime/");
+                Vector2 requiredPivot = new Vector2(0.5f, 0f);
+                TextureImporterSettings spriteSettings = new TextureImporterSettings();
+                importer.ReadTextureSettings(spriteSettings);
                 bool changed = importer.textureType != TextureImporterType.Sprite
                     || importer.spriteImportMode != SpriteImportMode.Single
                     || !Mathf.Approximately(importer.spritePixelsPerUnit, pixelsPerUnit)
                     || importer.mipmapEnabled
                     || importer.filterMode != FilterMode.Point
-                    || importer.textureCompression != TextureImporterCompression.Uncompressed;
+                    || importer.textureCompression != TextureImporterCompression.Uncompressed
+                    || usesFeetAnchor && (spriteSettings.spriteAlignment != (int)SpriteAlignment.Custom || spriteSettings.spritePivot != requiredPivot);
                 if (!changed)
                 {
                     continue;
@@ -213,6 +238,12 @@ namespace EasyGame.SideScroller.Editor
                 importer.filterMode = FilterMode.Point;
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.alphaIsTransparency = true;
+                if (usesFeetAnchor)
+                {
+                    spriteSettings.spriteAlignment = (int)SpriteAlignment.Custom;
+                    spriteSettings.spritePivot = requiredPivot;
+                    importer.SetTextureSettings(spriteSettings);
+                }
                 importer.SaveAndReimport();
             }
         }
@@ -338,8 +369,7 @@ namespace EasyGame.SideScroller.Editor
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
-            collider.size = new Vector2(0.72f, 1.48f);
-            collider.offset = new Vector2(0f, 0.02f);
+            ActorGeometry2D.ConfigureHumanoid(collider);
             collider.sharedMaterial = new PhysicsMaterial2D("Network Player Material") { friction = 0f, bounciness = 0f };
 
             PlayerInputReader input = root.AddComponent<PlayerInputReader>();
@@ -375,8 +405,7 @@ namespace EasyGame.SideScroller.Editor
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
-            collider.size = new Vector2(0.72f, 1.48f);
-            collider.offset = new Vector2(0f, 0.02f);
+            ActorGeometry2D.ConfigureHumanoid(collider);
             collider.sharedMaterial = new PhysicsMaterial2D("Zombie Material") { friction = 0f, bounciness = 0f };
 
             SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
@@ -407,8 +436,7 @@ namespace EasyGame.SideScroller.Editor
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
-            collider.size = new Vector2(0.72f, 0.48f);
-            collider.offset = new Vector2(0f, 0.02f);
+            ActorGeometry2D.ConfigureSlime(collider);
             collider.sharedMaterial = new PhysicsMaterial2D("Slime Material") { friction = 0f, bounciness = 0f };
 
             SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
@@ -464,10 +492,10 @@ namespace EasyGame.SideScroller.Editor
             manager.headlessStartMode = HeadlessStartOptions.AutoStartServer;
             networkObject.AddComponent<NetworkStatusHud>();
 
-            CreateStartPosition("Player Spawn A", new Vector3(-7f, -2.15f, 0f));
-            CreateStartPosition("Player Spawn B", new Vector3(-5.5f, -2.15f, 0f));
-            CreateStartPosition("Player Spawn C", new Vector3(-4f, -2.15f, 0f));
-            CreateStartPosition("Player Spawn D", new Vector3(-2.5f, -2.15f, 0f));
+            CreateStartPosition("Player Spawn A", SideWorldBuilder.PlayerSpawn);
+            CreateStartPosition("Player Spawn B", SideWorldBuilder.PlayerSpawn + new Vector3(SideWorldBuilder.PlayerSpawnSpacing, 0f, 0f));
+            CreateStartPosition("Player Spawn C", SideWorldBuilder.PlayerSpawn + new Vector3(SideWorldBuilder.PlayerSpawnSpacing * 2f, 0f, 0f));
+            CreateStartPosition("Player Spawn D", SideWorldBuilder.PlayerSpawn + new Vector3(SideWorldBuilder.PlayerSpawnSpacing * 3f, 0f, 0f));
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -483,7 +511,7 @@ namespace EasyGame.SideScroller.Editor
         {
             PlayerSettings.companyName = "EasyGame";
             PlayerSettings.productName = "EasyGame: Dead Rails";
-            PlayerSettings.bundleVersion = "0.2.0";
+            PlayerSettings.bundleVersion = "0.2.1";
             PlayerSettings.runInBackground = true;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;

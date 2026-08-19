@@ -46,9 +46,9 @@ namespace EasyGame.SideScroller.UI
 
             float x = screen.x - width * 0.5f;
             float y = Screen.height - screen.y;
-            FillRect(new Rect(x - 2f, y - 2f, width + 4f, 18f), new Color(0.025f, 0.035f, 0.04f, 0.82f));
-            GUI.Label(new Rect(x - 10f, y - 3f, width + 20f, 15f), label, worldLabelStyle);
-            Bar(new Rect(x, y + 16f, width, 6f), normalized, fill);
+            FillRect(new Rect(x - 3f, y - 2f, width + 6f, 25f), new Color(0.025f, 0.035f, 0.04f, 0.86f));
+            GUI.Label(new Rect(x - 10f, y - 2f, width + 20f, 14f), label, worldLabelStyle);
+            Bar(new Rect(x, y + 14f, width, 6f), normalized, fill);
         }
     }
 }

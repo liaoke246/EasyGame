@@ -1,5 +1,7 @@
 using System;
+using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Enemies;
+using EasyGame.SideScroller.World;
 using Mirror;
 using UnityEngine;
 
@@ -98,40 +100,42 @@ namespace EasyGame.SideScroller.Network
                 return;
             }
 
-            Vector3[] positions =
+            Vector3[] feetPositions =
             {
-                new Vector3(2f, 0.15f, 0f),
-                new Vector3(15f, 2.15f, 0f),
-                new Vector3(42f, 3.15f, 0f),
-                new Vector3(71f, 3.15f, 0f),
-                new Vector3(103f, 2.15f, 0f),
-                new Vector3(112f, -2.15f, 0f),
+                new Vector3(2f, 0f, 0f),
+                new Vector3(15f, 2f, 0f),
+                new Vector3(42f, 3f, 0f),
+                new Vector3(71f, 3f, 0f),
+                new Vector3(103f, 2f, 0f),
+                new Vector3(112f, SideWorldBuilder.FloorSurfaceY, 0f),
             };
 
-            foreach (Vector3 position in positions)
+            foreach (Vector3 feetPosition in feetPositions)
             {
+                Vector3 position = ActorGeometry2D.RootPositionForFeet(feetPosition, ActorGeometry2D.HumanoidFeetLocalY);
                 GameObject zombie = Instantiate(zombiePrefab, position, Quaternion.identity);
                 NetworkServer.Spawn(zombie);
             }
 
-            Vector3[] slimePositions =
+            Vector3[] slimeFeetPositions =
             {
-                new Vector3(5f, -2.1f, 0f),
-                new Vector3(17f, 2.1f, 0f),
-                new Vector3(27f, -2.1f, 0f),
-                new Vector3(32f, -2.1f, 0f),
-                new Vector3(45f, 3.1f, 0f),
-                new Vector3(56f, 1.1f, 0f),
-                new Vector3(69f, 3.1f, 0f),
-                new Vector3(84f, -2.1f, 0f),
-                new Vector3(89f, -2.1f, 0f),
-                new Vector3(101f, 2.1f, 0f),
-                new Vector3(114f, -2.1f, 0f),
-                new Vector3(120f, -2.1f, 0f),
+                new Vector3(5f, SideWorldBuilder.FloorSurfaceY, 0f),
+                new Vector3(17f, 2f, 0f),
+                new Vector3(27f, SideWorldBuilder.FloorSurfaceY, 0f),
+                new Vector3(32f, SideWorldBuilder.FloorSurfaceY, 0f),
+                new Vector3(45f, 3f, 0f),
+                new Vector3(56f, 1f, 0f),
+                new Vector3(69f, 3f, 0f),
+                new Vector3(84f, SideWorldBuilder.FloorSurfaceY, 0f),
+                new Vector3(89f, SideWorldBuilder.FloorSurfaceY, 0f),
+                new Vector3(101f, 2f, 0f),
+                new Vector3(114f, SideWorldBuilder.FloorSurfaceY, 0f),
+                new Vector3(120f, SideWorldBuilder.FloorSurfaceY, 0f),
             };
 
-            foreach (Vector3 position in slimePositions)
+            foreach (Vector3 feetPosition in slimeFeetPositions)
             {
+                Vector3 position = ActorGeometry2D.RootPositionForFeet(feetPosition, ActorGeometry2D.SlimeFeetLocalY);
                 GameObject slime = Instantiate(slimePrefab, position, Quaternion.identity);
                 NetworkServer.Spawn(slime);
             }

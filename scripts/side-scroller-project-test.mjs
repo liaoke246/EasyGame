@@ -11,6 +11,7 @@ const required = [
   "Assets/Game/Scripts/Core/PixelCharacterAnimator.cs",
   "Assets/Game/Scripts/Core/PixelSlimeAnimator.cs",
   "Assets/Game/Scripts/Core/GroundProbe2D.cs",
+  "Assets/Game/Scripts/Core/ActorGeometry2D.cs",
   "Assets/Game/Scripts/Core/MobileInputBridge.cs",
   "Assets/Game/Scripts/Combat/PlayerCombat.cs",
   "Assets/Game/Scripts/World/SideWorldBuilder.cs",
@@ -30,6 +31,7 @@ const required = [
   "Assets/Mirror/version.txt",
   "ROADMAP.md",
   "THIRD_PARTY_ASSETS.md",
+  "GAMEPLAY_ARCHITECTURE.md",
   "PrebuiltWebGL/index.html",
   "PrebuiltWebGL/Build/PrebuiltWebGL.data.unityweb",
   "PrebuiltWebGL/Build/PrebuiltWebGL.framework.js.unityweb",
@@ -60,11 +62,14 @@ assert.match(world, /BuildServerCollision/);
 assert.match(world, /BoxCollider2D/);
 assert.match(world, /GandalfHardcore/);
 assert.match(world, /ground-top/);
+assert.match(world, /PlatformDefinition\[] Platforms/);
+assert.match(world, /platform\.Row \+ 0\.5f/);
 
 const bootstrap = await readFile(`${root}/Assets/Game/Scripts/Core/SideScrollerBootstrap.cs`, "utf8");
 assert.match(bootstrap, /Utils\.IsHeadless\(\)/);
+assert.match(bootstrap, /private void Awake\(\)/);
 assert.match(bootstrap, /world\.BuildServerCollision\(\)/);
-assert.match(bootstrap, /headless world initialized: collision-only/);
+assert.match(bootstrap, /initialized before network startup/);
 
 const animation = await readFile(`${root}/Assets/Game/Editor/SideScrollerProjectBuilder.cs`, "utf8");
 for (const state of ["Idle", "Run", "Jump", "Fall", "Attack", "Hit", "Death"]) {
@@ -104,9 +109,21 @@ const groundProbe = await readFile(`${root}/Assets/Game/Scripts/Core/GroundProbe
 assert.match(groundProbe, /OverlapBoxAll/);
 assert.match(groundProbe, /hit == bodyCollider/);
 
+const actorGeometry = await readFile(`${root}/Assets/Game/Scripts/Core/ActorGeometry2D.cs`, "utf8");
+assert.match(actorGeometry, /HumanoidFeetLocalY/);
+assert.match(actorGeometry, /SlimeFeetLocalY/);
+assert.match(actorGeometry, /FeetLocalPosition/);
+
+const runtimeVisual = await readFile(`${root}/Assets/Game/Scripts/Core/RuntimePlayerVisual.cs`, "utf8");
+assert.match(runtimeVisual, /Feet Anchor/);
+assert.match(runtimeVisual, /ActorGeometry2D\.FeetLocalPosition/);
+
+assert.match(animation, /spritePivot = requiredPivot/);
+
 const networkManager = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkManager.cs`, "utf8");
 assert.match(networkManager, /side-scroller-socket/);
 assert.match(networkManager, /NetworkTime\.rtt/);
+assert.match(networkManager, /RootPositionForFeet/);
 
 const template = await readFile(`${root}/PrebuiltWebGL/index.html`, "utf8");
 assert.match(template, /viewport-fit=cover/);

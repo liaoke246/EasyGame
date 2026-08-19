@@ -134,7 +134,8 @@ namespace EasyGame.SideScroller.Enemies
                 return;
             }
 
-            Vector2 center = new Vector2(transform.position.x + facing * 0.38f, transform.position.y);
+            Vector2 bodyCenter = ActorGeometry2D.BodyCenter(bodyCollider);
+            Vector2 center = new Vector2(bodyCenter.x + facing * 0.38f, bodyCenter.y);
             Collider2D[] hits = Physics2D.OverlapBoxAll(center, new Vector2(0.95f, 1.25f), 0f);
             foreach (Collider2D hit in hits)
             {
@@ -167,7 +168,7 @@ namespace EasyGame.SideScroller.Enemies
             {
                 return;
             }
-            PixelHudDrawing.WorldBar(transform.position + new Vector3(0f, 1.22f, 0f), "INFECTED", health / (float)MaxHealth, new Color(0.62f, 0.82f, 0.28f), 72f);
+            PixelHudDrawing.WorldBar(ActorGeometry2D.HeadWorldPosition(bodyCollider, 0.18f), "INFECTED", health / (float)MaxHealth, new Color(0.62f, 0.82f, 0.28f), 72f);
         }
     }
 }
