@@ -12,6 +12,7 @@ namespace EasyGame.SideScroller.Player
         private Animator animator;
         private PlayerMovement movement;
         private Transform visualRoot;
+        private Core.PixelCharacterAnimator spriteAnimator;
         private float actionLockedUntil;
         private int actionMotion;
         private float facing = 1f;
@@ -21,6 +22,7 @@ namespace EasyGame.SideScroller.Player
             animator = targetAnimator;
             movement = targetMovement;
             visualRoot = targetVisualRoot;
+            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<Core.PixelCharacterAnimator>() : null;
         }
 
         private void Awake()
@@ -31,7 +33,7 @@ namespace EasyGame.SideScroller.Player
 
         private void Update()
         {
-            if (animator == null || movement == null)
+            if (movement == null)
             {
                 return;
             }
@@ -42,7 +44,7 @@ namespace EasyGame.SideScroller.Player
                 facing = Mathf.Sign(horizontal);
             }
 
-            if (visualRoot != null)
+            if (visualRoot != null && spriteAnimator == null)
             {
                 Vector3 scale = visualRoot.localScale;
                 scale.x = Mathf.Abs(scale.x) * facing;
@@ -63,9 +65,16 @@ namespace EasyGame.SideScroller.Player
                 motion = Mathf.Abs(movement.Velocity.x) > 0.15f ? 1 : 0;
             }
 
-            animator.SetInteger(MotionId, motion);
-            animator.SetFloat(SpeedId, Mathf.Abs(movement.Velocity.x));
-            animator.SetFloat(VerticalSpeedId, movement.Velocity.y);
+            if (spriteAnimator != null)
+            {
+                spriteAnimator.SetState(motion, facing, Mathf.Abs(movement.Velocity.x));
+            }
+            else if (animator != null)
+            {
+                animator.SetInteger(MotionId, motion);
+                animator.SetFloat(SpeedId, Mathf.Abs(movement.Velocity.x));
+                animator.SetFloat(VerticalSpeedId, movement.Velocity.y);
+            }
         }
 
         public void PlayAttack(float duration = 0.22f)

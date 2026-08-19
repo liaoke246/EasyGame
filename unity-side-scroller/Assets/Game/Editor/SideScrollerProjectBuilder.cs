@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Data;
+using EasyGame.SideScroller.Enemies;
 using EasyGame.SideScroller.Network;
 using EasyGame.SideScroller.Player;
 using EasyGame.SideScroller.UI;
@@ -24,15 +25,18 @@ namespace EasyGame.SideScroller.Editor
         private const string LevelConfigPath = "Assets/Game/Resources/Config/LevelProgression.asset";
         private const string ControllerPath = "Assets/Game/Resources/Player/PlayerPrototype.controller";
         private const string NetworkPlayerPrefabPath = "Assets/Game/Prefabs/NetworkPlayer.prefab";
+        private const string NetworkZombiePrefabPath = "Assets/Game/Prefabs/NetworkZombie.prefab";
 
         [MenuItem("EasyGame 2D/Prepare Project")]
         public static void PrepareProject()
         {
             EnsureFolders();
+            ConfigureThirdPartyArt();
             CreateConfigAssets();
             CreateAnimatorController();
             GameObject networkPlayerPrefab = CreateNetworkPlayerPrefab();
-            CreateScene(networkPlayerPrefab);
+            GameObject networkZombiePrefab = CreateNetworkZombiePrefab();
+            CreateScene(networkPlayerPrefab, networkZombiePrefab);
             ConfigurePlayerSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -157,6 +161,7 @@ namespace EasyGame.SideScroller.Editor
                 "Assets/Game/Prefabs",
                 "Assets/Game/Resources/Config",
                 "Assets/Game/Resources/Player",
+                "Assets/Game/Resources/ThirdParty/GandalfHardcore",
                 "Assets/Game/Scripts/Core",
                 "Assets/Game/Scripts/Player",
                 "Assets/Game/Scripts/Combat",
@@ -173,6 +178,40 @@ namespace EasyGame.SideScroller.Editor
             foreach (string folder in folders)
             {
                 Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(Application.dataPath) ?? string.Empty, folder));
+            }
+        }
+
+        private static void ConfigureThirdPartyArt()
+        {
+            string artRoot = "Assets/Game/Resources/ThirdParty/GandalfHardcore";
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { artRoot }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                {
+                    continue;
+                }
+
+                const float pixelsPerUnit = 32f;
+                bool changed = importer.textureType != TextureImporterType.Sprite
+                    || importer.spriteImportMode != SpriteImportMode.Single
+                    || !Mathf.Approximately(importer.spritePixelsPerUnit, pixelsPerUnit)
+                    || importer.mipmapEnabled
+                    || importer.filterMode != FilterMode.Point
+                    || importer.textureCompression != TextureImporterCompression.Uncompressed;
+                if (!changed)
+                {
+                    continue;
+                }
+
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = pixelsPerUnit;
+                importer.mipmapEnabled = false;
+                importer.filterMode = FilterMode.Point;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
             }
         }
 
@@ -322,7 +361,39 @@ namespace EasyGame.SideScroller.Editor
             return prefab;
         }
 
-        private static void CreateScene(GameObject networkPlayerPrefab)
+        private static GameObject CreateNetworkZombiePrefab()
+        {
+            GameObject root = new GameObject("Network Zombie");
+            root.AddComponent<NetworkIdentity>();
+            Rigidbody2D body = root.AddComponent<Rigidbody2D>();
+            body.mass = 1f;
+            body.gravityScale = 3.15f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
+            collider.size = new Vector2(0.72f, 1.48f);
+            collider.offset = new Vector2(0f, 0.02f);
+            collider.sharedMaterial = new PhysicsMaterial2D("Zombie Material") { friction = 0f, bounciness = 0f };
+
+            SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
+            networkTransform.target = root.transform;
+            networkTransform.syncDirection = SyncDirection.ServerToClient;
+            networkTransform.syncInterval = 1f / 20f;
+            networkTransform.updateMethod = UpdateMethod.FixedUpdate;
+            networkTransform.syncPosition = true;
+            networkTransform.syncRotation = false;
+            networkTransform.syncScale = false;
+            networkTransform.coordinateSpace = CoordinateSpace.World;
+            root.AddComponent<SideScrollerNetworkZombie>();
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, NetworkZombiePrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void CreateScene(GameObject networkPlayerPrefab, GameObject networkZombiePrefab)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject root = new GameObject("SideScroller Game", typeof(SideScrollerBootstrap), typeof(SideWorldBuilder));
@@ -348,6 +419,8 @@ namespace EasyGame.SideScroller.Editor
             SideScrollerNetworkManager manager = networkObject.AddComponent<SideScrollerNetworkManager>();
             manager.transport = transport;
             manager.playerPrefab = networkPlayerPrefab;
+            manager.ZombiePrefab = networkZombiePrefab;
+            manager.spawnPrefabs.Add(networkZombiePrefab);
             manager.maxConnections = 4;
             manager.autoCreatePlayer = true;
             manager.dontDestroyOnLoad = false;

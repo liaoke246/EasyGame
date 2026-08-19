@@ -11,20 +11,33 @@ namespace EasyGame.SideScroller.Core
 
             GameObject body = new GameObject("Body");
             body.transform.SetParent(visual.transform, false);
-            body.transform.localScale = new Vector3(0.82f, 1.52f, 1f);
             SpriteRenderer bodyRenderer = body.AddComponent<SpriteRenderer>();
-            bodyRenderer.sprite = RuntimeSpriteFactory.RoundedCharacter;
-            bodyRenderer.color = bodyColor;
+            bodyRenderer.color = Color.white;
             bodyRenderer.sortingOrder = 10;
 
-            GameObject face = new GameObject("Visor");
-            face.transform.SetParent(visual.transform, false);
-            face.transform.localPosition = new Vector3(0.2f, 0.2f, -0.01f);
-            face.transform.localScale = new Vector3(0.23f, 0.12f, 1f);
-            SpriteRenderer faceRenderer = face.AddComponent<SpriteRenderer>();
-            faceRenderer.sprite = RuntimeSpriteFactory.White;
-            faceRenderer.color = new Color(0.86f, 0.93f, 0.78f);
-            faceRenderer.sortingOrder = 11;
+            PixelCharacterAnimator spriteAnimator = visual.AddComponent<PixelCharacterAnimator>();
+            spriteAnimator.Initialize(bodyRenderer, Color.white);
+            Animator legacyAnimator = parent.GetComponent<Animator>();
+            if (legacyAnimator != null)
+            {
+                legacyAnimator.enabled = false;
+            }
+            return visual.transform;
+        }
+
+        public static Transform CreateZombie(Transform parent)
+        {
+            GameObject visual = new GameObject("Visual");
+            visual.transform.SetParent(parent, false);
+
+            GameObject body = new GameObject("Body");
+            body.transform.SetParent(visual.transform, false);
+            SpriteRenderer bodyRenderer = body.AddComponent<SpriteRenderer>();
+            bodyRenderer.color = Color.white;
+            bodyRenderer.sortingOrder = 9;
+
+            PixelCharacterAnimator spriteAnimator = visual.AddComponent<PixelCharacterAnimator>();
+            spriteAnimator.Initialize(bodyRenderer, new Color(0.58f, 0.78f, 0.55f));
             return visual.transform;
         }
     }

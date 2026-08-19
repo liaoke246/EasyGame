@@ -1,4 +1,3 @@
-using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Player;
 using UnityEngine;
 
@@ -27,20 +26,6 @@ namespace EasyGame.SideScroller.Combat
 
             nextAttackAt = Time.time + attackCooldown;
             playerAnimation.PlayAttack();
-            CreatePrototypeSlash();
-        }
-
-        private void CreatePrototypeSlash()
-        {
-            GameObject slash = new GameObject("Prototype Slash");
-            slash.transform.SetParent(transform, false);
-            slash.transform.localPosition = new Vector3(0.72f, 0.05f, 0f);
-            slash.transform.localScale = new Vector3(0.48f, 0.12f, 1f);
-            SpriteRenderer renderer = slash.AddComponent<SpriteRenderer>();
-            renderer.sprite = RuntimeSpriteFactory.White;
-            renderer.color = new Color(1f, 0.82f, 0.3f, 0.9f);
-            renderer.sortingOrder = 12;
-            Destroy(slash, 0.09f);
         }
     }
 }

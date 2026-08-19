@@ -8,6 +8,7 @@ const required = [
   "Assets/Game/Scripts/Player/PlayerInputReader.cs",
   "Assets/Game/Scripts/Player/PlayerMovement.cs",
   "Assets/Game/Scripts/Player/PlayerAnimation.cs",
+  "Assets/Game/Scripts/Core/PixelCharacterAnimator.cs",
   "Assets/Game/Scripts/Combat/PlayerCombat.cs",
   "Assets/Game/Scripts/World/SideWorldBuilder.cs",
   "Assets/Game/Scripts/World/SideCameraRig.cs",
@@ -16,6 +17,7 @@ const required = [
   "Assets/Game/Scripts/Network/SideScrollerNetworkManager.cs",
   "Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs",
   "Assets/Game/Scripts/Network/SideScrollerNetworkTransform.cs",
+  "Assets/Game/Scripts/Enemies/SideScrollerNetworkZombie.cs",
   "Assets/Game/Scripts/UI/NetworkStatusHud.cs",
   "Assets/Game/Prefabs/NetworkPlayer.prefab",
   "Assets/Game/Editor/SideScrollerProjectBuilder.cs",
@@ -30,6 +32,7 @@ const required = [
   "PrebuiltWebGL/Build/PrebuiltWebGL.wasm.unityweb",
 ];
 await Promise.all(required.map(file => access(`${root}/${file}`)));
+await access("scripts/install-side-scroller-art.ps1");
 
 const version = await readFile(`${root}/ProjectSettings/ProjectVersion.txt`, "utf8");
 assert.match(version, /6000\.3\.21f1/);
@@ -50,6 +53,8 @@ assert.match(world, /TilemapCollider2D/);
 assert.match(world, /FillPlatform/);
 assert.match(world, /BuildServerCollision/);
 assert.match(world, /BoxCollider2D/);
+assert.match(world, /GandalfHardcore/);
+assert.match(world, /ground-top/);
 
 const bootstrap = await readFile(`${root}/Assets/Game/Scripts/Core/SideScrollerBootstrap.cs`, "utf8");
 assert.match(bootstrap, /Utils\.IsHeadless\(\)/);
@@ -70,6 +75,17 @@ assert.match(networkPlayer, /\[Command\(channel = Channels\.Unreliable\)\]/);
 assert.match(networkPlayer, /\[SyncVar\]/);
 assert.match(networkPlayer, /\[ClientRpc\]/);
 assert.match(networkPlayer, /if \(!isServer/);
+assert.match(networkPlayer, /ResolveAttackHits/);
+
+const characterAnimator = await readFile(`${root}/Assets/Game/Scripts/Core/PixelCharacterAnimator.cs`, "utf8");
+assert.match(characterAnimator, /GandalfHardcore/);
+assert.match(characterAnimator, /LoadSequence\("walk", 8\)/);
+assert.match(characterAnimator, /LoadSequence\("attack", 6\)/);
+assert.match(characterAnimator, /death.*10/);
+
+const zombie = await readFile(`${root}/Assets/Game/Scripts/Enemies/SideScrollerNetworkZombie.cs`, "utf8");
+assert.match(zombie, /NetworkBehaviour/);
+assert.match(zombie, /ApplyDamage/);
 
 const networkManager = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkManager.cs`, "utf8");
 assert.match(networkManager, /side-scroller-socket/);

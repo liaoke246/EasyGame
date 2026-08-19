@@ -1,5 +1,6 @@
 using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Data;
+using EasyGame.SideScroller.Enemies;
 using EasyGame.SideScroller.World;
 using Mirror;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace EasyGame.SideScroller.Network
         private Player.PlayerInputReader input;
         private Animator animator;
         private Transform visualRoot;
+        private PixelCharacterAnimator spriteAnimator;
         private PlayerMovementConfig config;
         private float serverHorizontal;
         private bool serverJumpHeld;
@@ -62,6 +64,7 @@ namespace EasyGame.SideScroller.Network
             {
                 visualRoot = existingVisual;
             }
+            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<PixelCharacterAnimator>() : null;
 
             input.enabled = false;
             body.gravityScale = config.gravityScale;
@@ -81,11 +84,6 @@ namespace EasyGame.SideScroller.Network
             if (!isServer)
             {
                 body.simulated = false;
-            }
-            Transform bodyVisual = transform.Find("Visual/Body");
-            if (bodyVisual != null && bodyVisual.TryGetComponent(out SpriteRenderer bodyRenderer))
-            {
-                bodyRenderer.color = ColorForObject(netId);
             }
             RefreshVisuals();
         }
@@ -214,24 +212,46 @@ namespace EasyGame.SideScroller.Network
             }
             actionLockedUntil = Time.time + 0.25f;
             motion = 4;
+            ResolveAttackHits();
             RpcPlayAttack();
+        }
+
+        [Server]
+        private void ResolveAttackHits()
+        {
+            Vector2 center = new Vector2(transform.position.x + facing * 0.82f, transform.position.y);
+            Collider2D[] hits = Physics2D.OverlapBoxAll(center, new Vector2(1.45f, 1.25f), 0f);
+            foreach (Collider2D hit in hits)
+            {
+                if (hit.TryGetComponent(out SideScrollerNetworkZombie zombie))
+                {
+                    zombie.ApplyDamage(30);
+                }
+            }
         }
 
         [ClientRpc]
         private void RpcPlayAttack()
         {
-            CreatePrototypeSlash();
+            if (spriteAnimator != null)
+            {
+                spriteAnimator.SetState(4, facing, 0f);
+            }
         }
 
         private void RefreshVisuals()
         {
-            if (animator != null)
+            if (spriteAnimator != null)
+            {
+                spriteAnimator.SetState(motion, facing, Mathf.Abs(body.linearVelocity.x));
+            }
+            else if (animator != null)
             {
                 animator.SetInteger("Motion", motion);
                 animator.SetFloat("Speed", Mathf.Abs(body.linearVelocity.x));
                 animator.SetFloat("VerticalSpeed", body.linearVelocity.y);
             }
-            if (visualRoot != null)
+            if (visualRoot != null && spriteAnimator == null)
             {
                 Vector3 scale = visualRoot.localScale;
                 scale.x = Mathf.Abs(scale.x) * facing;
@@ -249,19 +269,6 @@ namespace EasyGame.SideScroller.Network
             return hit.collider != null && hit.collider != bodyCollider;
         }
 
-        private void CreatePrototypeSlash()
-        {
-            GameObject slash = new GameObject("Network Slash");
-            slash.transform.SetParent(transform, false);
-            slash.transform.localPosition = new Vector3(0.72f * facing, 0.05f, 0f);
-            slash.transform.localScale = new Vector3(0.48f, 0.12f, 1f);
-            SpriteRenderer renderer = slash.AddComponent<SpriteRenderer>();
-            renderer.sprite = RuntimeSpriteFactory.White;
-            renderer.color = new Color(1f, 0.82f, 0.3f, 0.9f);
-            renderer.sortingOrder = 12;
-            Destroy(slash, 0.1f);
-        }
-
         private static Color ColorForObject(uint objectId)
         {
             Color[] palette =
@@ -273,5 +280,6 @@ namespace EasyGame.SideScroller.Network
             };
             return palette[(int)(objectId % (uint)palette.Length)];
         }
+
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using EasyGame.SideScroller.Enemies;
 using Mirror;
 using UnityEngine;
 
@@ -6,6 +7,14 @@ namespace EasyGame.SideScroller.Network
 {
     public sealed class SideScrollerNetworkManager : NetworkManager
     {
+        [SerializeField] private GameObject zombiePrefab;
+
+        public GameObject ZombiePrefab
+        {
+            get => zombiePrefab;
+            set => zombiePrefab = value;
+        }
+
         public static string ConnectionStatus { get; private set; } = "OFFLINE PRACTICE";
 
         public static bool NetworkingRequested
@@ -71,6 +80,36 @@ namespace EasyGame.SideScroller.Network
         {
             ConnectionStatus = $"NETWORK ERROR  //  {error}";
             Debug.LogWarning($"Mirror client error: {error} - {reason}");
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            if (zombiePrefab == null)
+            {
+                Debug.LogWarning("No side-scroller zombie prefab is configured.");
+                return;
+            }
+
+            Vector3[] positions =
+            {
+                new Vector3(2f, 0.15f, 0f),
+                new Vector3(15f, 2.15f, 0f),
+                new Vector3(28f, 0.15f, 0f),
+                new Vector3(42f, 3.15f, 0f),
+                new Vector3(57f, 1.15f, 0f),
+                new Vector3(71f, 3.15f, 0f),
+                new Vector3(86f, 0.15f, 0f),
+                new Vector3(103f, 2.15f, 0f),
+                new Vector3(112f, -2.15f, 0f),
+                new Vector3(34f, -2.15f, 0f),
+            };
+
+            foreach (Vector3 position in positions)
+            {
+                GameObject zombie = Instantiate(zombiePrefab, position, Quaternion.identity);
+                NetworkServer.Spawn(zombie);
+            }
         }
 
         private static Uri ResolveServerUri()

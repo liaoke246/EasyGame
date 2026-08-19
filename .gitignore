@@ -46,3 +46,8 @@ unity-side-scroller/*.suo
 unity-side-scroller/*.user
 unity-side-scroller/*.userprefs
 unity-side-scroller/PrebuiltServerWindows/
+
+# Licensed runtime art is downloaded from the authors and embedded only in
+# built game output. The license forbids redistributing the raw PNG files.
+unity-side-scroller/Assets/Game/Resources/ThirdParty/GandalfHardcore/
+unity-side-scroller/Assets/Game/Resources/ThirdParty/GandalfHardcore.meta

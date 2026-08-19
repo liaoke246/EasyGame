@@ -6,7 +6,10 @@ namespace EasyGame.SideScroller.UI
     {
         private GUIStyle titleStyle;
         private GUIStyle labelStyle;
-        private GUIStyle panelStyle;
+        private Texture2D hudFrame;
+        private Texture2D healthFill;
+        private Texture2D energyFill;
+        private Texture2D experienceFill;
 
         private void OnGUI()
         {
@@ -15,14 +18,28 @@ namespace EasyGame.SideScroller.UI
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
             float width = Screen.width / scale;
 
-            Rect panel = new Rect(18f, 18f, 268f, 98f);
-            GUI.Box(panel, GUIContent.none, panelStyle);
-            GUI.Label(new Rect(34f, 30f, 240f, 28f), "DEAD RAILS // PROTOTYPE", titleStyle);
-            GUI.Label(new Rect(34f, 60f, 240f, 22f), "LV. 1   HP 100 / 100", labelStyle);
-            GUI.Label(new Rect(34f, 82f, 240f, 22f), "EXP 0 / 100", labelStyle);
+            if (hudFrame != null)
+            {
+                if (healthFill != null)
+                {
+                    GUI.DrawTexture(new Rect(22f, 28f, 112f, 108f), healthFill, ScaleMode.StretchToFill, true);
+                }
+                if (experienceFill != null)
+                {
+                    GUI.DrawTexture(new Rect(146f, 94f, 64f, 8f), experienceFill, ScaleMode.StretchToFill, true);
+                }
+                if (energyFill != null)
+                {
+                    GUI.DrawTexture(new Rect(144f, 116f, 98f, 12f), energyFill, ScaleMode.StretchToFill, true);
+                }
+                GUI.DrawTexture(new Rect(18f, 18f, 232f, 128f), hudFrame, ScaleMode.StretchToFill, true);
+            }
+            GUI.Label(new Rect(258f, 30f, 250f, 28f), "DEAD RAILS // ONLINE", titleStyle);
+            GUI.Label(new Rect(258f, 59f, 210f, 22f), "LV. 1   HP 100 / 100", labelStyle);
+            GUI.Label(new Rect(258f, 82f, 210f, 22f), "EXP 0 / 100", labelStyle);
 
             GUI.Label(new Rect(width - 292f, 26f, 270f, 24f), "SAFE ZONE OUTSKIRTS", titleStyle);
-            GUI.Label(new Rect(width - 292f, 54f, 270f, 42f), "Phase 3 network foundation\nMirror server authority", labelStyle);
+            GUI.Label(new Rect(width - 292f, 54f, 270f, 42f), "CO-OP SURVIVAL\n10 INFECTED DETECTED", labelStyle);
 
             if (!Application.isMobilePlatform)
             {
@@ -37,6 +54,11 @@ namespace EasyGame.SideScroller.UI
                 return;
             }
 
+            hudFrame = Resources.Load<Texture2D>("ThirdParty/GandalfHardcore/hud-frame");
+            healthFill = Resources.Load<Texture2D>("ThirdParty/GandalfHardcore/hud-health");
+            energyFill = Resources.Load<Texture2D>("ThirdParty/GandalfHardcore/hud-energy");
+            experienceFill = Resources.Load<Texture2D>("ThirdParty/GandalfHardcore/hud-exp");
+
             titleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 16,
@@ -48,8 +70,6 @@ namespace EasyGame.SideScroller.UI
                 fontSize = 14,
                 normal = { textColor = new Color(0.78f, 0.84f, 0.8f) },
             };
-            panelStyle = new GUIStyle(GUI.skin.box);
-            panelStyle.normal.background = Texture2D.grayTexture;
         }
     }
 }
