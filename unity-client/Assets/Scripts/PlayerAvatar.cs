@@ -39,7 +39,7 @@ namespace EasyGame
             GameObject barObject = new GameObject("Player Name And Health");
             barObject.transform.SetParent(transform, false);
             healthBar = barObject.AddComponent<WorldHealthBar>();
-            healthBar.Initialize(DisplayId, 2.18f, isLocal ? new Color(0.28f, 0.95f, 0.42f) : new Color(0.28f, 0.72f, 1f));
+            healthBar.Initialize(DisplayId, 0.76f, isLocal ? new Color(0.28f, 0.95f, 0.42f) : new Color(0.28f, 0.72f, 1f));
             ApplyNetworkState(state, true);
         }
 

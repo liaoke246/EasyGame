@@ -20,7 +20,15 @@ namespace EasyGame
             width = world.width * GameCoordinates.WorldScale;
             height = world.height * GameCoordinates.WorldScale;
 
-            VisualFactory.Box(transform, "Ground", new Vector3(width * 0.5f, -0.09f, height * 0.5f), new Vector3(width, 0.18f, height), new Color(0.16f, 0.24f, 0.13f));
+            TopDownArt.CreateTiledPlane(
+                transform,
+                "Illustrated Grass Ground",
+                "Tiles/tile_01",
+                new Vector3(width * 0.5f, -0.12f, height * 0.5f),
+                new Vector2(width, height),
+                0.64f,
+                0,
+                new Color(0.82f, 0.95f, 0.82f));
             DrawGroundDetails();
             DrawBoundary();
 
@@ -79,31 +87,36 @@ namespace EasyGame
         private void DrawGroundDetails()
         {
             System.Random random = new System.Random(8127);
-            Color[] colors =
+            string[] smallDetails =
             {
-                new Color(0.19f, 0.29f, 0.15f),
-                new Color(0.13f, 0.21f, 0.12f),
-                new Color(0.23f, 0.27f, 0.14f),
-                new Color(0.17f, 0.25f, 0.18f)
+                "Tiles/tile_134", "Tiles/tile_210", "Tiles/tile_213", "Tiles/tile_235",
+                "Tiles/tile_237", "Tiles/tile_238", "Tiles/tile_240", "Tiles/tile_264"
             };
-            int detailCount = Mathf.Clamp(Mathf.RoundToInt(width * height * 0.42f), 120, 360);
+            int detailCount = Mathf.Clamp(Mathf.RoundToInt(width * height * 0.14f), 80, 150);
             for (int index = 0; index < detailCount; index++)
             {
-                float x = 0.3f + (float)random.NextDouble() * (width - 0.6f);
-                float z = 0.3f + (float)random.NextDouble() * (height - 0.6f);
-                float size = 0.08f + (float)random.NextDouble() * 0.22f;
-                Transform patch = VisualFactory.Box(transform, $"Ground Detail {index}", new Vector3(x, 0.006f, z), new Vector3(size * 1.8f, 0.012f, size), colors[index % colors.Length]);
-                patch.localRotation = Quaternion.Euler(0f, random.Next(0, 180), 0f);
+                float x = 0.4f + (float)random.NextDouble() * (width - 0.8f);
+                float z = 0.4f + (float)random.NextDouble() * (height - 0.8f);
+                float size = 0.16f + (float)random.NextDouble() * 0.32f;
+                TopDownArt.CreateWorldSprite(
+                    transform,
+                    $"Ground Detail {index}",
+                    smallDetails[index % smallDetails.Length],
+                    new Vector3(x, -0.075f, z),
+                    new Vector2(size, size),
+                    1,
+                    random.Next(0, 360),
+                    new Color(0.82f, 0.93f, 0.78f, 0.82f));
             }
         }
 
         private void DrawBoundary()
         {
-            Color wall = new Color(0.22f, 0.2f, 0.14f);
-            VisualFactory.Box(transform, "North Wall", new Vector3(width * 0.5f, 0.34f, height + 0.08f), new Vector3(width + 0.3f, 0.68f, 0.16f), wall);
-            VisualFactory.Box(transform, "South Wall", new Vector3(width * 0.5f, 0.34f, -0.08f), new Vector3(width + 0.3f, 0.68f, 0.16f), wall);
-            VisualFactory.Box(transform, "West Wall", new Vector3(-0.08f, 0.34f, height * 0.5f), new Vector3(0.16f, 0.68f, height), wall);
-            VisualFactory.Box(transform, "East Wall", new Vector3(width + 0.08f, 0.34f, height * 0.5f), new Vector3(0.16f, 0.68f, height), wall);
+            Color border = new Color(0.24f, 0.16f, 0.08f);
+            TopDownArt.CreateColorPlane(transform, "North Boundary", new Vector3(width * 0.5f, -0.055f, height + 0.08f), new Vector2(width + 0.3f, 0.16f), border, 3);
+            TopDownArt.CreateColorPlane(transform, "South Boundary", new Vector3(width * 0.5f, -0.055f, -0.08f), new Vector2(width + 0.3f, 0.16f), border, 3);
+            TopDownArt.CreateColorPlane(transform, "West Boundary", new Vector3(-0.08f, -0.055f, height * 0.5f), new Vector2(0.16f, height), border, 3);
+            TopDownArt.CreateColorPlane(transform, "East Boundary", new Vector3(width + 0.08f, -0.055f, height * 0.5f), new Vector2(0.16f, height), border, 3);
         }
 
         private void DrawObstacle(ObstacleState obstacle, Rect rect)
@@ -122,61 +135,59 @@ namespace EasyGame
         private void DrawCabin(string id, Vector3 center, float sizeX, float sizeZ)
         {
             Transform root = VisualFactory.Empty(transform, id, center);
-            Color timber = new Color(0.34f, 0.21f, 0.1f);
-            VisualFactory.Box(root, "Foundation", new Vector3(0f, 0.4f, 0f), new Vector3(sizeX, 0.8f, sizeZ), timber);
-            VisualFactory.Box(root, "FrontTrim", new Vector3(0f, 0.45f, -sizeZ * 0.51f), new Vector3(sizeX * 0.9f, 0.11f, 0.08f), new Color(0.55f, 0.37f, 0.16f));
-            Transform roof = VisualFactory.Box(root, "Roof", new Vector3(0f, 0.93f, 0f), new Vector3(sizeX * 1.12f, 0.18f, sizeZ * 1.15f), new Color(0.2f, 0.16f, 0.12f));
-            roof.localRotation = Quaternion.Euler(0f, 0f, 2f);
-            for (int index = -3; index <= 3; index++)
-            {
-                float z = index * sizeZ * 0.14f;
-                VisualFactory.Box(root, $"Roof Seam {index}", new Vector3(0f, 1.035f, z), new Vector3(sizeX * 1.08f, 0.018f, 0.035f), new Color(0.42f, 0.27f, 0.13f));
-            }
-            VisualFactory.Box(root, "Chimney", new Vector3(sizeX * 0.29f, 1.22f, sizeZ * 0.12f), new Vector3(0.28f, 0.55f, 0.3f), new Color(0.24f, 0.19f, 0.15f));
-            VisualFactory.Box(root, "Door", new Vector3(0f, 0.36f, -sizeZ * 0.52f), new Vector3(0.46f, 0.62f, 0.07f), new Color(0.18f, 0.11f, 0.06f));
-            VisualFactory.Box(root, "Window", new Vector3(-sizeX * 0.27f, 0.53f, -sizeZ * 0.53f), new Vector3(0.38f, 0.32f, 0.06f), new Color(0.32f, 0.55f, 0.58f));
+            TopDownArt.CreateColorPlane(root, "Cabin Drop Shadow", new Vector3(0.12f, -0.062f, -0.12f), new Vector2(sizeX * 1.1f, sizeZ * 1.1f), new Color(0.06f, 0.08f, 0.065f, 0.38f), 3);
+            TopDownArt.CreateTiledPlane(root, "Wood Roof", "Tiles/tile_42", new Vector3(0f, -0.045f, 0f), new Vector2(sizeX, sizeZ), 0.64f, 4, new Color(0.82f, 0.72f, 0.52f));
+            Color trim = new Color(0.43f, 0.23f, 0.09f);
+            TopDownArt.CreateColorPlane(root, "North Roof Trim", new Vector3(0f, -0.037f, sizeZ * 0.48f), new Vector2(sizeX, 0.13f), trim, 5);
+            TopDownArt.CreateColorPlane(root, "South Roof Trim", new Vector3(0f, -0.037f, -sizeZ * 0.48f), new Vector2(sizeX, 0.13f), trim, 5);
+            TopDownArt.CreateColorPlane(root, "West Roof Trim", new Vector3(-sizeX * 0.48f, -0.037f, 0f), new Vector2(0.13f, sizeZ), trim, 5);
+            TopDownArt.CreateColorPlane(root, "East Roof Trim", new Vector3(sizeX * 0.48f, -0.037f, 0f), new Vector2(0.13f, sizeZ), trim, 5);
+            TopDownArt.CreateWorldSprite(root, "Chimney", "Tiles/tile_129", new Vector3(sizeX * 0.27f, -0.026f, sizeZ * 0.18f), new Vector2(0.52f, 0.52f), 6, -8f);
+            TopDownArt.CreateColorPlane(root, "Porch", new Vector3(0f, -0.025f, -sizeZ * 0.49f), new Vector2(sizeX * 0.34f, 0.34f), new Color(0.62f, 0.39f, 0.16f), 6);
         }
 
         private void DrawPond(string id, Vector3 center, float sizeX, float sizeZ)
         {
             Transform root = VisualFactory.Empty(transform, id, center);
-            VisualFactory.Cylinder(root, "Water", new Vector3(0f, 0.015f, 0f), new Vector3(sizeX * 0.5f, 0.025f, sizeZ * 0.5f), new Color(0.13f, 0.37f, 0.4f));
-            for (int i = 0; i < 8; i++)
+            TopDownArt.CreateColorPlane(root, "Pond Bank", new Vector3(0f, -0.068f, 0f), new Vector2(sizeX * 1.1f, sizeZ * 1.1f), new Color(0.28f, 0.42f, 0.24f), 2);
+            TopDownArt.CreateTiledPlane(root, "Illustrated Water", "Tiles/tile_19", new Vector3(0f, -0.052f, 0f), new Vector2(sizeX, sizeZ), 0.64f, 3, new Color(0.78f, 0.94f, 1f));
+            for (int index = 0; index < 10; index++)
             {
-                float angle = i * Mathf.PI * 0.25f;
-                Vector3 edge = new Vector3(Mathf.Cos(angle) * sizeX * 0.48f, 0.06f, Mathf.Sin(angle) * sizeZ * 0.48f);
-                VisualFactory.Sphere(root, $"Bank Stone {i}", edge, new Vector3(0.34f, 0.13f, 0.24f), new Color(0.29f, 0.3f, 0.24f));
+                float angle = index / 10f * Mathf.PI * 2f;
+                float x = Mathf.Cos(angle) * sizeX * 0.51f;
+                float z = Mathf.Sin(angle) * sizeZ * 0.51f;
+                TopDownArt.CreateWorldSprite(root, $"Bank Stone {index}", "Tiles/tile_237", new Vector3(x, -0.035f, z), new Vector2(0.28f, 0.24f), 4, index * 31f);
             }
         }
 
         private void DrawTree(string id, Vector3 center, float sizeX, float sizeZ)
         {
             Transform root = VisualFactory.Empty(transform, id, center);
-            VisualFactory.Cylinder(root, "Trunk", new Vector3(0f, 0.45f, 0f), new Vector3(0.15f, 0.45f, 0.15f), new Color(0.28f, 0.16f, 0.07f));
-            Color leaves = new Color(0.12f, 0.29f, 0.11f);
-            VisualFactory.Sphere(root, "Crown", new Vector3(0f, 1.05f, 0f), new Vector3(Mathf.Max(0.65f, sizeX * 1.08f), 0.72f, Mathf.Max(0.65f, sizeZ * 0.86f)), leaves);
-            VisualFactory.Sphere(root, "Crown Light", new Vector3(-0.18f, 1.2f, -0.08f), new Vector3(0.48f, 0.44f, 0.48f), new Color(0.19f, 0.38f, 0.14f));
+            float canopy = Mathf.Max(0.78f, Mathf.Max(sizeX, sizeZ) * 1.3f);
+            TopDownArt.CreateWorldSprite(root, "Tree Shadow", "Tiles/tile_243", new Vector3(0.1f, -0.055f, -0.1f), new Vector2(canopy * 0.95f, canopy * 0.72f), 2, 0f, new Color(0.04f, 0.08f, 0.05f, 0.42f));
+            TopDownArt.CreateWorldSprite(root, "Tree Canopy", "Tiles/tile_183", new Vector3(0f, -0.026f, 0f), new Vector2(canopy, canopy), 5, 0f, new Color(0.88f, 1f, 0.8f));
+            TopDownArt.CreateWorldSprite(root, "Tree Highlight", "Tiles/tile_235", new Vector3(-canopy * 0.18f, -0.018f, canopy * 0.2f), new Vector2(canopy * 0.32f, canopy * 0.32f), 6, 0f, new Color(0.82f, 1f, 0.76f, 0.72f));
         }
 
         private void DrawRock(string id, Vector3 center, float sizeX, float sizeZ)
         {
             Transform root = VisualFactory.Empty(transform, id, center);
-            Transform rock = VisualFactory.Sphere(root, "Rock", new Vector3(0f, 0.2f, 0f), new Vector3(sizeX * 1.08f, 0.38f, sizeZ * 1.08f), new Color(0.31f, 0.32f, 0.27f));
-            rock.localRotation = Quaternion.Euler(0f, 27f, 7f);
-            VisualFactory.Box(root, "Rock Face", new Vector3(-0.08f, 0.27f, -0.2f), new Vector3(0.25f, 0.18f, 0.05f), new Color(0.4f, 0.4f, 0.33f));
+            TopDownArt.CreateWorldSprite(root, "Rock Shadow", "Tiles/tile_243", new Vector3(0.07f, -0.055f, -0.08f), new Vector2(sizeX * 1.05f, sizeZ * 0.85f), 2, 0f, new Color(0.05f, 0.06f, 0.055f, 0.42f));
+            TopDownArt.CreateWorldSprite(root, "Illustrated Rock", "Tiles/tile_239", new Vector3(0f, -0.03f, 0f), new Vector2(sizeX * 1.18f, sizeZ * 1.18f), 5, 18f);
         }
 
         private void DrawGarden(string id, Vector3 center, float sizeX, float sizeZ)
         {
             Transform root = VisualFactory.Empty(transform, id, center);
-            VisualFactory.Box(root, "Soil", new Vector3(0f, 0.02f, 0f), new Vector3(sizeX, 0.04f, sizeZ), new Color(0.25f, 0.15f, 0.07f));
-            Color fence = new Color(0.5f, 0.34f, 0.15f);
-            VisualFactory.Box(root, "Fence N", new Vector3(0f, 0.22f, sizeZ * 0.5f), new Vector3(sizeX, 0.24f, 0.08f), fence);
-            VisualFactory.Box(root, "Fence S", new Vector3(0f, 0.22f, -sizeZ * 0.5f), new Vector3(sizeX, 0.24f, 0.08f), fence);
-            for (int i = -3; i <= 3; i++)
+            TopDownArt.CreateTiledPlane(root, "Garden Soil", "Tiles/tile_13", new Vector3(0f, -0.054f, 0f), new Vector2(sizeX, sizeZ), 0.64f, 3, new Color(0.88f, 0.72f, 0.5f));
+            Color fence = new Color(0.64f, 0.41f, 0.17f);
+            TopDownArt.CreateColorPlane(root, "Garden Fence N", new Vector3(0f, -0.035f, sizeZ * 0.5f), new Vector2(sizeX, 0.1f), fence, 5);
+            TopDownArt.CreateColorPlane(root, "Garden Fence S", new Vector3(0f, -0.035f, -sizeZ * 0.5f), new Vector2(sizeX, 0.1f), fence, 5);
+            for (int index = -3; index <= 3; index++)
             {
-                float x = i * sizeX / 8f;
-                VisualFactory.Sphere(root, $"Plant {i}", new Vector3(x, 0.15f, 0f), new Vector3(0.14f, 0.2f, 0.14f), new Color(0.25f, 0.48f, 0.12f));
+                float x = index * sizeX / 8f;
+                string plant = index % 2 == 0 ? "Tiles/tile_213" : "Tiles/tile_134";
+                TopDownArt.CreateWorldSprite(root, $"Garden Plant {index}", plant, new Vector3(x, -0.022f, 0f), new Vector2(0.26f, 0.26f), 6, index * 27f);
             }
         }
 
