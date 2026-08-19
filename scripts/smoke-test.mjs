@@ -43,7 +43,7 @@ async function runMultiplayerCheck() {
   const health = await healthResponse.json();
   const pageResponse = await fetch(url);
   const page = await pageResponse.text();
-  if (!health.ok || pageResponse.status !== 200 || !page.includes("方块危机")) {
+  if (!health.ok || pageResponse.status !== 200 || !page.includes("尸潮余生")) {
     throw new Error("Production HTTP entry point or health check failed");
   }
 
