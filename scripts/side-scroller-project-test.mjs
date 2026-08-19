@@ -13,6 +13,11 @@ const required = [
   "Assets/Game/Scripts/World/SideCameraRig.cs",
   "Assets/Game/Scripts/Data/PlayerMovementConfig.cs",
   "Assets/Game/Scripts/Data/LevelProgressionConfig.cs",
+  "Assets/Game/Scripts/Network/SideScrollerNetworkManager.cs",
+  "Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs",
+  "Assets/Game/Scripts/Network/SideScrollerNetworkTransform.cs",
+  "Assets/Game/Scripts/UI/NetworkStatusHud.cs",
+  "Assets/Game/Prefabs/NetworkPlayer.prefab",
   "Assets/Game/Editor/SideScrollerProjectBuilder.cs",
   "Assets/WebGLTemplates/SideScroller/index.html",
   "Assets/Mirror/version.txt",
@@ -48,6 +53,19 @@ const animation = await readFile(`${root}/Assets/Game/Editor/SideScrollerProject
 for (const state of ["Idle", "Run", "Jump", "Fall", "Attack", "Hit", "Death"]) {
   assert.match(animation, new RegExp(`\\"${state}\\"`));
 }
+assert.match(animation, /SimpleWebTransport/);
+assert.match(animation, /StandaloneLinux64/);
+assert.match(animation, /HeadlessStartOptions\.AutoStartServer/);
+
+const networkPlayer = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs`, "utf8");
+assert.match(networkPlayer, /\[Command\(channel = Channels\.Unreliable\)\]/);
+assert.match(networkPlayer, /\[SyncVar\]/);
+assert.match(networkPlayer, /\[ClientRpc\]/);
+assert.match(networkPlayer, /if \(!isServer/);
+
+const networkManager = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkManager.cs`, "utf8");
+assert.match(networkManager, /side-scroller-socket/);
+assert.match(networkManager, /NetworkTime\.rtt/);
 
 const template = await readFile(`${root}/PrebuiltWebGL/index.html`, "utf8");
 assert.match(template, /viewport-fit=cover/);

@@ -2,7 +2,12 @@ using System;
 using System.IO;
 using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Data;
+using EasyGame.SideScroller.Network;
+using EasyGame.SideScroller.Player;
+using EasyGame.SideScroller.UI;
 using EasyGame.SideScroller.World;
+using Mirror;
+using Mirror.SimpleWeb;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.Build.Reporting;
@@ -18,6 +23,7 @@ namespace EasyGame.SideScroller.Editor
         private const string MovementConfigPath = "Assets/Game/Resources/Config/PlayerMovement.asset";
         private const string LevelConfigPath = "Assets/Game/Resources/Config/LevelProgression.asset";
         private const string ControllerPath = "Assets/Game/Resources/Player/PlayerPrototype.controller";
+        private const string NetworkPlayerPrefabPath = "Assets/Game/Prefabs/NetworkPlayer.prefab";
 
         [MenuItem("EasyGame 2D/Prepare Project")]
         public static void PrepareProject()
@@ -25,7 +31,8 @@ namespace EasyGame.SideScroller.Editor
             EnsureFolders();
             CreateConfigAssets();
             CreateAnimatorController();
-            CreateScene();
+            GameObject networkPlayerPrefab = CreateNetworkPlayerPrefab();
+            CreateScene(networkPlayerPrefab);
             ConfigurePlayerSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -68,6 +75,32 @@ namespace EasyGame.SideScroller.Editor
             BuildWebGL(output);
         }
 
+        [MenuItem("EasyGame 2D/Build Windows Dedicated Server")]
+        public static void BuildWindowsServerFromMenu()
+        {
+            string output = Path.GetFullPath(Path.Combine(Application.dataPath, "../PrebuiltServerWindows/DeadRailsServer.exe"));
+            BuildDedicatedServer(output, BuildTarget.StandaloneWindows64);
+        }
+
+        public static void BuildWindowsServerCommandLine()
+        {
+            string output = CommandLineValue("-serverOutput") ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../PrebuiltServerWindows/DeadRailsServer.exe"));
+            BuildDedicatedServer(output, BuildTarget.StandaloneWindows64);
+        }
+
+        [MenuItem("EasyGame 2D/Build Linux Dedicated Server")]
+        public static void BuildLinuxServerFromMenu()
+        {
+            string output = Path.GetFullPath(Path.Combine(Application.dataPath, "../PrebuiltServerLinux/DeadRailsServer.x86_64"));
+            BuildDedicatedServer(output, BuildTarget.StandaloneLinux64);
+        }
+
+        public static void BuildLinuxServerCommandLine()
+        {
+            string output = CommandLineValue("-serverOutput") ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../PrebuiltServerLinux/DeadRailsServer.x86_64"));
+            BuildDedicatedServer(output, BuildTarget.StandaloneLinux64);
+        }
+
         private static void BuildWebGL(string output)
         {
             PrepareProject();
@@ -91,6 +124,31 @@ namespace EasyGame.SideScroller.Editor
             Debug.Log($"EasyGame 2D WebGL build completed: {output} ({report.summary.totalSize} bytes)");
         }
 
+        private static void BuildDedicatedServer(string output, BuildTarget target)
+        {
+            PrepareProject();
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? throw new InvalidOperationException("Dedicated server output directory is invalid."));
+            BuildPlayerOptions options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = output,
+                target = target,
+                // A normal standalone player launched with -batchmode -nographics is
+                // used so the lightweight Linux/Windows build-support modules are
+                // sufficient; no separate Dedicated Server module is required.
+                subtarget = (int)StandaloneBuildSubtarget.Player,
+                options = BuildOptions.CleanBuildCache,
+            };
+
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new InvalidOperationException($"EasyGame 2D dedicated server build failed: {report.summary.result} ({report.summary.totalErrors} errors)");
+            }
+
+            Debug.Log($"EasyGame 2D dedicated server completed: {output} ({report.summary.totalSize} bytes)");
+        }
+
         private static void EnsureFolders()
         {
             string[] folders =
@@ -99,6 +157,7 @@ namespace EasyGame.SideScroller.Editor
                 "Assets/Game/Audio",
                 "Assets/Game/ThirdParty",
                 "Assets/Game/Scenes",
+                "Assets/Game/Prefabs",
                 "Assets/Game/Resources/Config",
                 "Assets/Game/Resources/Player",
                 "Assets/Game/Scripts/Core",
@@ -229,7 +288,44 @@ namespace EasyGame.SideScroller.Editor
             AnimationUtility.SetAnimationClipSettings(clip, settings);
         }
 
-        private static void CreateScene()
+        private static GameObject CreateNetworkPlayerPrefab()
+        {
+            GameObject root = new GameObject("Network Player");
+            root.AddComponent<NetworkIdentity>();
+            Rigidbody2D body = root.AddComponent<Rigidbody2D>();
+            body.mass = 1f;
+            body.gravityScale = 3.15f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
+            collider.size = new Vector2(0.72f, 1.48f);
+            collider.offset = new Vector2(0f, 0.02f);
+            collider.sharedMaterial = new PhysicsMaterial2D("Network Player Material") { friction = 0f, bounciness = 0f };
+
+            PlayerInputReader input = root.AddComponent<PlayerInputReader>();
+            input.enabled = false;
+            Animator animator = root.AddComponent<Animator>();
+            animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ControllerPath);
+
+            SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
+            networkTransform.target = root.transform;
+            networkTransform.syncDirection = SyncDirection.ServerToClient;
+            networkTransform.syncInterval = 1f / 30f;
+            networkTransform.updateMethod = UpdateMethod.FixedUpdate;
+            networkTransform.syncPosition = true;
+            networkTransform.syncRotation = false;
+            networkTransform.syncScale = false;
+            networkTransform.coordinateSpace = CoordinateSpace.World;
+            root.AddComponent<SideScrollerNetworkPlayer>();
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, NetworkPlayerPrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void CreateScene(GameObject networkPlayerPrefab)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject root = new GameObject("SideScroller Game", typeof(SideScrollerBootstrap), typeof(SideWorldBuilder));
@@ -243,8 +339,38 @@ namespace EasyGame.SideScroller.Editor
             camera.backgroundColor = new Color(0.04f, 0.075f, 0.1f);
             cameraObject.transform.position = new Vector3(0f, 0f, -10f);
 
+            GameObject networkObject = new GameObject("Mirror Network");
+            SimpleWebTransport transport = networkObject.AddComponent<SimpleWebTransport>();
+            transport.port = 27777;
+            transport.clientUseWss = false;
+            transport.clientWebsocketSettings = new ClientWebsocketSettings
+            {
+                ClientPortOption = WebsocketPortOption.DefaultSameAsServer,
+                CustomClientPort = 27777,
+            };
+            SideScrollerNetworkManager manager = networkObject.AddComponent<SideScrollerNetworkManager>();
+            manager.transport = transport;
+            manager.playerPrefab = networkPlayerPrefab;
+            manager.maxConnections = 4;
+            manager.autoCreatePlayer = true;
+            manager.dontDestroyOnLoad = false;
+            manager.sendRate = 30;
+            manager.headlessStartMode = HeadlessStartOptions.AutoStartServer;
+            networkObject.AddComponent<NetworkStatusHud>();
+
+            CreateStartPosition("Player Spawn A", new Vector3(-7f, -2.15f, 0f));
+            CreateStartPosition("Player Spawn B", new Vector3(-5.5f, -2.15f, 0f));
+            CreateStartPosition("Player Spawn C", new Vector3(-4f, -2.15f, 0f));
+            CreateStartPosition("Player Spawn D", new Vector3(-2.5f, -2.15f, 0f));
+
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+        }
+
+        private static void CreateStartPosition(string name, Vector3 position)
+        {
+            GameObject start = new GameObject(name, typeof(NetworkStartPosition));
+            start.transform.position = position;
         }
 
         private static void ConfigurePlayerSettings()

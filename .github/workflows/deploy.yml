@@ -43,13 +43,17 @@ jobs:
       - name: Run gameplay regression tests
         run: npm run test:animation && npm run test:combat && npm run test:smoke
 
+      - name: Verify Mirror Linux server release
+        run: test -x unity-side-scroller/PrebuiltServerLinux/DeadRailsServer.x86_64
+
       - name: Package release
         run: |
           tar -czf "easygame-${GITHUB_SHA}.tar.gz" \
             package.json package-lock.json \
             client/package.json client/dist \
             server/package.json server/dist \
-            shared/package.json shared/dist
+            shared/package.json shared/dist \
+            unity-side-scroller/PrebuiltServerLinux
 
       - name: Configure SSH
         env:

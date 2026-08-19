@@ -23,11 +23,11 @@ Each phase must compile and remain playable before the next phase begins.
 ## Phase 3 — Mirror networking
 
 - [x] Mirror v96.11.0 dependency imported and compilation-verified
-- [ ] Linux dedicated-server build support
+- [x] Linux dedicated-server build support
 - [ ] SimpleWebTransport behind `wss://game.liaoke.org/side-scroller-socket`
-- [ ] server-authoritative player input and spawn
-- [ ] 2–4 player room flow
-- [ ] position, facing, animation, and HP synchronization
+- [x] server-authoritative player input and spawn
+- [x] 2–4 player room foundation
+- [x] position, facing, animation, and HP synchronization
 
 ## Phase 4 — Zombies
 

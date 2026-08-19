@@ -36,4 +36,6 @@ Use **EasyGame 2D > Build Web Client**, or run:
 ```
 
 Networking is pinned to Mirror v96.11.0. WebGL clients will use Mirror's
-SimpleWebTransport and connect to a Linux Unity dedicated server in Phase 3.
+SimpleWebTransport. The server-authoritative Windows build has been verified
+with two simultaneous WebGL clients. A production Linux server build is stored
+in `PrebuiltServerLinux` and runs headlessly as an independent systemd service.

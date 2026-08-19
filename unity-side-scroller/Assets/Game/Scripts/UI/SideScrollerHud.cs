@@ -22,7 +22,7 @@ namespace EasyGame.SideScroller.UI
             GUI.Label(new Rect(34f, 82f, 240f, 22f), "EXP 0 / 100", labelStyle);
 
             GUI.Label(new Rect(width - 292f, 26f, 270f, 24f), "SAFE ZONE OUTSKIRTS", titleStyle);
-            GUI.Label(new Rect(width - 292f, 54f, 270f, 42f), "Phase 1-2 playable build\nMirror server-authority next", labelStyle);
+            GUI.Label(new Rect(width - 292f, 54f, 270f, 42f), "Phase 3 network foundation\nMirror server authority", labelStyle);
 
             if (!Application.isMobilePlatform)
             {
