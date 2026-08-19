@@ -7,7 +7,7 @@ import {
 import { playerAimVector, weaponMuzzlePosition } from "./weapons.js";
 import { zombieHitRadius, type ZombieState } from "./zombies.js";
 
-const ROCKET_SPEED = 550;
+export const ROCKET_SPEED = 900;
 const ROCKET_RADIUS = 8;
 export const ROCKET_RANGE = 1_050;
 const EXPLOSION_RADIUS = 120;

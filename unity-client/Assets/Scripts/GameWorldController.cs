@@ -34,6 +34,7 @@ namespace EasyGame
             public float aimY;
             public bool fire;
             public string weapon;
+            public bool mobile;
         }
 
         public void Initialize(WebSocketBridge bridge, WorldMap worldMap, CameraRig rig, GameHud gameHud)
@@ -140,6 +141,7 @@ namespace EasyGame
             mobileMovement = Vector2.ClampMagnitude(new Vector2(state.moveX, state.moveY), 1f);
             mobileAim = Vector2.ClampMagnitude(new Vector2(state.aimX, state.aimY), 1f);
             mobileFire = state.fire;
+            hud.SetMobileMode(state.mobile);
             if (state.weapon == "smg" || state.weapon == "shotgun" || state.weapon == "rocket")
             {
                 SelectWeapon(state.weapon);
@@ -193,6 +195,7 @@ namespace EasyGame
             SyncZombies(snapshot.zombies ?? new ZombieState[0]);
             SyncRockets(snapshot.rockets ?? new RocketState[0]);
             hud.SetWorldCounts(players.Count, zombies.Count);
+            hud.SetRoster(snapshot.players ?? new PlayerState[0]);
             if (localPlayer != null)
             {
                 hud.SetReady("READY");

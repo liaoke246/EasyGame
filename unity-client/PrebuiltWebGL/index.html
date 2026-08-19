@@ -2,12 +2,17 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="尸潮余生" />
     <title>尸潮余生 · EasyGame Outbreak</title>
     <style>
       :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", system-ui, sans-serif; }
       * { box-sizing: border-box; }
-      html, body, #unity-container { width: 100%; height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; background: #09100c; }
+      html, body { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; margin: 0; overflow: hidden; overscroll-behavior: none; background: #09100c; }
+      #unity-container { position: absolute; inset: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; }
       #unity-canvas { display: block; width: 100%; height: 100%; touch-action: none; background: #0e1812; outline: none; }
       #loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 42%, #243e2b 0, #101c14 42%, #070b09 100%); transition: opacity .45s ease; }
       #loader::before { content: ""; position: absolute; inset: -20%; opacity: .22; background-image: repeating-linear-gradient(120deg, transparent 0 42px, rgba(255,255,255,.04) 43px 44px); animation: drift 12s linear infinite; }
@@ -19,20 +24,29 @@
       #progress { width: 0; height: 100%; background: linear-gradient(90deg, #557846, #d2b75f 70%, #fff0a1); box-shadow: 0 0 20px rgba(223,196,100,.65); transition: width .16s ease; }
       #progress-label { display: flex; justify-content: space-between; margin-top: 11px; color: #a5b3a5; font-size: 12px; }
       #error { display: none; margin-top: 18px; color: #ff8c72; font-size: 13px; line-height: 1.5; }
-      #mobile-controls { position: fixed; inset: 0; z-index: 8; display: none; pointer-events: none; user-select: none; -webkit-user-select: none; touch-action: none; }
-      .mobile-stick { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); width: clamp(112px, 22vw, 154px); aspect-ratio: 1; border: 1px solid rgba(255,240,181,.32); border-radius: 50%; pointer-events: auto; touch-action: none; background: radial-gradient(circle, rgba(120,150,96,.14) 0 38%, rgba(8,16,11,.56) 40% 67%, rgba(208,181,94,.12) 69% 100%); box-shadow: inset 0 0 28px rgba(0,0,0,.48), 0 8px 34px rgba(0,0,0,.34); backdrop-filter: blur(3px); }
-      #move-stick { left: max(22px, env(safe-area-inset-left)); }
-      #aim-stick { right: max(22px, env(safe-area-inset-right)); }
+      #mobile-controls { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; z-index: 8; display: none; pointer-events: none; user-select: none; -webkit-user-select: none; touch-action: none; }
+      .mobile-stick { position: absolute; bottom: max(16px, calc(env(safe-area-inset-bottom) + 6px)); width: clamp(88px, 18vmin, 124px); aspect-ratio: 1; opacity: .66; border: 1px solid rgba(255,240,181,.28); border-radius: 50%; pointer-events: auto; touch-action: none; background: radial-gradient(circle, rgba(120,150,96,.1) 0 38%, rgba(8,16,11,.42) 40% 67%, rgba(208,181,94,.08) 69% 100%); box-shadow: inset 0 0 20px rgba(0,0,0,.4), 0 5px 22px rgba(0,0,0,.26); backdrop-filter: blur(2px); transition: opacity .12s ease; }
+      .mobile-stick:active { opacity: .96; }
+      #move-stick { left: max(16px, calc(env(safe-area-inset-left) + 8px)); }
+      #aim-stick { right: max(16px, calc(env(safe-area-inset-right) + 8px)); }
       .stick-knob { position: absolute; left: 50%; top: 50%; width: 42%; aspect-ratio: 1; transform: translate(-50%, -50%); border: 2px solid rgba(255,239,179,.64); border-radius: 50%; background: radial-gradient(circle at 36% 30%, rgba(255,244,192,.76), rgba(179,148,64,.5) 38%, rgba(45,58,39,.9) 100%); box-shadow: 0 6px 18px rgba(0,0,0,.52), inset 0 1px 4px rgba(255,255,255,.36); will-change: transform; }
       .stick-label { position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%); white-space: nowrap; color: rgba(241,229,188,.82); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-shadow: 0 2px 5px #000; }
-      #mobile-weapons { position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); display: flex; gap: 8px; transform: translateX(-50%); pointer-events: auto; }
-      .mobile-weapon { min-width: 66px; height: 44px; padding: 0 10px; border: 1px solid rgba(225,204,139,.38); border-radius: 8px; color: #d8d4bf; font: 800 11px/1 system-ui, sans-serif; letter-spacing: .04em; background: rgba(7,14,10,.72); box-shadow: 0 7px 20px rgba(0,0,0,.35); touch-action: manipulation; }
+      #mobile-weapons { position: absolute; left: 50%; bottom: max(14px, calc(env(safe-area-inset-bottom) + 6px)); display: flex; gap: 6px; transform: translateX(-50%); pointer-events: auto; }
+      .mobile-weapon { min-width: 58px; height: 38px; padding: 0 8px; border: 1px solid rgba(225,204,139,.34); border-radius: 7px; color: #d8d4bf; font: 800 10px/1 system-ui, sans-serif; letter-spacing: .02em; background: rgba(7,14,10,.64); box-shadow: 0 5px 16px rgba(0,0,0,.3); touch-action: manipulation; }
       .mobile-weapon.is-selected { border-color: #ffe286; color: #fff1b5; background: linear-gradient(180deg, rgba(145,113,38,.84), rgba(65,57,28,.9)); box-shadow: 0 0 18px rgba(235,196,76,.28); }
       #mobile-orientation { position: absolute; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 12px; border-radius: 20px; color: rgba(239,229,195,.84); font-size: 11px; font-weight: 700; letter-spacing: .08em; background: rgba(6,12,9,.58); opacity: 0; transition: opacity .2s ease; }
       @media (pointer: coarse), (max-width: 900px) {
         body.mobile-ready #mobile-controls { display: block; }
       }
       body.mobile-ready.force-mobile #mobile-controls { display: block; }
+      @media (orientation: landscape) and (pointer: coarse), (orientation: landscape) and (max-height: 520px) {
+        .mobile-stick { width: clamp(76px, 24dvh, 104px); bottom: max(10px, calc(env(safe-area-inset-bottom) + 4px)); }
+        .stick-label { display: none; }
+        #move-stick { left: max(12px, calc(env(safe-area-inset-left) + 6px)); }
+        #aim-stick { right: max(12px, calc(env(safe-area-inset-right) + 6px)); }
+        #mobile-weapons { bottom: max(10px, calc(env(safe-area-inset-bottom) + 4px)); gap: 5px; }
+        .mobile-weapon { min-width: 52px; height: 32px; padding: 0 6px; border-radius: 6px; font-size: 9px; }
+      }
       @media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
         #mobile-orientation { opacity: 1; }
         #mobile-weapons { bottom: max(178px, calc(env(safe-area-inset-bottom) + 166px)); }
@@ -81,7 +95,9 @@
       const mobileControls = document.querySelector("#mobile-controls");
       let unityInstance = null;
       let mobileFramePending = false;
-      const mobileInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, weapon: "smg" };
+      const forcedMobile = new URLSearchParams(location.search).has("mobile");
+      const mobileDetected = forcedMobile || matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const mobileInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, weapon: "smg", mobile: mobileDetected };
       const buildUrl = "Build";
       const releaseVersion = "0.3.0";
       const loaderUrl = buildUrl + "/unity-webgl.loader.js?v=" + releaseVersion;
@@ -191,7 +207,7 @@
       const initializeMobileControls = instance => {
         unityInstance = instance;
         document.body.classList.add("mobile-ready");
-        if (new URLSearchParams(location.search).has("mobile")) {
+        if (forcedMobile) {
           document.body.classList.add("force-mobile");
         }
         mobileControls.setAttribute("aria-hidden", "false");

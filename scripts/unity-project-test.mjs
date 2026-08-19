@@ -49,7 +49,9 @@ for (const eventName of ["welcome", "snapshot", "attack", "notification", "netwo
   assert.match(bridge, new RegExp(`socket\\.on\\(\\"${eventName.replace(":", "\\:")}\\"`));
 }
 assert.match(bridge, /easygame\.guestToken/);
-assert.match(bridge, /transports: \["websocket", "polling"\]/);
+assert.match(bridge, /transports: \["polling", "websocket"\]/);
+assert.match(bridge, /tryAllTransports: true/);
+assert.match(bridge, /connect_error/);
 
 const world = await readFile(`${root}/Assets/Scripts/GameWorldController.cs`, "utf8");
 assert.match(world, /SimulateLocal/);
@@ -61,6 +63,8 @@ assert.match(world, /OnMobileInput/);
 assert.match(world, /mobileMovement/);
 assert.match(world, /mobileAim/);
 assert.match(world, /mobileFire/);
+assert.match(world, /SetMobileMode\(state\.mobile\)/);
+assert.match(world, /hud\.SetRoster/);
 assert.match(world, /TryGetPointerAim/);
 assert.match(world, /aimX = lastAim\.x/);
 
@@ -73,6 +77,9 @@ assert.match(healthBar, /SetValue/);
 
 const effects = await readFile(`${root}/Assets/Scripts/Effects.cs`, "utf8");
 assert.match(effects, /TracerFx/);
+assert.match(effects, /ExplosionDiscFx/);
+assert.match(effects, /SoftCircleSprite/);
+assert.doesNotMatch(effects, /Explosion Light/);
 assert.match(effects, /line\.SetPosition\(0, origin\)/);
 assert.match(effects, /line\.SetPosition\(1, destination\)/);
 assert.doesNotMatch(effects, /Vector3\.Lerp\(origin, destination/);
@@ -80,6 +87,8 @@ assert.doesNotMatch(effects, /Vector3\.Lerp\(origin, destination/);
 const rocketVisual = await readFile(`${root}/Assets/Scripts/RocketVisual.cs`, "utf8");
 assert.match(rocketVisual, /lateralError/);
 assert.match(rocketVisual, /alongError/);
+assert.match(rocketVisual, /CreateRocketSprite/);
+assert.doesNotMatch(rocketVisual, /weapon_silencer/);
 assert.doesNotMatch(rocketVisual, /Vector3\.Lerp\(transform\.position, targetPosition/);
 
 const template = await readFile(`${root}/Assets/WebGLTemplates/EasyGame/index.html`, "utf8");
@@ -89,7 +98,12 @@ assert.match(template, /id="progress"/);
 assert.match(template, /id="mobile-controls"/);
 assert.match(template, /data-mobile-weapon="rocket"/);
 assert.match(template, /OnMobileInput/);
+assert.match(template, /mobileDetected/);
 assert.match(template, /pointerdown/);
+assert.match(template, /viewport-fit=cover/);
+assert.match(template, /height: 100dvh/);
+assert.match(template, /orientation: landscape/);
+assert.match(template, /24dvh/);
 
 const prebuiltPage = await readFile(`${root}/PrebuiltWebGL/index.html`, "utf8");
 for (const mobileMarker of [
@@ -100,6 +114,15 @@ for (const mobileMarker of [
 ]) {
   assert.match(prebuiltPage, new RegExp(mobileMarker));
 }
+assert.match(prebuiltPage, /viewport-fit=cover/);
+assert.match(prebuiltPage, /height: 100dvh/);
+
+const hud = await readFile(`${root}/Assets/Scripts/GameHud.cs`, "utf8");
+assert.match(hud, /if \(!mobileMode\)/);
+assert.doesNotMatch(hud, /LEFT STICK MOVE/);
+assert.match(hud, /ROOM  \{roster\.Count\}/);
+assert.match(hud, /\[JOIN\]/);
+assert.match(hud, /\[DOWN\]/);
 
 const server = await readFile("server/src/index.ts", "utf8");
 assert.match(server, /Content-Encoding", "gzip/);

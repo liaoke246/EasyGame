@@ -6,6 +6,7 @@ namespace EasyGame
     public sealed class GameHud : MonoBehaviour
     {
         private readonly Queue<FeedLine> feed = new Queue<FeedLine>();
+        private readonly List<string> roster = new List<string>();
         private GUIStyle titleStyle;
         private GUIStyle valueStyle;
         private GUIStyle smallStyle;
@@ -16,6 +17,7 @@ namespace EasyGame
         private PlayerAvatar localPlayer;
         private NetworkStats stats;
         private bool ready;
+        private bool mobileMode;
         private string status = "INITIALIZING UNITY CLIENT";
         private int onlineCount;
         private int zombieCount;
@@ -29,6 +31,23 @@ namespace EasyGame
         {
             onlineCount = players;
             zombieCount = zombies;
+        }
+
+        public void SetRoster(PlayerState[] players)
+        {
+            roster.Clear();
+            if (players == null)
+            {
+                return;
+            }
+            foreach (PlayerState player in players)
+            {
+                if (player != null && !string.IsNullOrWhiteSpace(player.displayId))
+                {
+                    roster.Add(player.displayId);
+                }
+            }
+            roster.Sort(System.StringComparer.OrdinalIgnoreCase);
         }
 
         public void SetStats(NetworkStats value)
@@ -47,13 +66,18 @@ namespace EasyGame
             status = message;
         }
 
+        public void SetMobileMode(bool value)
+        {
+            mobileMode = value;
+        }
+
         public void AddNotification(NotificationEvent notification)
         {
             if (notification == null || string.IsNullOrWhiteSpace(notification.text))
             {
                 return;
             }
-            feed.Enqueue(new FeedLine(notification.text, Time.time + 5f));
+            feed.Enqueue(new FeedLine(notification.kind, notification.text, Time.time + 8f));
             while (feed.Count > 5)
             {
                 feed.Dequeue();
@@ -93,20 +117,37 @@ namespace EasyGame
             GUI.Label(new Rect(logicalWidth - 315f, 60f, 280f, 22f), $"PING {stats.LatencyMs} ms   LOST {stats.PacketLossPercent}%", smallStyle);
 
             GUI.Label(new Rect(logicalWidth * 0.5f - 160f, 24f, 320f, 30f), $"SURVIVORS {onlineCount}   INFECTED {zombieCount}", centerStyle);
-            string controls = Application.isMobilePlatform
-                ? "LEFT STICK MOVE   RIGHT STICK AIM / FIRE"
-                : "WASD MOVE   SPACE FIRE   1 / 2 / 3 SWITCH";
-            GUI.Label(new Rect(logicalWidth * 0.5f - 250f, logicalHeight - 52f, 500f, 28f), controls, centerStyle);
+            if (!mobileMode)
+            {
+                GUI.Label(new Rect(logicalWidth * 0.5f - 250f, logicalHeight - 52f, 500f, 28f), "WASD MOVE   SPACE FIRE   1 / 2 / 3 SWITCH", centerStyle);
+            }
+
+            float rosterHeight = 42f + Mathf.Min(roster.Count, mobileMode ? 4 : 7) * 21f;
+            float rosterY = 108f;
+            GUI.DrawTexture(new Rect(logicalWidth - 335f, rosterY, 315f, rosterHeight), panelTexture);
+            GUI.Label(new Rect(logicalWidth - 315f, rosterY + 8f, 280f, 24f), $"ROOM  {roster.Count}", valueStyle);
+            int rosterLimit = Mathf.Min(roster.Count, mobileMode ? 4 : 7);
+            for (int index = 0; index < rosterLimit; index++)
+            {
+                string marker = localPlayer != null && roster[index] == localPlayer.DisplayId ? "●" : "•";
+                GUI.Label(new Rect(logicalWidth - 315f, rosterY + 32f + index * 21f, 280f, 21f), $"{marker} {roster[index]}", smallStyle);
+            }
+            if (roster.Count > rosterLimit)
+            {
+                GUI.Label(new Rect(logicalWidth - 315f, rosterY + 32f + rosterLimit * 21f, 280f, 21f), $"+{roster.Count - rosterLimit} MORE", smallStyle);
+            }
 
             while (feed.Count > 0 && feed.Peek().ExpiresAt <= Time.time)
             {
                 feed.Dequeue();
             }
-            float y = 116f;
+            float feedX = mobileMode ? logicalWidth * 0.5f - 210f : logicalWidth - 430f;
+            float y = mobileMode ? 60f : rosterY + rosterHeight + 10f;
             foreach (FeedLine line in feed)
             {
-                GUI.Label(new Rect(logicalWidth - 430f, y, 395f, 25f), line.Text, smallStyle);
-                y += 25f;
+                GUI.DrawTexture(new Rect(feedX, y, 420f, 26f), panelTexture);
+                GUI.Label(new Rect(feedX + 10f, y + 2f, 400f, 22f), $"{EventPrefix(line.Kind)}  {line.Text}", smallStyle);
+                y += 29f;
             }
         }
 
@@ -140,13 +181,24 @@ namespace EasyGame
             return texture;
         }
 
+        private static string EventPrefix(string kind)
+        {
+            return kind == "join" ? "[JOIN]"
+                : kind == "leave" ? "[LEFT]"
+                : kind == "defeat" ? "[DOWN]"
+                : kind == "hit" ? "[KILL]"
+                : "[EVENT]";
+        }
+
         private readonly struct FeedLine
         {
+            public readonly string Kind;
             public readonly string Text;
             public readonly float ExpiresAt;
 
-            public FeedLine(string text, float expiresAt)
+            public FeedLine(string kind, string text, float expiresAt)
             {
+                Kind = kind;
                 Text = text;
                 ExpiresAt = expiresAt;
             }
