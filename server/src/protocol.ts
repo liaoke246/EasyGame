@@ -37,6 +37,8 @@ export interface PublicPlayer extends PlayerIdentity {
   vx: number;
   vy: number;
   direction: Direction;
+  aimX: number;
+  aimY: number;
   health: number;
   maxHealth: number;
   attacking: boolean;
@@ -102,6 +104,8 @@ export interface InputPayload {
   fire?: boolean;
   weapon?: WeaponId;
   direction?: Direction;
+  aimX?: number;
+  aimY?: number;
 }
 
 export interface WeaponTrace {
@@ -115,6 +119,8 @@ export interface AttackEvent {
   weapon: WeaponId;
   phase: "fire" | "impact";
   direction: Direction;
+  aimX: number;
+  aimY: number;
   x: number;
   y: number;
   hitPlayerIds: string[];

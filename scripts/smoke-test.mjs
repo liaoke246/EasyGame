@@ -267,6 +267,8 @@ async function runMultiplayerCheck() {
       fire: true,
       weapon: "smg",
       direction: "up-right",
+      aimX: Math.cos(Math.PI / 6),
+      aimY: -Math.sin(Math.PI / 6),
     });
     const diagonalFire = await diagonalFirePromise;
     first.emit("input", {
@@ -277,14 +279,22 @@ async function runMultiplayerCheck() {
       fire: false,
       weapon: "smg",
     });
-    if (diagonalFire.direction !== "up-right") {
-      throw new Error("Independent mobile aim did not produce a 45-degree shot while moving up");
+    const continuousTrace = diagonalFire.traces[0];
+    const traceX = continuousTrace.endX - diagonalFire.x;
+    const traceY = continuousTrace.endY - diagonalFire.y;
+    const traceMagnitude = Math.hypot(traceX, traceY);
+    if (
+      diagonalFire.direction !== "up-right" ||
+      Math.abs(traceX / traceMagnitude - Math.cos(Math.PI / 6)) > 0.02 ||
+      Math.abs(traceY / traceMagnitude + Math.sin(Math.PI / 6)) > 0.02
+    ) {
+      throw new Error("Independent mobile aim was snapped away from its continuous 30-degree ray");
     }
 
     process.stdout.write(
       `Smoke test passed: two players synchronized; movement ${initialPlayer.x.toFixed(
         1,
-      )} → ${movedPlayer.x.toFixed(1)}; forward-only zombies, all three weapons, and independent 45-degree mobile aim synchronized.\n`,
+      )} → ${movedPlayer.x.toFixed(1)}; forward-only zombies, all three weapons, and independent 360-degree aim synchronized.\n`,
     );
   } finally {
     first.disconnect();

@@ -29,6 +29,13 @@ export function zombieCollisionRadius(kind: ZombieKind): number {
   return kind === "brute" ? 29 : kind === "runner" ? 18 : 22;
 }
 
+// Shooting uses the full visible body plus a small allowance for snapshot and
+// interpolation delay. Keep this separate from physical collision so zombies
+// do not get stuck farther away from scenery or players.
+export function zombieHitRadius(kind: ZombieKind): number {
+  return kind === "brute" ? 41 : kind === "runner" ? 32 : 34;
+}
+
 export function createZombie(index: number): ZombieState {
   const kind = chooseKind();
   const stats = ZOMBIE_STATS[kind];

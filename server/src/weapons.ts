@@ -1,7 +1,7 @@
 import {
   WEAPON_COOLDOWN_MS,
+  WEAPON_MUZZLE_DISTANCES,
   directionVector,
-  weaponBallisticMuzzleOffset,
 } from "@easygame/shared";
 import type { AttackEvent, WeaponId, WeaponTrace } from "./protocol.js";
 import {
@@ -11,7 +11,10 @@ import {
   obstacleCollisionBounds,
   type PlayerState,
 } from "./world.js";
-import { zombieCollisionRadius, type ZombieState } from "./zombies.js";
+import { zombieHitRadius, type ZombieState } from "./zombies.js";
+
+export const SMG_RANGE = 1_100;
+export const SHOTGUN_RANGE = 520;
 
 export function isWeaponId(value: unknown): value is WeaponId {
   return value === "smg" || value === "shotgun" || value === "rocket";
@@ -36,12 +39,13 @@ export function fireWeapon(
   attacker.attacking = true;
 
   const living = Array.from(zombies).filter((zombie) => zombie.health > 0);
+  const aim = playerAimVector(attacker);
   const origin = weaponMuzzlePosition(attacker);
   const result =
     attacker.weapon === "smg"
-      ? fireSmg(origin, attacker, living)
+      ? fireSmg(origin, aim, living)
       : attacker.weapon === "shotgun"
-        ? fireShotgun(origin, attacker, living)
+        ? fireShotgun(origin, aim, living)
         : { hitZombieIds: new Set<string>(), traces: [] };
 
   return {
@@ -49,6 +53,8 @@ export function fireWeapon(
     weapon: attacker.weapon,
     phase: "fire",
     direction: attacker.direction,
+    aimX: aim.x,
+    aimY: aim.y,
     x: origin.x,
     y: origin.y,
     hitPlayerIds: [],
@@ -60,10 +66,10 @@ export function fireWeapon(
 
 function fireSmg(
   origin: { x: number; y: number },
-  attacker: PlayerState,
+  aim: { x: number; y: number },
   zombies: ZombieState[],
 ): FireResult {
-  const result = traceBallistic(origin, attacker, zombies, 560, 3.5);
+  const result = traceBallistic(origin, aim, zombies, SMG_RANGE, 4.5);
   if (result.target) {
     result.target.health = Math.max(0, result.target.health - 14);
   }
@@ -75,13 +81,13 @@ function fireSmg(
 
 function fireShotgun(
   origin: { x: number; y: number },
-  attacker: PlayerState,
+  aim: { x: number; y: number },
   zombies: ZombieState[],
 ): FireResult {
   const hitZombieIds = new Set<string>();
   const traces: WeaponTrace[] = [];
   for (const angle of [-16, -10, -5, 0, 5, 10, 16]) {
-    const result = traceBallistic(origin, attacker, zombies, 330, 2.5, angle);
+    const result = traceBallistic(origin, aim, zombies, SHOTGUN_RANGE, 3.5, angle);
     if (result.target) {
       result.target.health = Math.max(0, result.target.health - 13);
       hitZombieIds.add(result.target.id);
@@ -105,13 +111,13 @@ interface BallisticResult {
 
 function traceBallistic(
   origin: { x: number; y: number },
-  attacker: PlayerState,
+  aim: { x: number; y: number },
   zombies: ZombieState[],
   range: number,
   projectileRadius: number,
   angleDegrees = 0,
 ): BallisticResult {
-  const vector = rotatedDirection(attacker, angleDegrees);
+  const vector = rotatedDirection(aim, angleDegrees);
   let nearestDistance = worldBoundaryDistance(origin, vector, range, projectileRadius);
   let nearestTarget: ZombieState | undefined;
   let impacted = nearestDistance < range;
@@ -140,7 +146,7 @@ function traceBallistic(
       vector,
       zombie.x,
       zombie.y,
-      zombieCollisionRadius(zombie.kind) + projectileRadius,
+      zombieHitRadius(zombie.kind) + projectileRadius,
     );
     if (distance >= 0 && distance < nearestDistance) {
       nearestDistance = distance;
@@ -221,23 +227,31 @@ export function weaponMuzzlePosition(
   attacker: PlayerState,
   weapon: WeaponId = attacker.weapon,
 ): { x: number; y: number } {
-  const offset = weaponBallisticMuzzleOffset(weapon, attacker.direction);
+  const aim = playerAimVector(attacker);
+  const distance = WEAPON_MUZZLE_DISTANCES[weapon];
   return {
-    x: attacker.x + offset.x,
-    y: attacker.y + offset.y,
+    x: attacker.x + aim.x * distance,
+    y: attacker.y + aim.y * distance,
   };
 }
 
+export function playerAimVector(attacker: PlayerState): { x: number; y: number } {
+  const magnitude = Math.hypot(attacker.aimX, attacker.aimY);
+  if (Number.isFinite(magnitude) && magnitude >= 0.1) {
+    return { x: attacker.aimX / magnitude, y: attacker.aimY / magnitude };
+  }
+  return directionVector(attacker.direction);
+}
+
 function rotatedDirection(
-  attacker: PlayerState,
+  aim: { x: number; y: number },
   angleDegrees: number,
 ): { x: number; y: number } {
-  const facing = directionVector(attacker.direction);
   const angle = (angleDegrees * Math.PI) / 180;
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
   return {
-    x: facing.x * cosine - facing.y * sine,
-    y: facing.x * sine + facing.y * cosine,
+    x: aim.x * cosine - aim.y * sine,
+    y: aim.x * sine + aim.y * cosine,
   };
 }

@@ -1,16 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { directionVector } from "@easygame/shared";
 import type { Direction, PublicRocket } from "./protocol.js";
 import {
   positionCollides,
   type PlayerState,
 } from "./world.js";
-import { weaponMuzzlePosition } from "./weapons.js";
-import { zombieCollisionRadius, type ZombieState } from "./zombies.js";
+import { playerAimVector, weaponMuzzlePosition } from "./weapons.js";
+import { zombieHitRadius, type ZombieState } from "./zombies.js";
 
-const ROCKET_SPEED = 430;
+const ROCKET_SPEED = 550;
 const ROCKET_RADIUS = 8;
-const ROCKET_RANGE = 650;
+export const ROCKET_RANGE = 1_050;
 const EXPLOSION_RADIUS = 120;
 const MAX_STEP_DISTANCE = 6;
 
@@ -27,7 +26,7 @@ export interface RocketImpact {
 }
 
 export function createRocket(attacker: PlayerState): RocketState {
-  const vector = directionVector(attacker.direction);
+  const vector = playerAimVector(attacker);
   const muzzle = weaponMuzzlePosition(attacker, "rocket");
   const x = muzzle.x;
   const y = muzzle.y;
@@ -60,7 +59,7 @@ export function updateRocket(
 
     const hitWall = positionCollides(rocket.x, rocket.y, ROCKET_RADIUS);
     const hitZombie = living.some((zombie) => {
-      const radius = zombieCollisionRadius(zombie.kind);
+      const radius = zombieHitRadius(zombie.kind);
       return (
         Math.hypot(zombie.x - rocket.x, zombie.y - rocket.y) <=
         radius + ROCKET_RADIUS

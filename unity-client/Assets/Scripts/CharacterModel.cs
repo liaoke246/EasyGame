@@ -95,9 +95,9 @@ namespace EasyGame
             modelRoot.localScale = Vector3.one * baseModelScale;
         }
 
-        public void ApplyMotion(string direction, float speed, bool attacking, bool isRespawning)
+        public void ApplyMotion(string direction, float speed, bool attacking, bool isRespawning, float aimX = 0f, float aimY = 0f)
         {
-            facingTarget = GameCoordinates.DirectionRotation(direction);
+            facingTarget = AimRotation(direction, aimX, aimY);
             movementAmount = Mathf.Clamp01(speed / (zombie ? 0.9f : 2.05f));
             respawning = isRespawning;
             if (attacking)
@@ -120,7 +120,7 @@ namespace EasyGame
             switchClock = 0f;
         }
 
-        public void TriggerFire(string weapon = null, string direction = null)
+        public void TriggerFire(string weapon = null, string direction = null, float aimX = 0f, float aimY = 0f)
         {
             if (zombie)
             {
@@ -133,7 +133,7 @@ namespace EasyGame
             }
             if (!string.IsNullOrEmpty(direction))
             {
-                facingTarget = GameCoordinates.DirectionRotation(direction);
+                facingTarget = AimRotation(direction, aimX, aimY);
                 transform.rotation = facingTarget;
             }
             fireUntil = Time.time + 0.22f;
@@ -409,6 +409,14 @@ namespace EasyGame
         private static string NormalizeSkin(string spawnSkin)
         {
             return spawnSkin == "usagi" ? "usagi" : "default";
+        }
+
+        private static Quaternion AimRotation(string direction, float aimX, float aimY)
+        {
+            Vector3 continuousAim = new Vector3(aimX, 0f, -aimY);
+            return continuousAim.sqrMagnitude >= 0.01f
+                ? Quaternion.LookRotation(continuousAim.normalized, Vector3.up)
+                : GameCoordinates.DirectionRotation(direction);
         }
     }
 }

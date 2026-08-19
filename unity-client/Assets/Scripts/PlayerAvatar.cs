@@ -68,11 +68,11 @@ namespace EasyGame
             }
             model.RequestWeapon(Weapon);
             float speed = Mathf.Sqrt(state.vx * state.vx + state.vy * state.vy) * GameCoordinates.WorldScale;
-            model.ApplyMotion(state.direction, speed, state.attacking, state.respawning);
+            model.ApplyMotion(state.direction, speed, state.attacking, state.respawning, state.aimX, state.aimY);
             healthBar.SetValue(Health, MaxHealth);
         }
 
-        public void SimulateLocal(Vector2 input, string direction, bool firing, float deltaTime, WorldMap map)
+        public void SimulateLocal(Vector2 input, Vector2 aim, string direction, bool firing, float deltaTime, WorldMap map)
         {
             if (!localPlayer)
             {
@@ -81,7 +81,7 @@ namespace EasyGame
             if (Respawning)
             {
                 predictedVelocity = Vector3.zero;
-                model.ApplyMotion(direction, 0f, false, true);
+                model.ApplyMotion(direction, 0f, false, true, aim.x, -aim.y);
                 return;
             }
             Vector3 desired = new Vector3(input.x, 0f, input.y) * 2.05f;
@@ -112,7 +112,7 @@ namespace EasyGame
             {
                 predictedVelocity.z = 0f;
             }
-            model.ApplyMotion(direction, predictedVelocity.magnitude, firing, false);
+            model.ApplyMotion(direction, predictedVelocity.magnitude, firing, false, aim.x, -aim.y);
         }
 
         public void SelectWeapon(string weapon)
@@ -121,9 +121,9 @@ namespace EasyGame
             model.RequestWeapon(weapon);
         }
 
-        public void TriggerFire(string weapon = null, string direction = null)
+        public void TriggerFire(string weapon = null, string direction = null, float aimX = 0f, float aimY = 0f)
         {
-            model.TriggerFire(weapon, direction);
+            model.TriggerFire(weapon, direction, aimX, aimY);
         }
 
         private void LateUpdate()

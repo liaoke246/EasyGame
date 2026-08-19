@@ -54,6 +54,8 @@ namespace EasyGame
         public float vx;
         public float vy;
         public string direction;
+        public float aimX;
+        public float aimY;
         public int health;
         public int maxHealth;
         public bool attacking;
@@ -113,6 +115,8 @@ namespace EasyGame
         public string direction;
         public float x;
         public float y;
+        public float aimX;
+        public float aimY;
         public string[] hitPlayerIds;
         public string[] hitZombieIds;
         public string[] killedZombieIds;
@@ -136,6 +140,8 @@ namespace EasyGame
         public bool fire;
         public string weapon;
         public string direction;
+        public float aimX;
+        public float aimY;
     }
 
     [Serializable]
