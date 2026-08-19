@@ -53,6 +53,7 @@
     const status = document.querySelector("#status");
     const buildUrl = "Build";
     const releaseVersion = "{{{ PRODUCT_VERSION }}}";
+    let unityInstance = null;
     const loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}?v=" + releaseVersion;
     const config = {
       arguments: [],
@@ -71,26 +72,33 @@
       canvas.focus();
     }
 
-    function bindHold(id, code, key) {
+    function sendMobileControl(control, pressed) {
+      if (unityInstance) {
+        unityInstance.SendMessage("SideScroller Game", "SetMobileControl", `${control}:${pressed ? 1 : 0}`);
+      }
+    }
+
+    function bindHold(id, control, code, key) {
       const button = document.querySelector(id);
-      const down = event => { event.preventDefault(); emitKey("keydown", code, key); };
-      const up = event => { event.preventDefault(); emitKey("keyup", code, key); };
+      const down = event => { event.preventDefault(); sendMobileControl(control, true); emitKey("keydown", code, key); };
+      const up = event => { event.preventDefault(); sendMobileControl(control, false); emitKey("keyup", code, key); };
       button.addEventListener("pointerdown", down);
       button.addEventListener("pointerup", up);
       button.addEventListener("pointercancel", up);
       button.addEventListener("pointerleave", up);
     }
-    bindHold("#left", "ArrowLeft", "ArrowLeft");
-    bindHold("#right", "ArrowRight", "ArrowRight");
-    bindHold("#jump", "Space", " ");
-    bindHold("#attack", "KeyJ", "j");
+    bindHold("#left", "left", "ArrowLeft", "ArrowLeft");
+    bindHold("#right", "right", "ArrowRight", "ArrowRight");
+    bindHold("#jump", "jump", "Space", " ");
+    bindHold("#attack", "attack", "KeyJ", "j");
 
     const script = document.createElement("script");
     script.src = loaderUrl;
     script.onload = () => createUnityInstance(canvas, config, value => {
       progress.style.width = Math.round(value * 100) + "%";
       status.textContent = `正在装载横版生存区… ${Math.round(value * 100)}%`;
-    }).then(() => {
+    }).then(instance => {
+      unityInstance = instance;
       loader.style.opacity = "0";
       setTimeout(() => loader.remove(), 380);
       canvas.focus();

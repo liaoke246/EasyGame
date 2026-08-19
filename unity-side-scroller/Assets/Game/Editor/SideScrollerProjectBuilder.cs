@@ -26,6 +26,7 @@ namespace EasyGame.SideScroller.Editor
         private const string ControllerPath = "Assets/Game/Resources/Player/PlayerPrototype.controller";
         private const string NetworkPlayerPrefabPath = "Assets/Game/Prefabs/NetworkPlayer.prefab";
         private const string NetworkZombiePrefabPath = "Assets/Game/Prefabs/NetworkZombie.prefab";
+        private const string NetworkSlimePrefabPath = "Assets/Game/Prefabs/NetworkSlime.prefab";
 
         [MenuItem("EasyGame 2D/Prepare Project")]
         public static void PrepareProject()
@@ -36,7 +37,8 @@ namespace EasyGame.SideScroller.Editor
             CreateAnimatorController();
             GameObject networkPlayerPrefab = CreateNetworkPlayerPrefab();
             GameObject networkZombiePrefab = CreateNetworkZombiePrefab();
-            CreateScene(networkPlayerPrefab, networkZombiePrefab);
+            GameObject networkSlimePrefab = CreateNetworkSlimePrefab();
+            CreateScene(networkPlayerPrefab, networkZombiePrefab, networkSlimePrefab);
             ConfigurePlayerSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -393,7 +395,39 @@ namespace EasyGame.SideScroller.Editor
             return prefab;
         }
 
-        private static void CreateScene(GameObject networkPlayerPrefab, GameObject networkZombiePrefab)
+        private static GameObject CreateNetworkSlimePrefab()
+        {
+            GameObject root = new GameObject("Network Slime");
+            root.AddComponent<NetworkIdentity>();
+            Rigidbody2D body = root.AddComponent<Rigidbody2D>();
+            body.mass = 0.7f;
+            body.gravityScale = 3.15f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
+            collider.size = new Vector2(0.72f, 0.48f);
+            collider.offset = new Vector2(0f, 0.02f);
+            collider.sharedMaterial = new PhysicsMaterial2D("Slime Material") { friction = 0f, bounciness = 0f };
+
+            SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
+            networkTransform.target = root.transform;
+            networkTransform.syncDirection = SyncDirection.ServerToClient;
+            networkTransform.syncInterval = 1f / 20f;
+            networkTransform.updateMethod = UpdateMethod.FixedUpdate;
+            networkTransform.syncPosition = true;
+            networkTransform.syncRotation = false;
+            networkTransform.syncScale = false;
+            networkTransform.coordinateSpace = CoordinateSpace.World;
+            root.AddComponent<SideScrollerNetworkSlime>();
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, NetworkSlimePrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void CreateScene(GameObject networkPlayerPrefab, GameObject networkZombiePrefab, GameObject networkSlimePrefab)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject root = new GameObject("SideScroller Game", typeof(SideScrollerBootstrap), typeof(SideWorldBuilder));
@@ -420,7 +454,9 @@ namespace EasyGame.SideScroller.Editor
             manager.transport = transport;
             manager.playerPrefab = networkPlayerPrefab;
             manager.ZombiePrefab = networkZombiePrefab;
+            manager.SlimePrefab = networkSlimePrefab;
             manager.spawnPrefabs.Add(networkZombiePrefab);
+            manager.spawnPrefabs.Add(networkSlimePrefab);
             manager.maxConnections = 4;
             manager.autoCreatePlayer = true;
             manager.dontDestroyOnLoad = false;
@@ -447,7 +483,7 @@ namespace EasyGame.SideScroller.Editor
         {
             PlayerSettings.companyName = "EasyGame";
             PlayerSettings.productName = "EasyGame: Dead Rails";
-            PlayerSettings.bundleVersion = "0.1.0";
+            PlayerSettings.bundleVersion = "0.2.0";
             PlayerSettings.runInBackground = true;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;

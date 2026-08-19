@@ -8,11 +8,18 @@ namespace EasyGame.SideScroller.Network
     public sealed class SideScrollerNetworkManager : NetworkManager
     {
         [SerializeField] private GameObject zombiePrefab;
+        [SerializeField] private GameObject slimePrefab;
 
         public GameObject ZombiePrefab
         {
             get => zombiePrefab;
             set => zombiePrefab = value;
+        }
+
+        public GameObject SlimePrefab
+        {
+            get => slimePrefab;
+            set => slimePrefab = value;
         }
 
         public static string ConnectionStatus { get; private set; } = "OFFLINE PRACTICE";
@@ -56,7 +63,7 @@ namespace EasyGame.SideScroller.Network
             base.Update();
             if (NetworkClient.isConnected)
             {
-                ConnectionStatus = $"ONLINE  {Mathf.RoundToInt((float)(NetworkTime.rtt * 1000d))} MS  //  {NetworkClient.spawned.Count}/4";
+                ConnectionStatus = $"ONLINE  {Mathf.RoundToInt((float)(NetworkTime.rtt * 1000d))} MS  //  {ConnectedPlayerCount()}/4  //  PVP";
             }
             else if (NetworkServer.active)
             {
@@ -85,9 +92,9 @@ namespace EasyGame.SideScroller.Network
         public override void OnStartServer()
         {
             base.OnStartServer();
-            if (zombiePrefab == null)
+            if (zombiePrefab == null || slimePrefab == null)
             {
-                Debug.LogWarning("No side-scroller zombie prefab is configured.");
+                Debug.LogWarning("Side-scroller enemy prefabs are not fully configured.");
                 return;
             }
 
@@ -95,14 +102,10 @@ namespace EasyGame.SideScroller.Network
             {
                 new Vector3(2f, 0.15f, 0f),
                 new Vector3(15f, 2.15f, 0f),
-                new Vector3(28f, 0.15f, 0f),
                 new Vector3(42f, 3.15f, 0f),
-                new Vector3(57f, 1.15f, 0f),
                 new Vector3(71f, 3.15f, 0f),
-                new Vector3(86f, 0.15f, 0f),
                 new Vector3(103f, 2.15f, 0f),
                 new Vector3(112f, -2.15f, 0f),
-                new Vector3(34f, -2.15f, 0f),
             };
 
             foreach (Vector3 position in positions)
@@ -110,6 +113,41 @@ namespace EasyGame.SideScroller.Network
                 GameObject zombie = Instantiate(zombiePrefab, position, Quaternion.identity);
                 NetworkServer.Spawn(zombie);
             }
+
+            Vector3[] slimePositions =
+            {
+                new Vector3(5f, -2.1f, 0f),
+                new Vector3(17f, 2.1f, 0f),
+                new Vector3(27f, -2.1f, 0f),
+                new Vector3(32f, -2.1f, 0f),
+                new Vector3(45f, 3.1f, 0f),
+                new Vector3(56f, 1.1f, 0f),
+                new Vector3(69f, 3.1f, 0f),
+                new Vector3(84f, -2.1f, 0f),
+                new Vector3(89f, -2.1f, 0f),
+                new Vector3(101f, 2.1f, 0f),
+                new Vector3(114f, -2.1f, 0f),
+                new Vector3(120f, -2.1f, 0f),
+            };
+
+            foreach (Vector3 position in slimePositions)
+            {
+                GameObject slime = Instantiate(slimePrefab, position, Quaternion.identity);
+                NetworkServer.Spawn(slime);
+            }
+        }
+
+        private static int ConnectedPlayerCount()
+        {
+            int count = 0;
+            foreach (NetworkIdentity identity in NetworkClient.spawned.Values)
+            {
+                if (identity != null && identity.GetComponent<SideScrollerNetworkPlayer>() != null)
+                {
+                    count++;
+                }
+            }
+            return count;
         }
 
         private static Uri ResolveServerUri()

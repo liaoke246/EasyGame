@@ -1,3 +1,4 @@
+using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Data;
 using UnityEngine;
 
@@ -118,11 +119,7 @@ namespace EasyGame.SideScroller.Player
                 return false;
             }
 
-            Bounds bounds = bodyCollider.bounds;
-            Vector2 size = new Vector2(bounds.size.x * config.groundProbeWidth, 0.08f);
-            Vector2 origin = new Vector2(bounds.center.x, bounds.min.y - 0.02f);
-            RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, Vector2.down, config.groundProbeDistance, groundMask);
-            return hit.collider != null && hit.collider != bodyCollider;
+            return GroundProbe2D.Check(bodyCollider, config.groundProbeWidth, config.groundProbeDistance, groundMask);
         }
     }
 }

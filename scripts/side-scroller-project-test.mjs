@@ -9,6 +9,9 @@ const required = [
   "Assets/Game/Scripts/Player/PlayerMovement.cs",
   "Assets/Game/Scripts/Player/PlayerAnimation.cs",
   "Assets/Game/Scripts/Core/PixelCharacterAnimator.cs",
+  "Assets/Game/Scripts/Core/PixelSlimeAnimator.cs",
+  "Assets/Game/Scripts/Core/GroundProbe2D.cs",
+  "Assets/Game/Scripts/Core/MobileInputBridge.cs",
   "Assets/Game/Scripts/Combat/PlayerCombat.cs",
   "Assets/Game/Scripts/World/SideWorldBuilder.cs",
   "Assets/Game/Scripts/World/SideCameraRig.cs",
@@ -18,6 +21,8 @@ const required = [
   "Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs",
   "Assets/Game/Scripts/Network/SideScrollerNetworkTransform.cs",
   "Assets/Game/Scripts/Enemies/SideScrollerNetworkZombie.cs",
+  "Assets/Game/Scripts/Enemies/SideScrollerNetworkSlime.cs",
+  "Assets/Game/Scripts/UI/PixelHudDrawing.cs",
   "Assets/Game/Scripts/UI/NetworkStatusHud.cs",
   "Assets/Game/Prefabs/NetworkPlayer.prefab",
   "Assets/Game/Editor/SideScrollerProjectBuilder.cs",
@@ -44,7 +49,7 @@ const movement = await readFile(`${root}/Assets/Game/Scripts/Player/PlayerMoveme
 assert.match(movement, /Rigidbody2D/);
 assert.match(movement, /coyoteRemaining/);
 assert.match(movement, /jumpBufferRemaining/);
-assert.match(movement, /Physics2D\.BoxCast/);
+assert.match(movement, /GroundProbe2D\.Check/);
 assert.match(movement, /fallGravityMultiplier/);
 
 const world = await readFile(`${root}/Assets/Game/Scripts/World/SideWorldBuilder.cs`, "utf8");
@@ -76,6 +81,9 @@ assert.match(networkPlayer, /\[SyncVar\]/);
 assert.match(networkPlayer, /\[ClientRpc\]/);
 assert.match(networkPlayer, /if \(!isServer/);
 assert.match(networkPlayer, /ResolveAttackHits/);
+assert.match(networkPlayer, /SideScrollerNetworkSlime/);
+assert.match(networkPlayer, /ServerRespawn/);
+assert.match(networkPlayer, /attacker\.kills\+\+/);
 
 const characterAnimator = await readFile(`${root}/Assets/Game/Scripts/Core/PixelCharacterAnimator.cs`, "utf8");
 assert.match(characterAnimator, /GandalfHardcore/);
@@ -87,6 +95,15 @@ const zombie = await readFile(`${root}/Assets/Game/Scripts/Enemies/SideScrollerN
 assert.match(zombie, /NetworkBehaviour/);
 assert.match(zombie, /ApplyDamage/);
 
+const slime = await readFile(`${root}/Assets/Game/Scripts/Enemies/SideScrollerNetworkSlime.cs`, "utf8");
+assert.match(slime, /NetworkBehaviour/);
+assert.match(slime, /GroundProbe2D\.Check/);
+assert.match(slime, /DealContactDamage/);
+
+const groundProbe = await readFile(`${root}/Assets/Game/Scripts/Core/GroundProbe2D.cs`, "utf8");
+assert.match(groundProbe, /OverlapBoxAll/);
+assert.match(groundProbe, /hit == bodyCollider/);
+
 const networkManager = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkManager.cs`, "utf8");
 assert.match(networkManager, /side-scroller-socket/);
 assert.match(networkManager, /NetworkTime\.rtt/);
@@ -94,6 +111,7 @@ assert.match(networkManager, /NetworkTime\.rtt/);
 const template = await readFile(`${root}/PrebuiltWebGL/index.html`, "utf8");
 assert.match(template, /viewport-fit=cover/);
 assert.match(template, /id="mobile-controls"/);
+assert.match(template, /SetMobileControl/);
 assert.match(template, /游戏大厅/);
 
 const lobby = await readFile("portal/index.html", "utf8");

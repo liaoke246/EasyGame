@@ -9,6 +9,7 @@ using UnityEngine;
 
 namespace EasyGame.SideScroller.Core
 {
+    [RequireComponent(typeof(MobileInputBridge))]
     public sealed class SideScrollerBootstrap : MonoBehaviour
     {
         private void Start()

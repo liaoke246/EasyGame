@@ -1,3 +1,4 @@
+using EasyGame.SideScroller.Core;
 using UnityEngine;
 
 namespace EasyGame.SideScroller.Player
@@ -22,11 +23,19 @@ namespace EasyGame.SideScroller.Player
             {
                 keyboardAxis += 1f;
             }
+            if (MobileInputBridge.LeftHeld)
+            {
+                keyboardAxis -= 1f;
+            }
+            if (MobileInputBridge.RightHeld)
+            {
+                keyboardAxis += 1f;
+            }
 
             Horizontal = Mathf.Clamp(keyboardAxis, -1f, 1f);
 
-            bool jumpNow = Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
-            if (jumpNow && !JumpHeld)
+            bool jumpNow = Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow) || MobileInputBridge.JumpHeld;
+            if ((jumpNow && !JumpHeld) || MobileInputBridge.ConsumeJumpPressed())
             {
                 jumpPressed = true;
             }
@@ -36,7 +45,7 @@ namespace EasyGame.SideScroller.Player
             }
             JumpHeld = jumpNow;
 
-            if (Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0))
+            if (Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0) || MobileInputBridge.ConsumeAttackPressed())
             {
                 attackPressed = true;
             }

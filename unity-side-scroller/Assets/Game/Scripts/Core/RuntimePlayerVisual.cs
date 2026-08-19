@@ -8,6 +8,7 @@ namespace EasyGame.SideScroller.Core
         {
             GameObject visual = new GameObject("Visual");
             visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = new Vector3(0f, 0.25f, 0f);
 
             GameObject body = new GameObject("Body");
             body.transform.SetParent(visual.transform, false);
@@ -29,6 +30,7 @@ namespace EasyGame.SideScroller.Core
         {
             GameObject visual = new GameObject("Visual");
             visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = new Vector3(0f, 0.25f, 0f);
 
             GameObject body = new GameObject("Body");
             body.transform.SetParent(visual.transform, false);
@@ -38,6 +40,22 @@ namespace EasyGame.SideScroller.Core
 
             PixelCharacterAnimator spriteAnimator = visual.AddComponent<PixelCharacterAnimator>();
             spriteAnimator.Initialize(bodyRenderer, new Color(0.58f, 0.78f, 0.55f));
+            return visual.transform;
+        }
+
+        public static Transform CreateSlime(Transform parent, string color)
+        {
+            GameObject visual = new GameObject("Visual");
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = new Vector3(0f, 0.22f, 0f);
+
+            GameObject body = new GameObject("Body");
+            body.transform.SetParent(visual.transform, false);
+            SpriteRenderer renderer = body.AddComponent<SpriteRenderer>();
+            renderer.sortingOrder = 9;
+
+            PixelSlimeAnimator animator = visual.AddComponent<PixelSlimeAnimator>();
+            animator.Initialize(renderer, color);
             return visual.transform;
         }
     }

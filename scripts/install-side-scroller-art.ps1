@@ -84,29 +84,67 @@ function Export-Tile {
     }
 }
 
+function Export-SlimeFrame {
+    param(
+        [Parameter(Mandatory)][System.Drawing.Bitmap]$Sheet,
+        [Parameter(Mandatory)][int]$Column,
+        [Parameter(Mandatory)][int]$Row,
+        [Parameter(Mandatory)][string]$OutputFile
+    )
+
+    $rectangle = New-Object System.Drawing.Rectangle ($Column * 32), ($Row * 32), 32, 32
+    $frame = $Sheet.Clone($rectangle, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    try {
+        $frame.Save($OutputFile, [System.Drawing.Imaging.ImageFormat]::Png)
+    }
+    finally {
+        $frame.Dispose()
+    }
+}
+
+function Export-SlimeSequence {
+    param(
+        [Parameter(Mandatory)][System.Drawing.Bitmap]$Sheet,
+        [Parameter(Mandatory)][string]$Color,
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][int]$Row,
+        [Parameter(Mandatory)][int]$FrameCount,
+        [Parameter(Mandatory)][string]$OutputDirectory
+    )
+
+    for ($index = 0; $index -lt $FrameCount; $index++) {
+        Export-SlimeFrame -Sheet $Sheet -Column $index -Row $Row -OutputFile (Join-Path $OutputDirectory "slime-$Color`_$Name`_$index.png")
+    }
+}
+
 $resolvedProject = [IO.Path]::GetFullPath($ProjectRoot)
 $targetRoot = Join-Path $resolvedProject 'Assets\Game\Resources\ThirdParty\GandalfHardcore'
 $characterTarget = Join-Path $targetRoot 'Characters\Warrior'
+$slimeTarget = Join-Path $targetRoot 'Enemies\Slime'
 $worldTarget = Join-Path $targetRoot 'World'
 $backgroundTarget = Join-Path $worldTarget 'Backgrounds'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("easygame-side-art-" + [guid]::NewGuid().ToString('N'))
 
-New-Item -ItemType Directory -Force -Path $characterTarget, $worldTarget, $backgroundTarget, $tempRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $characterTarget, $slimeTarget, $worldTarget, $backgroundTarget, $tempRoot | Out-Null
 
 try {
     $warriorZip = Join-Path $tempRoot 'warrior.zip'
     $worldZip = Join-Path $tempRoot 'world.zip'
     $hudZip = Join-Path $tempRoot 'hud.zip'
+    $slimeZip = Join-Path $tempRoot 'slime.zip'
     Get-ItchFreeUpload -Slug '2d-pixel-art-male-and-female-character' -UploadId 11012135 -OutputFile $warriorZip
+    Get-ItchFreeUpload -Slug '2d-pixel-art-male-and-female-character' -UploadId 10819522 -OutputFile $slimeZip
     Get-ItchFreeUpload -Slug 'free-pixel-art-sidescroller-asset-pack-32x32-overworld' -UploadId 18452546 -OutputFile $worldZip
     Get-ItchFreeUpload -Slug 'free-pixel-art-sidescroller-asset-pack-32x32-overworld' -UploadId 10272614 -OutputFile $hudZip
 
     $warriorExtract = Join-Path $tempRoot 'warrior'
     $worldExtract = Join-Path $tempRoot 'world'
     $hudExtract = Join-Path $tempRoot 'hud'
+    $slimeExtract = Join-Path $tempRoot 'slime'
     Expand-Archive -LiteralPath $warriorZip -DestinationPath $warriorExtract -Force
     Expand-Archive -LiteralPath $worldZip -DestinationPath $worldExtract -Force
     Expand-Archive -LiteralPath $hudZip -DestinationPath $hudExtract -Force
+    Expand-Archive -LiteralPath $slimeZip -DestinationPath $slimeExtract -Force
 
     $warriorSheetPath = Join-Path $warriorExtract 'GandalfHardcore Warrior.png'
     $warriorSheet = New-Object System.Drawing.Bitmap $warriorSheetPath
@@ -121,6 +159,19 @@ try {
     }
     finally {
         $warriorSheet.Dispose()
+    }
+
+    $slimeSource = Join-Path $slimeExtract 'GandalfHardcore Slime Enemy'
+    foreach ($color in 'green', 'blue', 'red') {
+        $slimeSheet = New-Object System.Drawing.Bitmap (Join-Path $slimeSource "Slime $color.png")
+        try {
+            Export-SlimeSequence -Sheet $slimeSheet -Color $color -Name 'idle' -Row 0 -FrameCount 4 -OutputDirectory $slimeTarget
+            Export-SlimeSequence -Sheet $slimeSheet -Color $color -Name 'jump' -Row 1 -FrameCount 8 -OutputDirectory $slimeTarget
+            Export-SlimeSequence -Sheet $slimeSheet -Color $color -Name 'death' -Row 2 -FrameCount 4 -OutputDirectory $slimeTarget
+        }
+        finally {
+            $slimeSheet.Dispose()
+        }
     }
 
     $worldSource = Join-Path $worldExtract 'GandalfHardcore FREE Platformer Assets'
@@ -159,7 +210,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $hudSource 'Blue bar.png') -Destination (Join-Path $targetRoot 'hud-energy.png') -Force
 
     @"
-GandalfHardcore FREE Warrior and FREE Platformer Assets
+GandalfHardcore FREE Warrior, Slime Enemy, and FREE Platformer Assets
 Source: https://gandalfhardcore.itch.io/
 License permits use and modification in commercial/non-commercial games.
 Raw or modified asset redistribution is prohibited. This directory is gitignored.
