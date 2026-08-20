@@ -10,6 +10,7 @@ This project follows a server-authoritative 2D action-game layout. The rules bel
 - The physics root owns `Rigidbody2D`, `Collider2D`, networking, health, and gameplay state.
 - Every sprite renderer is parented under a `Feet Anchor` calculated from the collider. Character and slime sprites use a bottom-centre import pivot.
 - Animation code may change frames and horizontal facing, but never invent vertical offsets for grounded states.
+- Raised platforms use `PlatformEffector2D` one-way collision on both the visual client world and the headless server, so actors can jump through from below and land on the same authoritative top surface.
 
 ## Runtime layers
 
@@ -17,6 +18,12 @@ This project follows a server-authoritative 2D action-game layout. The rules bel
 2. Simulation: offline `PlayerMovement` or server `SideScrollerNetworkPlayer` resolves movement and combat.
 3. Replication: Mirror SyncVars and the network transform publish authoritative state.
 4. Presentation: pixel animators, camera, HUD, and effects consume state without changing physics.
+
+## Player profile and avatars
+
+- The WebGL shell collects a sanitized 1–14 character name and one avatar before Unity starts.
+- The local client submits that profile once through a Mirror command; the server validates it and replicates the result through SyncVars.
+- Warrior, ranger, and slime are presentation adapters over one gameplay collider and one movement configuration. Choosing a smaller-looking sprite never changes PvP hit geometry.
 
 ## Network authority
 

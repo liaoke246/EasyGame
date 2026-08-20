@@ -32,6 +32,7 @@ namespace EasyGame.SideScroller.Editor
         public static void PrepareProject()
         {
             EnsureFolders();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ConfigureThirdPartyArt();
             CreateConfigAssets();
             CreateAnimatorController();
@@ -231,6 +232,12 @@ namespace EasyGame.SideScroller.Editor
                     continue;
                 }
 
+                if (usesFeetAnchor)
+                {
+                    spriteSettings.spriteAlignment = (int)SpriteAlignment.Custom;
+                    spriteSettings.spritePivot = requiredPivot;
+                    importer.SetTextureSettings(spriteSettings);
+                }
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.spritePixelsPerUnit = pixelsPerUnit;
@@ -238,12 +245,6 @@ namespace EasyGame.SideScroller.Editor
                 importer.filterMode = FilterMode.Point;
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.alphaIsTransparency = true;
-                if (usesFeetAnchor)
-                {
-                    spriteSettings.spriteAlignment = (int)SpriteAlignment.Custom;
-                    spriteSettings.spritePivot = requiredPivot;
-                    importer.SetTextureSettings(spriteSettings);
-                }
                 importer.SaveAndReimport();
             }
         }
@@ -486,6 +487,7 @@ namespace EasyGame.SideScroller.Editor
             manager.spawnPrefabs.Add(networkZombiePrefab);
             manager.spawnPrefabs.Add(networkSlimePrefab);
             manager.maxConnections = 4;
+            manager.playerSpawnMethod = PlayerSpawnMethod.RoundRobin;
             manager.autoCreatePlayer = true;
             manager.dontDestroyOnLoad = false;
             manager.sendRate = 30;
@@ -511,7 +513,7 @@ namespace EasyGame.SideScroller.Editor
         {
             PlayerSettings.companyName = "EasyGame";
             PlayerSettings.productName = "EasyGame: Dead Rails";
-            PlayerSettings.bundleVersion = "0.2.1";
+            PlayerSettings.bundleVersion = "0.3.1";
             PlayerSettings.runInBackground = true;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;

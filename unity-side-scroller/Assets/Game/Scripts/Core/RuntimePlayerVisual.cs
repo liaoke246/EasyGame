@@ -8,6 +8,11 @@ namespace EasyGame.SideScroller.Core
 
         public static Transform Create(Transform parent, Color bodyColor)
         {
+            return CreatePlayer(parent, PlayerAvatarKind.Warrior, bodyColor);
+        }
+
+        public static Transform CreatePlayer(Transform parent, PlayerAvatarKind avatar, Color bodyColor)
+        {
             Transform visual = CreateFeetAnchor(parent);
 
             GameObject body = new GameObject("Body");
@@ -16,8 +21,8 @@ namespace EasyGame.SideScroller.Core
             bodyRenderer.color = Color.white;
             bodyRenderer.sortingOrder = 10;
 
-            PixelCharacterAnimator spriteAnimator = visual.gameObject.AddComponent<PixelCharacterAnimator>();
-            spriteAnimator.Initialize(bodyRenderer, Color.white);
+            PlayerAvatarAnimator spriteAnimator = visual.gameObject.AddComponent<PlayerAvatarAnimator>();
+            spriteAnimator.Initialize(bodyRenderer, avatar, Color.white);
             Animator legacyAnimator = parent.GetComponent<Animator>();
             if (legacyAnimator != null)
             {

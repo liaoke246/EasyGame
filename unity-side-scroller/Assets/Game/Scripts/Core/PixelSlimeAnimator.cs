@@ -13,10 +13,12 @@ namespace EasyGame.SideScroller.Core
         private int motion = -1;
         private float facing = 1f;
         private float stateStartedAt;
+        private bool loopJump;
 
-        public void Initialize(SpriteRenderer targetRenderer, string color)
+        public void Initialize(SpriteRenderer targetRenderer, string color, bool playerControlled = false)
         {
             target = targetRenderer;
+            loopJump = playerControlled;
             idle = LoadSequence(color, "idle", 4);
             jump = LoadSequence(color, "jump", 8);
             death = LoadSequence(color, "death", 4);
@@ -52,7 +54,7 @@ namespace EasyGame.SideScroller.Core
             float elapsed = Time.time - stateStartedAt;
             target.sprite = motion switch
             {
-                1 => Once(jump, elapsed, 0.065f),
+                1 => loopJump ? Loop(jump, elapsed, 0.082f) : Once(jump, elapsed, 0.065f),
                 3 => Once(death, elapsed, 0.095f),
                 _ => Loop(idle, elapsed, 0.16f),
             };

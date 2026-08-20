@@ -13,7 +13,7 @@ namespace EasyGame.SideScroller.World
 
         private static readonly PlatformDefinition[] Platforms =
         {
-            new PlatformDefinition(-2, 7, -1),
+            new PlatformDefinition(-8, 7, -1),
             new PlatformDefinition(12, 20, 1),
             new PlatformDefinition(25, 32, -1),
             new PlatformDefinition(38, 48, 2),
@@ -81,11 +81,20 @@ namespace EasyGame.SideScroller.World
             Grid grid = gridObject.GetComponent<Grid>();
             grid.cellSize = Vector3.one;
 
-            GameObject mapObject = new GameObject("Collision Tilemap", typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
-            mapObject.transform.SetParent(gridObject.transform, false);
-            Tilemap tilemap = mapObject.GetComponent<Tilemap>();
-            TilemapRenderer renderer = mapObject.GetComponent<TilemapRenderer>();
-            renderer.sortingOrder = 0;
+            GameObject groundObject = new GameObject("Ground Tilemap", typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
+            groundObject.transform.SetParent(gridObject.transform, false);
+            Tilemap groundMap = groundObject.GetComponent<Tilemap>();
+            groundObject.GetComponent<TilemapRenderer>().sortingOrder = 0;
+
+            GameObject platformObject = new GameObject("One Way Platform Tilemap", typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D), typeof(PlatformEffector2D));
+            platformObject.transform.SetParent(gridObject.transform, false);
+            Tilemap platformMap = platformObject.GetComponent<Tilemap>();
+            platformObject.GetComponent<TilemapRenderer>().sortingOrder = 1;
+            TilemapCollider2D platformCollider = platformObject.GetComponent<TilemapCollider2D>();
+            platformCollider.usedByEffector = true;
+            PlatformEffector2D platformEffector = platformObject.GetComponent<PlatformEffector2D>();
+            platformEffector.useOneWay = true;
+            platformEffector.surfaceArc = 170f;
 
             Tile ground = ScriptableObject.CreateInstance<Tile>();
             ground.name = "Runtime Ground Tile";
@@ -105,16 +114,16 @@ namespace EasyGame.SideScroller.World
 
             for (int x = WorldStartX; x <= WorldEndX; x++)
             {
-                tilemap.SetTile(new Vector3Int(x, FloorSurfaceRow, 0), surface);
+                groundMap.SetTile(new Vector3Int(x, FloorSurfaceRow, 0), surface);
                 for (int y = FloorBottomRow; y < FloorSurfaceRow; y++)
                 {
-                    tilemap.SetTile(new Vector3Int(x, y, 0), ground);
+                    groundMap.SetTile(new Vector3Int(x, y, 0), ground);
                 }
             }
 
             foreach (PlatformDefinition platform in Platforms)
             {
-                FillPlatform(tilemap, platformLeft, platformMiddle, platformRight, platform.StartX, platform.EndX, platform.Row);
+                FillPlatform(platformMap, platformLeft, platformMiddle, platformRight, platform.StartX, platform.EndX, platform.Row);
             }
         }
 
@@ -130,7 +139,14 @@ namespace EasyGame.SideScroller.World
         {
             float width = platform.EndX - platform.StartX + 1f;
             Vector2 center = new Vector2((platform.StartX + platform.EndX + 1f) * 0.5f, platform.Row + 0.5f);
-            CreateServerRectangle($"Platform {platform.StartX} to {platform.EndX}", center, new Vector2(width, 1f));
+            GameObject collision = new GameObject($"Platform {platform.StartX} to {platform.EndX}", typeof(BoxCollider2D), typeof(PlatformEffector2D));
+            collision.transform.position = center;
+            BoxCollider2D collider = collision.GetComponent<BoxCollider2D>();
+            collider.size = new Vector2(width, 1f);
+            collider.usedByEffector = true;
+            PlatformEffector2D effector = collision.GetComponent<PlatformEffector2D>();
+            effector.useOneWay = true;
+            effector.surfaceArc = 170f;
         }
 
         private static void CreateServerRectangle(string name, Vector2 position, Vector2 size)

@@ -66,6 +66,36 @@ function Export-CharacterSequence {
     }
 }
 
+function Export-LayeredCharacterSequence {
+    param(
+        [Parameter(Mandatory)][System.Drawing.Bitmap[]]$Layers,
+        [Parameter(Mandatory)][string]$Prefix,
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][int]$Row,
+        [Parameter(Mandatory)][int]$FrameCount,
+        [Parameter(Mandatory)][string]$OutputDirectory
+    )
+
+    for ($index = 0; $index -lt $FrameCount; $index++) {
+        $frame = [System.Drawing.Bitmap]::new(80, 64, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+        $graphics = [System.Drawing.Graphics]::FromImage($frame)
+        try {
+            $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
+            $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+            $source = New-Object System.Drawing.Rectangle ($index * 80), ($Row * 64), 80, 64
+            $destination = New-Object System.Drawing.Rectangle 0, 0, 80, 64
+            foreach ($layer in $Layers) {
+                $graphics.DrawImage($layer, $destination, $source, [System.Drawing.GraphicsUnit]::Pixel)
+            }
+            $frame.Save((Join-Path $OutputDirectory "$Prefix`_$Name`_$index.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+        }
+        finally {
+            $graphics.Dispose()
+            $frame.Dispose()
+        }
+    }
+}
+
 function Export-Tile {
     param(
         [Parameter(Mandatory)][System.Drawing.Bitmap]$Sheet,
@@ -120,28 +150,33 @@ function Export-SlimeSequence {
 $resolvedProject = [IO.Path]::GetFullPath($ProjectRoot)
 $targetRoot = Join-Path $resolvedProject 'Assets\Game\Resources\ThirdParty\GandalfHardcore'
 $characterTarget = Join-Path $targetRoot 'Characters\Warrior'
+$femaleTarget = Join-Path $targetRoot 'Characters\Female'
 $slimeTarget = Join-Path $targetRoot 'Enemies\Slime'
 $worldTarget = Join-Path $targetRoot 'World'
 $backgroundTarget = Join-Path $worldTarget 'Backgrounds'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("easygame-side-art-" + [guid]::NewGuid().ToString('N'))
 
-New-Item -ItemType Directory -Force -Path $characterTarget, $slimeTarget, $worldTarget, $backgroundTarget, $tempRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $characterTarget, $femaleTarget, $slimeTarget, $worldTarget, $backgroundTarget, $tempRoot | Out-Null
 
 try {
     $warriorZip = Join-Path $tempRoot 'warrior.zip'
+    $characterPackZip = Join-Path $tempRoot 'character-pack.zip'
     $worldZip = Join-Path $tempRoot 'world.zip'
     $hudZip = Join-Path $tempRoot 'hud.zip'
     $slimeZip = Join-Path $tempRoot 'slime.zip'
     Get-ItchFreeUpload -Slug '2d-pixel-art-male-and-female-character' -UploadId 11012135 -OutputFile $warriorZip
+    Get-ItchFreeUpload -Slug '2d-pixel-art-male-and-female-character' -UploadId 9831286 -OutputFile $characterPackZip
     Get-ItchFreeUpload -Slug '2d-pixel-art-male-and-female-character' -UploadId 10819522 -OutputFile $slimeZip
     Get-ItchFreeUpload -Slug 'free-pixel-art-sidescroller-asset-pack-32x32-overworld' -UploadId 18452546 -OutputFile $worldZip
     Get-ItchFreeUpload -Slug 'free-pixel-art-sidescroller-asset-pack-32x32-overworld' -UploadId 10272614 -OutputFile $hudZip
 
     $warriorExtract = Join-Path $tempRoot 'warrior'
+    $characterPackExtract = Join-Path $tempRoot 'character-pack'
     $worldExtract = Join-Path $tempRoot 'world'
     $hudExtract = Join-Path $tempRoot 'hud'
     $slimeExtract = Join-Path $tempRoot 'slime'
     Expand-Archive -LiteralPath $warriorZip -DestinationPath $warriorExtract -Force
+    Expand-Archive -LiteralPath $characterPackZip -DestinationPath $characterPackExtract -Force
     Expand-Archive -LiteralPath $worldZip -DestinationPath $worldExtract -Force
     Expand-Archive -LiteralPath $hudZip -DestinationPath $hudExtract -Force
     Expand-Archive -LiteralPath $slimeZip -DestinationPath $slimeExtract -Force
@@ -159,6 +194,33 @@ try {
     }
     finally {
         $warriorSheet.Dispose()
+    }
+
+    $femaleSource = Join-Path $characterPackExtract 'GandalfHardcore Character Asset Pack'
+    $femaleLayerPaths = @(
+        'Character skin colors\Female Skin3.png'
+        'Female Clothing\Boots.png'
+        'Female Clothing\Blue Corset.png'
+        'Female Clothing\Skirt.png'
+        'Female Hair\Female Hair2.png'
+        'Female Hand\Female Sword.png'
+    )
+    [System.Drawing.Bitmap[]]$femaleLayers = @($femaleLayerPaths | ForEach-Object {
+        New-Object System.Drawing.Bitmap (Join-Path $femaleSource $_)
+    })
+    try {
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'idle' -Row 0 -FrameCount 5 -OutputDirectory $femaleTarget
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'walk' -Row 1 -FrameCount 8 -OutputDirectory $femaleTarget
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'run' -Row 2 -FrameCount 8 -OutputDirectory $femaleTarget
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'jump' -Row 3 -FrameCount 4 -OutputDirectory $femaleTarget
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'fall' -Row 4 -FrameCount 4 -OutputDirectory $femaleTarget
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'attack' -Row 5 -FrameCount 6 -OutputDirectory $femaleTarget
+        Export-LayeredCharacterSequence -Layers $femaleLayers -Prefix 'female' -Name 'death' -Row 6 -FrameCount 10 -OutputDirectory $femaleTarget
+    }
+    finally {
+        foreach ($layer in $femaleLayers) {
+            $layer.Dispose()
+        }
     }
 
     $slimeSource = Join-Path $slimeExtract 'GandalfHardcore Slime Enemy'

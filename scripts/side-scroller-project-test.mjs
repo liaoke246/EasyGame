@@ -12,6 +12,8 @@ const required = [
   "Assets/Game/Scripts/Core/PixelSlimeAnimator.cs",
   "Assets/Game/Scripts/Core/GroundProbe2D.cs",
   "Assets/Game/Scripts/Core/ActorGeometry2D.cs",
+  "Assets/Game/Scripts/Core/PlayerProfileSelection.cs",
+  "Assets/Game/Scripts/Core/PlayerAvatarAnimator.cs",
   "Assets/Game/Scripts/Core/MobileInputBridge.cs",
   "Assets/Game/Scripts/Combat/PlayerCombat.cs",
   "Assets/Game/Scripts/World/SideWorldBuilder.cs",
@@ -53,6 +55,13 @@ assert.match(movement, /coyoteRemaining/);
 assert.match(movement, /jumpBufferRemaining/);
 assert.match(movement, /GroundProbe2D\.Check/);
 assert.match(movement, /fallGravityMultiplier/);
+assert.doesNotMatch(movement, /velocity\.y \*= config\.jumpCutMultiplier/);
+
+const movementConfig = await readFile(`${root}/Assets/Game/Resources/Config/PlayerMovement.asset`, "utf8");
+assert.match(movementConfig, /moveSpeed: 5\.6/);
+assert.match(movementConfig, /groundAcceleration: 26/);
+assert.match(movementConfig, /jumpVelocity: 15/);
+assert.match(movementConfig, /lowJumpGravityMultiplier: 1\.08/);
 
 const world = await readFile(`${root}/Assets/Game/Scripts/World/SideWorldBuilder.cs`, "utf8");
 assert.match(world, /Tilemap/);
@@ -64,6 +73,8 @@ assert.match(world, /GandalfHardcore/);
 assert.match(world, /ground-top/);
 assert.match(world, /PlatformDefinition\[] Platforms/);
 assert.match(world, /platform\.Row \+ 0\.5f/);
+assert.match(world, /PlatformEffector2D/);
+assert.match(world, /usedByEffector = true/);
 
 const bootstrap = await readFile(`${root}/Assets/Game/Scripts/Core/SideScrollerBootstrap.cs`, "utf8");
 assert.match(bootstrap, /Utils\.IsHeadless\(\)/);
@@ -79,6 +90,7 @@ assert.match(animation, /SimpleWebTransport/);
 assert.match(animation, /StandaloneLinux64/);
 assert.match(animation, /StandaloneBuildSubtarget\.Server/);
 assert.match(animation, /HeadlessStartOptions\.AutoStartServer/);
+assert.match(animation, /PlayerSpawnMethod\.RoundRobin/);
 
 const networkPlayer = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs`, "utf8");
 assert.match(networkPlayer, /\[Command\(channel = Channels\.Unreliable\)\]/);
@@ -89,6 +101,8 @@ assert.match(networkPlayer, /ResolveAttackHits/);
 assert.match(networkPlayer, /SideScrollerNetworkSlime/);
 assert.match(networkPlayer, /ServerRespawn/);
 assert.match(networkPlayer, /attacker\.kills\+\+/);
+assert.match(networkPlayer, /CmdConfigureProfile/);
+assert.match(networkPlayer, /PlayerAvatarKind/);
 
 const characterAnimator = await readFile(`${root}/Assets/Game/Scripts/Core/PixelCharacterAnimator.cs`, "utf8");
 assert.match(characterAnimator, /GandalfHardcore/);
@@ -117,6 +131,13 @@ assert.match(actorGeometry, /FeetLocalPosition/);
 const runtimeVisual = await readFile(`${root}/Assets/Game/Scripts/Core/RuntimePlayerVisual.cs`, "utf8");
 assert.match(runtimeVisual, /Feet Anchor/);
 assert.match(runtimeVisual, /ActorGeometry2D\.FeetLocalPosition/);
+assert.match(runtimeVisual, /CreatePlayer/);
+
+const profileSelection = await readFile(`${root}/Assets/Game/Scripts/Core/PlayerProfileSelection.cs`, "utf8");
+assert.match(profileSelection, /Warrior/);
+assert.match(profileSelection, /Ranger/);
+assert.match(profileSelection, /Slime/);
+assert.match(profileSelection, /SanitizeName/);
 
 assert.match(animation, /spritePivot = requiredPivot/);
 
@@ -130,6 +151,10 @@ assert.match(template, /viewport-fit=cover/);
 assert.match(template, /id="mobile-controls"/);
 assert.match(template, /SetMobileControl/);
 assert.match(template, /游戏大厅/);
+assert.match(template, /id="profile-setup"/);
+assert.match(template, /id="player-name"/);
+assert.match(template, /data-avatar="female"/);
+assert.match(template, /data-avatar="slime"/);
 
 const lobby = await readFile("portal/index.html", "utf8");
 assert.match(lobby, /href="\/arena\/"/);

@@ -8,9 +8,9 @@ namespace EasyGame.SideScroller.Core
     /// </summary>
     public sealed class PixelCharacterAnimator : MonoBehaviour
     {
-        private const string CharacterFolder = "ThirdParty/GandalfHardcore/Characters/Warrior";
-
         private SpriteRenderer target;
+        private string characterFolder;
+        private string filePrefix;
         private Sprite[] idle;
         private Sprite[] walk;
         private Sprite[] run;
@@ -24,10 +24,12 @@ namespace EasyGame.SideScroller.Core
         private float speed;
         private float stateStartedAt;
 
-        public void Initialize(SpriteRenderer targetRenderer, Color tint)
+        public void Initialize(SpriteRenderer targetRenderer, Color tint, string characterFolderName = "Warrior", string spritePrefix = "warrior")
         {
             target = targetRenderer;
             baseTint = tint;
+            characterFolder = $"ThirdParty/GandalfHardcore/Characters/{characterFolderName}";
+            filePrefix = spritePrefix;
             idle = LoadSequence("idle", 5);
             walk = LoadSequence("walk", 8);
             run = LoadSequence("run", 8);
@@ -125,15 +127,15 @@ namespace EasyGame.SideScroller.Core
             return frames[index];
         }
 
-        private static Sprite[] LoadSequence(string name, int count)
+        private Sprite[] LoadSequence(string name, int count)
         {
             Sprite[] frames = new Sprite[count];
             for (int index = 0; index < count; index++)
             {
-                frames[index] = Resources.Load<Sprite>($"{CharacterFolder}/warrior_{name}_{index}");
+                frames[index] = Resources.Load<Sprite>($"{characterFolder}/{filePrefix}_{name}_{index}");
                 if (frames[index] == null)
                 {
-                    Debug.LogError($"Missing licensed pixel character frame: warrior_{name}_{index}. Run scripts/install-side-scroller-art.ps1.");
+                    Debug.LogError($"Missing licensed pixel character frame: {filePrefix}_{name}_{index}. Run scripts/install-side-scroller-art.ps1.");
                 }
             }
             return frames;

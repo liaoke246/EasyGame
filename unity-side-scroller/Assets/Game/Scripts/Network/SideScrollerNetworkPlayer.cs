@@ -14,6 +14,7 @@ namespace EasyGame.SideScroller.Network
         private const int MaxHealthValue = 100;
 
         [SyncVar] private string displayName = "SURVIVOR";
+        [SyncVar(hook = nameof(OnAvatarChanged))] private PlayerAvatarKind avatarKind = PlayerAvatarKind.Warrior;
         [SyncVar] private int health = MaxHealthValue;
         [SyncVar] private int level = 1;
         [SyncVar] private int experience;
@@ -31,13 +32,14 @@ namespace EasyGame.SideScroller.Network
         public int Kills => kills;
         public int Deaths => deaths;
         public bool IsDefeated => defeated;
+        public PlayerAvatarKind AvatarKind => avatarKind;
 
         private Rigidbody2D body;
         private Collider2D bodyCollider;
         private Player.PlayerInputReader input;
         private Animator animator;
         private Transform visualRoot;
-        private PixelCharacterAnimator spriteAnimator;
+        private PlayerAvatarAnimator spriteAnimator;
         private PlayerMovementConfig config;
         private float serverHorizontal;
         private bool serverJumpHeld;
@@ -75,13 +77,13 @@ namespace EasyGame.SideScroller.Network
             }
             else if (existingVisual == null)
             {
-                visualRoot = RuntimePlayerVisual.Create(transform, ColorForObject(GetComponent<NetworkIdentity>().netId));
+                visualRoot = RuntimePlayerVisual.CreatePlayer(transform, avatarKind, ColorForObject(GetComponent<NetworkIdentity>().netId));
             }
             else
             {
                 visualRoot = existingVisual;
             }
-            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<PixelCharacterAnimator>() : null;
+            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<PlayerAvatarAnimator>() : null;
 
             input.enabled = false;
             body.gravityScale = config.gravityScale;
@@ -111,6 +113,7 @@ namespace EasyGame.SideScroller.Network
         {
             Local = this;
             input.enabled = true;
+            CmdConfigureProfile(PlayerProfileSelection.RequestedName, PlayerProfileSelection.RequestedAvatar);
             Camera camera = Camera.main;
             if (camera != null && camera.TryGetComponent(out SideCameraRig rig))
             {
@@ -239,6 +242,14 @@ namespace EasyGame.SideScroller.Network
             }
             serverHorizontal = Mathf.Clamp(horizontal, -1f, 1f);
             serverJumpHeld = jumpHeld;
+        }
+
+        [Command]
+        private void CmdConfigureProfile(string requestedName, PlayerAvatarKind requestedAvatar)
+        {
+            string fallback = displayName;
+            displayName = PlayerProfileSelection.SanitizeName(requestedName, fallback);
+            avatarKind = PlayerProfileSelection.SanitizeAvatar(requestedAvatar);
         }
 
         [Command]
@@ -379,6 +390,21 @@ namespace EasyGame.SideScroller.Network
                 visualRoot.localScale = scale;
             }
             gameObject.name = $"{displayName}  LV.{level}  HP.{health}  EXP.{experience}";
+        }
+
+        private void OnAvatarChanged(PlayerAvatarKind previous, PlayerAvatarKind next)
+        {
+            if (Utils.IsHeadless())
+            {
+                return;
+            }
+
+            if (visualRoot != null)
+            {
+                Destroy(visualRoot.gameObject);
+            }
+            visualRoot = RuntimePlayerVisual.CreatePlayer(transform, next, ColorForObject(netId));
+            spriteAnimator = visualRoot.GetComponent<PlayerAvatarAnimator>();
         }
 
         private bool ProbeGround()

@@ -12,17 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b443e81b9da072145bc814d73408c2b5, type: 3}
   m_Name: PlayerMovement
   m_EditorClassIdentifier: Assembly-CSharp::EasyGame.SideScroller.Data.PlayerMovementConfig
-  moveSpeed: 7.25
-  groundAcceleration: 58
-  groundDeceleration: 72
-  airControl: 0.72
-  jumpVelocity: 12.8
-  coyoteTime: 0.12
-  jumpBuffer: 0.14
-  jumpCutMultiplier: 0.48
-  fallGravityMultiplier: 1.75
-  lowJumpGravityMultiplier: 1.32
-  gravityScale: 3.15
-  maxFallSpeed: 19
-  groundProbeDistance: 0.12
+  moveSpeed: 5.6
+  groundAcceleration: 26
+  groundDeceleration: 34
+  airControl: 0.58
+  jumpVelocity: 15
+  coyoteTime: 0.16
+  jumpBuffer: 0.18
+  fallGravityMultiplier: 1.65
+  lowJumpGravityMultiplier: 1.08
+  gravityScale: 3.05
+  maxFallSpeed: 18
+  groundProbeDistance: 0.16
   groundProbeWidth: 0.78

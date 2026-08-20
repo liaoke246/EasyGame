@@ -15,7 +15,6 @@ namespace EasyGame.SideScroller.Player
         private PlayerInputReader input;
         private float coyoteRemaining;
         private float jumpBufferRemaining;
-        private bool cutJumpRequested;
 
         public bool IsGrounded { get; private set; }
         public float HorizontalInput => input != null ? input.Horizontal : 0f;
@@ -66,7 +65,7 @@ namespace EasyGame.SideScroller.Player
                 jumpBufferRemaining = Mathf.Max(0f, jumpBufferRemaining - Time.deltaTime);
             }
 
-            cutJumpRequested |= input.ConsumeJumpReleased();
+            input.ConsumeJumpReleased();
         }
 
         private void FixedUpdate()
@@ -92,12 +91,6 @@ namespace EasyGame.SideScroller.Player
                 coyoteRemaining = 0f;
                 IsGrounded = false;
             }
-
-            if (cutJumpRequested && velocity.y > 0f)
-            {
-                velocity.y *= config.jumpCutMultiplier;
-            }
-            cutJumpRequested = false;
 
             if (velocity.y < -0.01f)
             {

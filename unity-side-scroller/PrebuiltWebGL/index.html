@@ -7,14 +7,35 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>EasyGame Dead Rails</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, "PingFang SC", sans-serif; }
+    :root { color-scheme: dark; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #091016; touch-action: none; }
+    [hidden] { display: none !important; }
+    button, input { font: inherit; }
     #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; background: #091016; outline: 0; }
-    #loader { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: radial-gradient(circle at 50% 42%, #1b343a, #091016 62%); transition: opacity .35s ease; }
+    #profile-setup, #loader { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #1c3a3e, #091016 66%); }
+    #profile-setup { z-index: 30; overflow: auto; padding: max(20px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); touch-action: pan-y; }
+    .profile-card { width: min(760px, 100%); padding: clamp(22px, 4vw, 38px); border: 1px solid rgba(229,198,113,.4); border-radius: 20px; background: rgba(7,15,20,.94); box-shadow: 0 28px 100px rgba(0,0,0,.56); }
+    .eyebrow { color: #d7bc71; font-size: 12px; font-weight: 900; letter-spacing: .2em; }
+    h1 { margin: 8px 0 5px; font-size: clamp(26px, 5vw, 44px); }
+    .intro { margin: 0 0 22px; color: #9eaaa6; font-size: 14px; }
+    .field-label { display: block; margin: 0 0 8px; color: #dce6e2; font-size: 13px; font-weight: 800; }
+    #player-name { width: 100%; height: 48px; padding: 0 14px; border: 1px solid rgba(255,255,255,.22); border-radius: 10px; outline: none; color: #fff; background: rgba(255,255,255,.07); touch-action: manipulation; }
+    #player-name:focus { border-color: #58c9aa; box-shadow: 0 0 0 3px rgba(88,201,170,.14); }
+    .choose-label { margin-top: 20px; }
+    .avatar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .avatar-option { min-height: 126px; padding: 16px 10px; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; color: #dce6e2; background: rgba(255,255,255,.035); cursor: pointer; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+    .avatar-option:hover { transform: translateY(-2px); border-color: rgba(229,198,113,.5); }
+    .avatar-option.selected { border-color: #e5c671; color: #fff6cf; background: linear-gradient(145deg, rgba(229,198,113,.19), rgba(71,160,138,.12)); box-shadow: inset 0 0 0 1px rgba(229,198,113,.22); }
+    .avatar-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 9px; border: 2px solid currentColor; border-radius: 8px; font-size: 23px; font-weight: 900; image-rendering: pixelated; }
+    .avatar-option[data-avatar="slime"] .avatar-icon { height: 34px; margin-top: 14px; border-radius: 50% 50% 9px 9px; color: #70d6ef; }
+    .avatar-name { display: block; font-weight: 900; }
+    .avatar-note { display: block; margin-top: 4px; color: #8fa19a; font-size: 11px; }
+    #start-game { width: 100%; height: 50px; margin-top: 20px; border: 1px solid #efd77e; border-radius: 12px; color: #10201c; background: linear-gradient(135deg, #f1d878, #58c9aa); font-weight: 1000; cursor: pointer; }
+    #start-game:active { transform: translateY(1px); }
+    #loader { z-index: 20; transition: opacity .35s ease; }
     .loader-card { width: min(430px, calc(100vw - 42px)); padding: 30px; border: 1px solid rgba(229,198,113,.36); border-radius: 16px; background: rgba(7,15,20,.88); box-shadow: 0 24px 80px rgba(0,0,0,.48); }
-    .eyebrow { color: #d7bc71; font-size: 12px; font-weight: 800; letter-spacing: .2em; }
-    h1 { margin: 9px 0 18px; font-size: clamp(24px, 5vw, 42px); }
+    .loader-card h1 { margin-bottom: 18px; }
     .track { height: 6px; overflow: hidden; border-radius: 10px; background: #1d2a2f; }
     #progress { width: 0; height: 100%; background: linear-gradient(90deg,#51c7a6,#e5c671); transition: width .18s ease; }
     #status { margin-top: 12px; color: #9eaaa6; font-size: 12px; }
@@ -25,59 +46,86 @@
     #right { left: calc(max(16px, env(safe-area-inset-left)) + clamp(70px, 20vw, 100px)); }
     #jump { right: max(16px, env(safe-area-inset-right)); color: #12201d; background: rgba(91,213,178,.8); }
     #attack { right: calc(max(16px, env(safe-area-inset-right)) + clamp(70px, 20vw, 100px)); }
-    @media (pointer: coarse), (max-width: 900px) { #mobile-controls { display: block; } #back { font-size: 12px; } }
+    @media (pointer: coarse), (max-width: 900px) { body.game-ready #mobile-controls { display: block; } #back { font-size: 12px; } }
+    @media (max-width: 620px) { .profile-card { padding: 20px; } .avatar-grid { gap: 7px; } .avatar-option { min-height: 112px; padding: 12px 6px; } .avatar-note { display: none; } }
     @media (orientation: portrait) { .control { bottom: max(28px, env(safe-area-inset-bottom)); } }
   </style>
 </head>
 <body>
   <canvas id="unity-canvas" tabindex="-1"></canvas>
   <a id="back" href="/">← 游戏大厅</a>
+  <section id="profile-setup" aria-labelledby="setup-title">
+    <form class="profile-card" id="profile-form">
+      <div class="eyebrow">EASYGAME // PLAYER PROFILE</div>
+      <h1 id="setup-title">进入森林前线</h1>
+      <p class="intro">输入你的名字并选择角色。三种角色使用相同属性与碰撞体，PVP 公平一致。</p>
+      <label class="field-label" for="player-name">玩家名字（英文、数字、空格）</label>
+      <input id="player-name" name="playerName" maxlength="14" pattern="[A-Za-z0-9 _-]{1,14}" title="请输入 1–14 位英文、数字、空格、下划线或短横线" autocomplete="nickname" enterkeyhint="go" placeholder="PLAYER-2048" required>
+      <div class="field-label choose-label">选择角色</div>
+      <div class="avatar-grid" role="radiogroup" aria-label="角色选择">
+        <button class="avatar-option selected" type="button" data-avatar="warrior" role="radio" aria-checked="true">
+          <span class="avatar-icon">⚔</span><span class="avatar-name">男战士</span><span class="avatar-note">完整近战动作组</span>
+        </button>
+        <button class="avatar-option" type="button" data-avatar="female" role="radio" aria-checked="false">
+          <span class="avatar-icon">♀</span><span class="avatar-name">女游侠</span><span class="avatar-note">独立女性动作组</span>
+        </button>
+        <button class="avatar-option" type="button" data-avatar="slime" role="radio" aria-checked="false">
+          <span class="avatar-icon">●</span><span class="avatar-name">蓝史莱姆</span><span class="avatar-note">弹跳式移动与攻击</span>
+        </button>
+      </div>
+      <button id="start-game" type="submit">连接服务器并开始</button>
+    </form>
+  </section>
   <div id="mobile-controls" aria-label="手机操作">
     <button id="left" class="control" aria-label="向左">◀</button>
     <button id="right" class="control" aria-label="向右">▶</button>
     <button id="attack" class="control" aria-label="攻击">ATK</button>
     <button id="jump" class="control" aria-label="跳跃">JUMP</button>
   </div>
-  <div id="loader">
+  <div id="loader" hidden>
     <div class="loader-card">
       <div class="eyebrow">EASYGAME // 2D CO-OP</div>
       <h1>Dead Rails</h1>
       <div class="track"><div id="progress"></div></div>
-      <div id="status">正在装载横版生存区…</div>
+      <div id="status" aria-live="polite">正在装载横版生存区…</div>
     </div>
   </div>
   <script>
     const canvas = document.querySelector("#unity-canvas");
+    const setup = document.querySelector("#profile-setup");
+    const form = document.querySelector("#profile-form");
+    const nameInput = document.querySelector("#player-name");
+    const avatarButtons = [...document.querySelectorAll(".avatar-option")];
     const loader = document.querySelector("#loader");
     const progress = document.querySelector("#progress");
     const status = document.querySelector("#status");
     const buildUrl = "Build";
-    const releaseVersion = "0.2.1";
+    const releaseVersion = "0.3.1";
+    const pageUrl = new URL(window.location.href);
+    let selectedAvatar = pageUrl.searchParams.get("avatar") || localStorage.getItem("easygame-2d-avatar") || "warrior";
     let unityInstance = null;
-    const loaderUrl = buildUrl + "/PrebuiltWebGL.loader.js?v=" + releaseVersion;
-    const config = {
-      arguments: [],
-      dataUrl: buildUrl + "/PrebuiltWebGL.data.unityweb?v=" + releaseVersion,
-      frameworkUrl: buildUrl + "/PrebuiltWebGL.framework.js.unityweb?v=" + releaseVersion,
-      codeUrl: buildUrl + "/PrebuiltWebGL.wasm.unityweb?v=" + releaseVersion,
-      streamingAssetsUrl: "StreamingAssets",
-      companyName: "EasyGame",
-      productName: "EasyGame Dead Rails",
-      productVersion: "0.2.1",
-    };
+    let gameStarting = false;
+    nameInput.value = pageUrl.searchParams.get("playerName") || localStorage.getItem("easygame-2d-name") || `PLAYER-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    function selectAvatar(value) {
+      selectedAvatar = ["warrior", "female", "slime"].includes(value) ? value : "warrior";
+      avatarButtons.forEach(button => {
+        const selected = button.dataset.avatar === selectedAvatar;
+        button.classList.toggle("selected", selected);
+        button.setAttribute("aria-checked", String(selected));
+      });
+    }
+    avatarButtons.forEach(button => button.addEventListener("click", () => selectAvatar(button.dataset.avatar)));
+    selectAvatar(selectedAvatar);
 
     function emitKey(type, code, key) {
       window.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
       canvas.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
       canvas.focus();
     }
-
     function sendMobileControl(control, pressed) {
-      if (unityInstance) {
-        unityInstance.SendMessage("SideScroller Game", "SetMobileControl", `${control}:${pressed ? 1 : 0}`);
-      }
+      if (unityInstance) unityInstance.SendMessage("SideScroller Game", "SetMobileControl", `${control}:${pressed ? 1 : 0}`);
     }
-
     function bindHold(id, control, code, key) {
       const button = document.querySelector(id);
       const down = event => { event.preventDefault(); sendMobileControl(control, true); emitKey("keydown", code, key); };
@@ -92,20 +140,49 @@
     bindHold("#jump", "jump", "Space", " ");
     bindHold("#attack", "attack", "KeyJ", "j");
 
-    const script = document.createElement("script");
-    script.src = loaderUrl;
-    script.onload = () => createUnityInstance(canvas, config, value => {
-      progress.style.width = Math.round(value * 100) + "%";
-      status.textContent = `正在装载横版生存区… ${Math.round(value * 100)}%`;
-    }).then(instance => {
-      unityInstance = instance;
-      loader.style.opacity = "0";
-      setTimeout(() => loader.remove(), 380);
-      canvas.focus();
-    }).catch(message => {
-      status.textContent = "加载失败：" + message;
-    });
-    document.body.appendChild(script);
+    function startUnity() {
+      const loaderUrl = buildUrl + "/PrebuiltWebGL.loader.js?v=" + releaseVersion;
+      const config = {
+        arguments: [],
+        dataUrl: buildUrl + "/PrebuiltWebGL.data.unityweb?v=" + releaseVersion,
+        frameworkUrl: buildUrl + "/PrebuiltWebGL.framework.js.unityweb?v=" + releaseVersion,
+        codeUrl: buildUrl + "/PrebuiltWebGL.wasm.unityweb?v=" + releaseVersion,
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "EasyGame",
+        productName: "EasyGame Dead Rails",
+        productVersion: "0.3.1",
+      };
+      const script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => createUnityInstance(canvas, config, value => {
+        progress.style.width = Math.round(value * 100) + "%";
+        status.textContent = `正在装载横版生存区… ${Math.round(value * 100)}%`;
+      }).then(instance => {
+        unityInstance = instance;
+        document.body.classList.add("game-ready");
+        loader.style.opacity = "0";
+        setTimeout(() => loader.remove(), 380);
+        canvas.focus();
+      }).catch(message => { status.textContent = "加载失败：" + message; });
+      document.body.appendChild(script);
+    }
+
+    function beginGame() {
+      if (gameStarting) return;
+      const playerName = nameInput.value.trim().replace(/[^A-Za-z0-9_\- ]/g, "").slice(0, 14);
+      if (!playerName) { nameInput.focus(); return; }
+      gameStarting = true;
+      localStorage.setItem("easygame-2d-name", playerName);
+      localStorage.setItem("easygame-2d-avatar", selectedAvatar);
+      pageUrl.searchParams.set("playerName", playerName);
+      pageUrl.searchParams.set("avatar", selectedAvatar);
+      history.replaceState(null, "", pageUrl);
+      setup.hidden = true;
+      loader.hidden = false;
+      startUnity();
+    }
+    form.addEventListener("submit", event => { event.preventDefault(); beginGame(); });
+    if (pageUrl.searchParams.get("autostart") === "1") beginGame();
   </script>
 </body>
 </html>

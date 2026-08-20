@@ -78,7 +78,10 @@ namespace EasyGame.SideScroller.Core
             PlayerAnimation animation = player.AddComponent<PlayerAnimation>();
             player.AddComponent<PlayerCombat>();
 
-            Transform visualRoot = RuntimePlayerVisual.Create(player.transform, new Color(0.21f, 0.68f, 0.58f));
+            Transform visualRoot = RuntimePlayerVisual.CreatePlayer(
+                player.transform,
+                PlayerProfileSelection.RequestedAvatar,
+                new Color(0.21f, 0.68f, 0.58f));
             PlayerMovementConfig config = Resources.Load<PlayerMovementConfig>("Config/PlayerMovement");
             if (config == null)
             {

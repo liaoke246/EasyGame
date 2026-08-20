@@ -12,7 +12,7 @@ namespace EasyGame.SideScroller.Player
         private Animator animator;
         private PlayerMovement movement;
         private Transform visualRoot;
-        private Core.PixelCharacterAnimator spriteAnimator;
+        private Core.PlayerAvatarAnimator spriteAnimator;
         private float actionLockedUntil;
         private int actionMotion;
         private float facing = 1f;
@@ -22,7 +22,7 @@ namespace EasyGame.SideScroller.Player
             animator = targetAnimator;
             movement = targetMovement;
             visualRoot = targetVisualRoot;
-            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<Core.PixelCharacterAnimator>() : null;
+            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<Core.PlayerAvatarAnimator>() : null;
         }
 
         private void Awake()

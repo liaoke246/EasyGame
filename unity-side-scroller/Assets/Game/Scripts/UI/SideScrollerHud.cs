@@ -1,3 +1,4 @@
+using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Network;
 using UnityEngine;
 
@@ -23,7 +24,7 @@ namespace EasyGame.SideScroller.UI
             int experience = player != null ? player.Experience : 0;
             int kills = player != null ? player.Kills : 0;
             int deaths = player != null ? player.Deaths : 0;
-            string playerName = player != null ? player.DisplayName : "OFFLINE SURVIVOR";
+            string playerName = player != null ? player.DisplayName : PlayerProfileSelection.RequestedName;
 
             Rect panel = new Rect(18f, 18f, 310f, 112f);
             PixelHudDrawing.FillRect(panel, new Color(0.025f, 0.045f, 0.052f, 0.9f));
