@@ -6,12 +6,13 @@ share scenes, gameplay scripts, or art with the existing top-down game in
 
 ## Current playable slice
 
-- real Unity Grid and Tilemap collision
-- responsive Rigidbody2D movement
+- Unity Grid/Tilemap artwork with one shared continuous collision factory for client and server
+- shared fixed-step Rigidbody2D movement motor
 - coyote time and jump buffering
 - variable-height jump and faster fall
 - smooth camera follow with map bounds
-- Animator states for idle, run, jump, fall, attack, hit, and death
+- whole-character licensed sprite sequences for idle, walk/run, jump, fall, attack, hit, and death
+- player names and warrior/ranger/slime selection; monsters, PvP, XP and respawning
 - keyboard and mobile WebGL controls
 
 Open `Assets/Game/Scenes/SideScroller.unity`. The scene and configuration assets
@@ -24,6 +25,8 @@ can be regenerated with **EasyGame 2D > Prepare Project**.
 - Attack prototype: `J` or left mouse button
 
 ## Builds
+
+Builds run the Unity regression suite first and produce matching source/artifact manifests. After building **both** WebGL and Linux server, run `npm run test:side-scroller` and `npm run build:web-release` from the repository root. A source edit invalidates the old build manifests and blocks publication until rebuilt. See [GAMEPLAY_ARCHITECTURE.md](GAMEPLAY_ARCHITECTURE.md) for invariants and remaining limitations.
 
 Use **EasyGame 2D > Build Web Client**, or run:
 

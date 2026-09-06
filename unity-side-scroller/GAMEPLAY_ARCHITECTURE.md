@@ -15,7 +15,7 @@ This project follows a server-authoritative 2D action-game layout. The rules bel
 ## Runtime layers
 
 1. Input: `PlayerInputReader` and `MobileInputBridge` collect intent.
-2. Simulation: offline `PlayerMovement` or server `SideScrollerNetworkPlayer` resolves movement and combat.
+2. Simulation: offline `PlayerMovement` and server `SideScrollerNetworkPlayer` both delegate to `PlayerMotor2D` at a fixed physics timestep. They never maintain separate jump formulas.
 3. Replication: Mirror SyncVars and the network transform publish authoritative state.
 4. Presentation: pixel animators, camera, HUD, and effects consume state without changing physics.
 
@@ -23,14 +23,18 @@ This project follows a server-authoritative 2D action-game layout. The rules bel
 
 - The WebGL shell collects a sanitized 1–14 character name and one avatar before Unity starts.
 - The local client submits that profile once through a Mirror command; the server validates it and replicates the result through SyncVars.
-- Warrior, ranger, and slime are presentation adapters over one gameplay collider and one movement configuration. Choosing a smaller-looking sprite never changes PvP hit geometry.
+- Warrior and ranger use a humanoid capsule; the playable slime uses a short horizontal capsule. All player colliders share the same root-to-feet offset and movement configuration. Changing profile cannot move the feet through the floor. Avatar PvP balance is not yet a competitive-game guarantee.
 
 ## Network authority
 
 - The server owns positions, jumps, health, damage, kills, deaths, monster AI, and respawning.
 - Clients send bounded input intent and never submit damage results.
-- PvP and monster attacks use collider-centred overlap queries on the server.
+- Movement input is finite, clamped, sequenced, and expires after 350 ms without a fresh packet. Jump edges are reliable and consumed on a physics step; coyote time/buffers advance only on that step.
+- Grounding uses downward rays, support normals and static/kinematic support. Walls, platform interiors, rising actors and other dynamic actors cannot grant a ground jump.
+- PvP and monster attacks use reusable scene-local queries, exclude triggers/self, deduplicate compound bodies and reject targets behind solid terrain. Player attacks have windup, hit, recovery and cooldown; being hit or dying cancels pending damage.
+- Dead actors disable both collision and simulation; respawn restores both and resets transient state. Clients animate from replicated motion/speed, not a non-simulated rigidbody velocity.
 - Local HUD reads synchronized health; only remote players receive an overhead health bar.
+- Every IMGUI overlay restores global GUI state after drawing. XP is consumed into real levels, not merely wrapped by the progress bar.
 
 ## Release gates
 
@@ -40,3 +44,13 @@ This project follows a server-authoritative 2D action-game layout. The rules bel
 - Two WebGL clients connect and validate player count, PvP damage, death, and respawn.
 - Player, zombie, and slime feet are visually checked against both floor and platform surfaces.
 - Desktop jump and mobile landscape touch controls are exercised in the built WebGL player.
+
+## Automated verification and known boundaries
+
+`EasyGame.SideScroller.Editor.ReleaseVerification.RunRegressionTests` runs actual Unity 2D physics in isolated editor preview scenes, combat queries, sprite-state checks and network-input/progression rules. The build entry points run this suite before producing artifacts. These are executable regression scenarios, not assertions that source code contains a keyword.
+
+Both WebGL and Linux outputs contain `release-manifest.json`. It records the same normalized source fingerprint plus hashes of every output file. `scripts/verify-side-scroller-release.mjs` rejects stale sources, altered/missing/extra artifacts, or mismatched client/server versions before assembling a release. Generated scenes/prefabs are recreated from the fingerprinted project builder. Raw licensed art is installed separately and not redistributed in this repository.
+
+Web shell behavior tests execute the actual template script with denied storage, failed loading, viewport changes and multiple pointer ownership. They do not emulate a real iPhone GPU/Safari engine. Real-device performance and internet latency still require device/network testing.
+
+Movement remains server-authoritative with interpolation, not client prediction/reconciliation. This deliberately avoids two competing physics authorities but still incurs round-trip input latency. Competitive combat balancing, durable character saves, reconnect session restoration and a full content progression loop are separate unfinished product work.

@@ -37,7 +37,7 @@ jobs:
       - name: Assemble game lobby and verified Unity WebGL releases
         run: npm run build:web-release
 
-      - name: Verify Unity client structures
+      - name: Verify Unity source-build parity, release integrity and browser shell behavior
         run: npm run test:unity && npm run test:side-scroller
 
       - name: Run gameplay regression tests

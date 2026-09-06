@@ -14,13 +14,22 @@ namespace EasyGame.SideScroller.World
         private static readonly PlatformDefinition[] Platforms =
         {
             new PlatformDefinition(-8, 7, -1),
+            new PlatformDefinition(9, 10, 0),
             new PlatformDefinition(12, 20, 1),
+            new PlatformDefinition(22, 23, 0),
             new PlatformDefinition(25, 32, -1),
+            new PlatformDefinition(34, 36, 0),
             new PlatformDefinition(38, 48, 2),
+            new PlatformDefinition(50, 52, 1),
             new PlatformDefinition(54, 61, 0),
+            new PlatformDefinition(63, 65, 1),
             new PlatformDefinition(67, 76, 2),
+            new PlatformDefinition(78, 80, 0),
             new PlatformDefinition(82, 91, -1),
+            new PlatformDefinition(94, 96, 0),
             new PlatformDefinition(98, 108, 1),
+            new PlatformDefinition(110, 112, 0),
+            new PlatformDefinition(114, 116, -1),
         };
 
         public static readonly Bounds MapBounds = new Bounds(new Vector3(54.5f, 1f, 0f), new Vector3(137f, 20f, 4f));
@@ -41,6 +50,7 @@ namespace EasyGame.SideScroller.World
             built = true;
             CreateBackground();
             CreateTilemap();
+            CreateCollision();
             CreateLandmarks();
         }
 
@@ -52,6 +62,13 @@ namespace EasyGame.SideScroller.World
             }
 
             built = true;
+            CreateCollision();
+        }
+
+        // Both the visual client/offline scene and dedicated server create the
+        // same continuous collision surfaces. Tile sprites never define physics.
+        private void CreateCollision()
+        {
             float groundWidth = WorldEndX - WorldStartX + 1f;
             float groundHeight = FloorSurfaceRow - FloorBottomRow + 1f;
             CreateServerRectangle(
@@ -81,32 +98,26 @@ namespace EasyGame.SideScroller.World
             Grid grid = gridObject.GetComponent<Grid>();
             grid.cellSize = Vector3.one;
 
-            GameObject groundObject = new GameObject("Ground Tilemap", typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
+            GameObject groundObject = new GameObject("Ground Tilemap", typeof(Tilemap), typeof(TilemapRenderer));
             groundObject.transform.SetParent(gridObject.transform, false);
             Tilemap groundMap = groundObject.GetComponent<Tilemap>();
             groundObject.GetComponent<TilemapRenderer>().sortingOrder = 0;
 
-            GameObject platformObject = new GameObject("One Way Platform Tilemap", typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D), typeof(PlatformEffector2D));
+            GameObject platformObject = new GameObject("Platform Artwork Tilemap", typeof(Tilemap), typeof(TilemapRenderer));
             platformObject.transform.SetParent(gridObject.transform, false);
             Tilemap platformMap = platformObject.GetComponent<Tilemap>();
             platformObject.GetComponent<TilemapRenderer>().sortingOrder = 1;
-            TilemapCollider2D platformCollider = platformObject.GetComponent<TilemapCollider2D>();
-            platformCollider.usedByEffector = true;
-            PlatformEffector2D platformEffector = platformObject.GetComponent<PlatformEffector2D>();
-            platformEffector.useOneWay = true;
-            platformEffector.surfaceArc = 170f;
-
             Tile ground = ScriptableObject.CreateInstance<Tile>();
             ground.name = "Runtime Ground Tile";
             ground.sprite = LoadWorldSprite("ground-fill");
             ground.color = Color.white;
-            ground.colliderType = Tile.ColliderType.Grid;
+            ground.colliderType = Tile.ColliderType.None;
 
             Tile surface = ScriptableObject.CreateInstance<Tile>();
             surface.name = "Runtime Surface Tile";
             surface.sprite = LoadWorldSprite("ground-top");
             surface.color = Color.white;
-            surface.colliderType = Tile.ColliderType.Grid;
+            surface.colliderType = Tile.ColliderType.None;
 
             Tile platformLeft = CreateRuntimeTile("Platform Left", "ground-left");
             Tile platformMiddle = CreateRuntimeTile("Platform Middle", "ground-top");
@@ -135,23 +146,28 @@ namespace EasyGame.SideScroller.World
             }
         }
 
-        private static void CreateServerPlatform(PlatformDefinition platform)
+        private void CreateServerPlatform(PlatformDefinition platform)
         {
             float width = platform.EndX - platform.StartX + 1f;
             Vector2 center = new Vector2((platform.StartX + platform.EndX + 1f) * 0.5f, platform.Row + 0.5f);
             GameObject collision = new GameObject($"Platform {platform.StartX} to {platform.EndX}", typeof(BoxCollider2D), typeof(PlatformEffector2D));
+            collision.transform.SetParent(transform, false);
             collision.transform.position = center;
             BoxCollider2D collider = collision.GetComponent<BoxCollider2D>();
             collider.size = new Vector2(width, 1f);
             collider.usedByEffector = true;
             PlatformEffector2D effector = collision.GetComponent<PlatformEffector2D>();
             effector.useOneWay = true;
+            effector.useOneWayGrouping = true;
+            effector.useSideFriction = false;
+            effector.useSideBounce = false;
             effector.surfaceArc = 170f;
         }
 
-        private static void CreateServerRectangle(string name, Vector2 position, Vector2 size)
+        private void CreateServerRectangle(string name, Vector2 position, Vector2 size)
         {
             GameObject collision = new GameObject(name, typeof(BoxCollider2D));
+            collision.transform.SetParent(transform, false);
             collision.transform.position = position;
             collision.GetComponent<BoxCollider2D>().size = size;
         }
@@ -180,7 +196,7 @@ namespace EasyGame.SideScroller.World
             tile.name = name;
             tile.sprite = LoadWorldSprite(spriteName);
             tile.color = Color.white;
-            tile.colliderType = Tile.ColliderType.Grid;
+            tile.colliderType = Tile.ColliderType.None;
             return tile;
         }
 

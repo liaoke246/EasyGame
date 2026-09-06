@@ -6,7 +6,7 @@ namespace EasyGame.SideScroller.Combat
     [RequireComponent(typeof(PlayerInputReader), typeof(PlayerAnimation))]
     public sealed class PlayerCombat : MonoBehaviour
     {
-        [SerializeField, Min(0.05f)] private float attackCooldown = 0.3f;
+        [SerializeField, Min(CombatTiming2D.AttackCooldown)] private float attackCooldown = CombatTiming2D.AttackCooldown;
         private PlayerInputReader input;
         private PlayerAnimation playerAnimation;
         private float nextAttackAt;
@@ -24,8 +24,8 @@ namespace EasyGame.SideScroller.Combat
                 return;
             }
 
-            nextAttackAt = Time.time + attackCooldown;
-            playerAnimation.PlayAttack();
+            nextAttackAt = Time.time + Mathf.Max(CombatTiming2D.AttackCooldown, attackCooldown);
+            playerAnimation.PlayAttack(CombatTiming2D.AttackDuration);
         }
     }
 }

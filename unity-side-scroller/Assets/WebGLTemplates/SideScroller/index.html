@@ -9,12 +9,16 @@
   <style>
     :root { color-scheme: dark; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
     * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #091016; touch-action: none; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #091016; touch-action: manipulation; }
     [hidden] { display: none !important; }
     button, input { font: inherit; }
     #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; background: #091016; outline: 0; }
     #profile-setup, #loader { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #1c3a3e, #091016 66%); }
     #profile-setup { z-index: 30; overflow: auto; padding: max(20px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); touch-action: pan-y; }
+    #unity-canvas, #profile-setup, #loader, #mobile-controls { top: var(--app-top, 0px); bottom: auto; height: var(--app-height, 100dvh); }
+    #unity-canvas, .control { touch-action: none; }
+    #profile-setup { display: flex; }
+    #profile-setup .profile-card { flex-shrink: 0; margin: auto; }
     .profile-card { width: min(760px, 100%); padding: clamp(22px, 4vw, 38px); border: 1px solid rgba(229,198,113,.4); border-radius: 20px; background: rgba(7,15,20,.94); box-shadow: 0 28px 100px rgba(0,0,0,.56); }
     .eyebrow { color: #d7bc71; font-size: 12px; font-weight: 900; letter-spacing: .2em; }
     h1 { margin: 8px 0 5px; font-size: clamp(26px, 5vw, 44px); }
@@ -39,6 +43,7 @@
     .track { height: 6px; overflow: hidden; border-radius: 10px; background: #1d2a2f; }
     #progress { width: 0; height: 100%; background: linear-gradient(90deg,#51c7a6,#e5c671); transition: width .18s ease; }
     #status { margin-top: 12px; color: #9eaaa6; font-size: 12px; }
+    #retry-load { margin-top: 18px; padding: 10px 16px; border: 1px solid #e5c671; border-radius: 8px; color: #fff6cf; background: #243b36; cursor: pointer; }
     #back { position: fixed; z-index: 10; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); padding: 8px 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #e9e7de; background: rgba(5,12,16,.64); text-decoration: none; backdrop-filter: blur(10px); }
     #mobile-controls { display: none; position: fixed; inset: 0; z-index: 9; pointer-events: none; }
     .control { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); width: clamp(58px, 17vw, 86px); height: clamp(58px, 17vw, 86px); border: 1px solid rgba(229,198,113,.48); border-radius: 50%; color: #fff; background: rgba(11,22,26,.58); font-size: 22px; font-weight: 900; pointer-events: auto; user-select: none; -webkit-user-select: none; }
@@ -58,9 +63,9 @@
     <form class="profile-card" id="profile-form">
       <div class="eyebrow">EASYGAME // PLAYER PROFILE</div>
       <h1 id="setup-title">进入森林前线</h1>
-      <p class="intro">输入你的名字并选择角色。三种角色使用相同属性与碰撞体，PVP 公平一致。</p>
+      <p class="intro">输入你的名字，选择男战士、女游侠或蓝史莱姆，与其他玩家一起探索森林。</p>
       <label class="field-label" for="player-name">玩家名字（英文、数字、空格）</label>
-      <input id="player-name" name="playerName" maxlength="14" pattern="[A-Za-z0-9 _-]{1,14}" title="请输入 1–14 位英文、数字、空格、下划线或短横线" autocomplete="nickname" enterkeyhint="go" placeholder="PLAYER-2048" required>
+      <input id="player-name" name="playerName" maxlength="14" pattern="[A-Za-z0-9 _\-]{1,14}" title="请输入 1–14 位英文、数字、空格、下划线或短横线" autocomplete="nickname" enterkeyhint="go" placeholder="PLAYER-2048" required>
       <div class="field-label choose-label">选择角色</div>
       <div class="avatar-grid" role="radiogroup" aria-label="角色选择">
         <button class="avatar-option selected" type="button" data-avatar="warrior" role="radio" aria-checked="true">
@@ -88,6 +93,7 @@
       <h1>Dead Rails</h1>
       <div class="track"><div id="progress"></div></div>
       <div id="status" aria-live="polite">正在装载横版生存区…</div>
+      <button id="retry-load" type="button" hidden>重新加载游戏</button>
     </div>
   </div>
   <script>
@@ -99,13 +105,33 @@
     const loader = document.querySelector("#loader");
     const progress = document.querySelector("#progress");
     const status = document.querySelector("#status");
+    const retryLoad = document.querySelector("#retry-load");
     const buildUrl = "Build";
     const releaseVersion = "{{{ PRODUCT_VERSION }}}";
     const pageUrl = new URL(window.location.href);
-    let selectedAvatar = pageUrl.searchParams.get("avatar") || localStorage.getItem("easygame-2d-avatar") || "warrior";
+    // Private browsing and storage policies can reject access even on reads.
+    function readPreference(key) {
+      try { return localStorage.getItem(key); } catch { return null; }
+    }
+    function savePreference(key, value) {
+      try { localStorage.setItem(key, value); } catch { /* The current session still works. */ }
+    }
+    function cleanName(value) { return String(value || "").replace(/[^A-Za-z0-9_\- ]/g, "").trim().slice(0, 14).trim(); }
+    let selectedAvatar = pageUrl.searchParams.get("avatar") || readPreference("easygame-2d-avatar") || "warrior";
     let unityInstance = null;
     let gameStarting = false;
-    nameInput.value = pageUrl.searchParams.get("playerName") || localStorage.getItem("easygame-2d-name") || `PLAYER-${Math.floor(1000 + Math.random() * 9000)}`;
+    nameInput.value = cleanName(pageUrl.searchParams.get("playerName") || readPreference("easygame-2d-name")) || `PLAYER-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    function resizeViewport() {
+      const viewport = window.visualViewport;
+      document.documentElement.style.setProperty("--app-height", `${Math.round(viewport ? viewport.height : window.innerHeight)}px`);
+      document.documentElement.style.setProperty("--app-top", `${Math.round(viewport ? viewport.offsetTop : 0)}px`);
+    }
+    window.addEventListener("resize", resizeViewport);
+    window.addEventListener("orientationchange", resizeViewport);
+    window.visualViewport?.addEventListener("resize", resizeViewport);
+    window.visualViewport?.addEventListener("scroll", resizeViewport);
+    resizeViewport();
 
     function selectAvatar(value) {
       selectedAvatar = ["warrior", "female", "slime"].includes(value) ? value : "warrior";
@@ -118,27 +144,59 @@
     avatarButtons.forEach(button => button.addEventListener("click", () => selectAvatar(button.dataset.avatar)));
     selectAvatar(selectedAvatar);
 
-    function emitKey(type, code, key) {
-      window.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
-      canvas.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
-      canvas.focus();
-    }
     function sendMobileControl(control, pressed) {
       if (unityInstance) unityInstance.SendMessage("SideScroller Game", "SetMobileControl", `${control}:${pressed ? 1 : 0}`);
     }
-    function bindHold(id, control, code, key) {
+    const releaseControls = [];
+    function resetControls() {
+      releaseControls.forEach(release => release());
+      sendMobileControl("reset", true);
+    }
+    function bindHold(id, control) {
       const button = document.querySelector(id);
-      const down = event => { event.preventDefault(); sendMobileControl(control, true); emitKey("keydown", code, key); };
-      const up = event => { event.preventDefault(); sendMobileControl(control, false); emitKey("keyup", code, key); };
-      button.addEventListener("pointerdown", down);
+      const pointers = new Set();
+      const release = () => {
+        const captured = [...pointers];
+        pointers.clear();
+        if (captured.length) sendMobileControl(control, false);
+        captured.forEach(pointerId => {
+          if (button.hasPointerCapture?.(pointerId)) button.releasePointerCapture(pointerId);
+        });
+      };
+      releaseControls.push(release);
+      button.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        if (!unityInstance || (event.pointerType === "mouse" && event.button !== 0)) return;
+        canvas.focus({ preventScroll: true });
+        const wasHeld = pointers.size > 0;
+        pointers.add(event.pointerId);
+        button.setPointerCapture(event.pointerId);
+        if (!wasHeld) sendMobileControl(control, true);
+      });
+      const up = event => {
+        event.preventDefault();
+        if (!pointers.delete(event.pointerId)) return;
+        if (!pointers.size) sendMobileControl(control, false);
+        if (button.hasPointerCapture?.(event.pointerId)) button.releasePointerCapture(event.pointerId);
+      };
       button.addEventListener("pointerup", up);
       button.addEventListener("pointercancel", up);
-      button.addEventListener("pointerleave", up);
+      button.addEventListener("lostpointercapture", up);
+      button.addEventListener("contextmenu", event => event.preventDefault());
     }
-    bindHold("#left", "left", "ArrowLeft", "ArrowLeft");
-    bindHold("#right", "right", "ArrowRight", "ArrowRight");
-    bindHold("#jump", "jump", "Space", " ");
-    bindHold("#attack", "attack", "KeyJ", "j");
+    bindHold("#left", "left");
+    bindHold("#right", "right");
+    bindHold("#jump", "jump");
+    bindHold("#attack", "attack");
+    window.addEventListener("blur", resetControls);
+    window.addEventListener("pagehide", resetControls);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) resetControls(); });
+
+    function showLoadError(message) {
+      status.textContent = "加载失败：" + String(message);
+      retryLoad.hidden = false;
+    }
+    retryLoad.addEventListener("click", () => window.location.reload());
 
     function startUnity() {
       const loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}?v=" + releaseVersion;
@@ -154,29 +212,41 @@
       };
       const script = document.createElement("script");
       script.src = loaderUrl;
-      script.onload = () => createUnityInstance(canvas, config, value => {
+      let loadTimeout = setTimeout(() => showLoadError("下载时间过长，请检查网络后重试。"), 90000);
+      const fail = message => { clearTimeout(loadTimeout); showLoadError(message); };
+      script.onerror = () => fail("游戏启动文件未能下载，请检查网络后重试。");
+      script.onload = () => Promise.resolve().then(() => createUnityInstance(canvas, config, value => {
+        clearTimeout(loadTimeout);
+        loadTimeout = setTimeout(() => showLoadError("装载暂时没有进展，可以重新加载。"), 90000);
         progress.style.width = Math.round(value * 100) + "%";
         status.textContent = `正在装载横版生存区… ${Math.round(value * 100)}%`;
-      }).then(instance => {
+      })).then(instance => {
+        clearTimeout(loadTimeout);
         unityInstance = instance;
         document.body.classList.add("game-ready");
         loader.style.opacity = "0";
         setTimeout(() => loader.remove(), 380);
         canvas.focus();
-      }).catch(message => { status.textContent = "加载失败：" + message; });
+      }).catch(fail);
       document.body.appendChild(script);
     }
 
     function beginGame() {
       if (gameStarting) return;
-      const playerName = nameInput.value.trim().replace(/[^A-Za-z0-9_\- ]/g, "").slice(0, 14);
+      const playerName = cleanName(nameInput.value);
       if (!playerName) { nameInput.focus(); return; }
       gameStarting = true;
-      localStorage.setItem("easygame-2d-name", playerName);
-      localStorage.setItem("easygame-2d-avatar", selectedAvatar);
+      savePreference("easygame-2d-name", playerName);
+      savePreference("easygame-2d-avatar", selectedAvatar);
       pageUrl.searchParams.set("playerName", playerName);
       pageUrl.searchParams.set("avatar", selectedAvatar);
-      history.replaceState(null, "", pageUrl);
+      try { history.replaceState(null, "", pageUrl); }
+      catch {
+        // Unity reads this URL for the profile; navigate if history is blocked.
+        pageUrl.searchParams.set("autostart", "1");
+        window.location.assign(pageUrl.href);
+        return;
+      }
       setup.hidden = true;
       loader.hidden = false;
       startUnity();

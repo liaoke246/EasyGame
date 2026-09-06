@@ -64,7 +64,7 @@ namespace EasyGame.SideScroller.Core
             body.mass = 1f;
 
             CapsuleCollider2D collider = player.AddComponent<CapsuleCollider2D>();
-            ActorGeometry2D.ConfigureHumanoid(collider);
+            ActorGeometry2D.ConfigurePlayerAvatar(collider, PlayerProfileSelection.RequestedAvatar);
             collider.sharedMaterial = new PhysicsMaterial2D("Player Material")
             {
                 friction = 0f,

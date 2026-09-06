@@ -11,6 +11,18 @@ namespace EasyGame.SideScroller.Core
 
         private static bool jumpPressed;
         private static bool attackPressed;
+        private static bool attackHeld;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void ResetState()
+        {
+            LeftHeld = false;
+            RightHeld = false;
+            JumpHeld = false;
+            attackHeld = false;
+            jumpPressed = false;
+            attackPressed = false;
+        }
 
         public void SetMobileControl(string message)
         {
@@ -42,10 +54,14 @@ namespace EasyGame.SideScroller.Core
                     JumpHeld = pressed;
                     break;
                 case "attack":
-                    if (pressed)
+                    if (pressed && !attackHeld)
                     {
                         attackPressed = true;
                     }
+                    attackHeld = pressed;
+                    break;
+                case "reset":
+                    ResetState();
                     break;
             }
         }
@@ -66,11 +82,17 @@ namespace EasyGame.SideScroller.Core
 
         private void OnDisable()
         {
-            LeftHeld = false;
-            RightHeld = false;
-            JumpHeld = false;
-            jumpPressed = false;
-            attackPressed = false;
+            ResetState();
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus) ResetState();
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) ResetState();
         }
     }
 }

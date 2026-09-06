@@ -11,6 +11,16 @@ namespace EasyGame.SideScroller.Network
     {
         [SerializeField] private GameObject zombiePrefab;
         [SerializeField] private GameObject slimePrefab;
+        private const int MaxAutomaticRetries = 4;
+        private const double ConnectionTimeoutSeconds = 15d;
+        private bool clientRequested;
+        private bool quitting;
+        private int connectionFailures;
+        private double connectionDeadline;
+        private double retryAt = double.PositiveInfinity;
+
+        public bool CanRetryConnection => clientRequested && !quitting &&
+            !NetworkClient.active && mode == NetworkManagerMode.Offline;
 
         public GameObject ZombiePrefab
         {
@@ -35,7 +45,7 @@ namespace EasyGame.SideScroller.Network
 #elif UNITY_EDITOR
                 return HasArgument("-networked");
 #else
-                return !Application.absoluteURL.Contains("offline=1", StringComparison.OrdinalIgnoreCase);
+                return QueryValue("offline") != "1";
 #endif
             }
         }
@@ -55,9 +65,8 @@ namespace EasyGame.SideScroller.Network
                 return;
             }
 
-            Uri serverUri = ResolveServerUri();
-            ConnectionStatus = $"CONNECTING  {serverUri.Host}";
-            StartClient(serverUri);
+            clientRequested = true;
+            BeginConnection();
         }
 
         public override void Update()
@@ -65,30 +74,94 @@ namespace EasyGame.SideScroller.Network
             base.Update();
             if (NetworkClient.isConnected)
             {
-                ConnectionStatus = $"ONLINE  {Mathf.RoundToInt((float)(NetworkTime.rtt * 1000d))} MS  //  {ConnectedPlayerCount()}/4  //  PVP";
+                if (NetworkClient.localPlayer != null)
+                {
+                    connectionFailures = 0;
+                    ConnectionStatus = $"ONLINE  {Mathf.RoundToInt((float)(NetworkTime.rtt * 1000d))} MS  //  {ConnectedPlayerCount()}/4  //  PVP";
+                }
+                else if (clientRequested && Time.realtimeSinceStartupAsDouble >= connectionDeadline)
+                {
+                    ConnectionStatus = "SYNCHRONIZATION TIMED OUT";
+                    StopClient();
+                }
             }
             else if (NetworkServer.active)
             {
                 ConnectionStatus = $"SERVER  //  {numPlayers}/4 PLAYERS";
+            }
+            else if (clientRequested && !quitting)
+            {
+                if (NetworkClient.isConnecting && Time.realtimeSinceStartupAsDouble >= connectionDeadline)
+                {
+                    ConnectionStatus = "CONNECTION TIMED OUT";
+                    StopClient();
+                }
+                else if (!double.IsPositiveInfinity(retryAt) && CanRetryConnection)
+                {
+                    double remaining = retryAt - Time.realtimeSinceStartupAsDouble;
+                    if (remaining <= 0d) BeginConnection();
+                    else ConnectionStatus = $"RECONNECTING IN {Math.Ceiling(remaining)}s  //  {connectionFailures}/{MaxAutomaticRetries}";
+                }
             }
         }
 
         public override void OnClientConnect()
         {
             ConnectionStatus = "ONLINE  //  SYNCHRONIZING";
+            connectionDeadline = Time.realtimeSinceStartupAsDouble + ConnectionTimeoutSeconds;
+            retryAt = double.PositiveInfinity;
             base.OnClientConnect();
         }
 
         public override void OnClientDisconnect()
         {
-            ConnectionStatus = "CONNECTION LOST  //  RETRY FROM LOBBY";
+            ConnectionStatus = "CONNECTION LOST";
+            MobileInputBridge.ResetState();
             base.OnClientDisconnect();
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            if (!clientRequested || quitting || NetworkServer.active) return;
+
+            connectionFailures++;
+            if (connectionFailures <= MaxAutomaticRetries)
+                retryAt = Time.realtimeSinceStartupAsDouble + Math.Min(16d, Math.Pow(2d, connectionFailures));
+            else
+            {
+                retryAt = double.PositiveInfinity;
+                ConnectionStatus = "UNABLE TO CONNECT  //  RETRY WHEN READY";
+            }
+        }
+
+        public void RetryConnection()
+        {
+            if (!CanRetryConnection) return;
+            connectionFailures = 0;
+            BeginConnection();
+        }
+
+        public override void OnApplicationQuit()
+        {
+            quitting = true;
+            base.OnApplicationQuit();
+        }
+
+        private void BeginConnection()
+        {
+            retryAt = double.PositiveInfinity;
+            Uri serverUri = ResolveServerUri();
+            connectionDeadline = Time.realtimeSinceStartupAsDouble + ConnectionTimeoutSeconds;
+            ConnectionStatus = $"CONNECTING  {serverUri.Host}";
+            StartClient(serverUri);
         }
 
         public override void OnClientError(TransportError error, string reason)
         {
             ConnectionStatus = $"NETWORK ERROR  //  {error}";
             Debug.LogWarning($"Mirror client error: {error} - {reason}");
+            if (NetworkClient.active) StopClient();
         }
 
         public override void OnStartServer()
@@ -157,7 +230,10 @@ namespace EasyGame.SideScroller.Network
         private static Uri ResolveServerUri()
         {
             string overrideUri = QueryValue("server");
-            if (!string.IsNullOrWhiteSpace(overrideUri) && Uri.TryCreate(Uri.UnescapeDataString(overrideUri), UriKind.Absolute, out Uri parsed))
+            if (!string.IsNullOrWhiteSpace(overrideUri) && Uri.TryCreate(overrideUri, UriKind.Absolute, out Uri parsed) &&
+                (parsed.Scheme == "ws" || parsed.Scheme == "wss") && !string.IsNullOrWhiteSpace(parsed.Host) &&
+                string.IsNullOrEmpty(parsed.UserInfo) && string.IsNullOrEmpty(parsed.Fragment) &&
+                (!Application.absoluteURL.StartsWith("https:", StringComparison.OrdinalIgnoreCase) || parsed.Scheme == "wss"))
             {
                 return parsed;
             }
@@ -189,13 +265,16 @@ namespace EasyGame.SideScroller.Network
                 return null;
             }
 
-            string[] pairs = url.Substring(queryIndex + 1).Split('&');
+            int fragmentIndex = url.IndexOf('#', queryIndex);
+            string query = fragmentIndex < 0 ? url.Substring(queryIndex + 1) : url.Substring(queryIndex + 1, fragmentIndex - queryIndex - 1);
+            string[] pairs = query.Split('&');
             foreach (string pair in pairs)
             {
                 string[] parts = pair.Split(new[] { '=' }, 2);
                 if (parts.Length == 2 && parts[0].Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
-                    return parts[1];
+                    try { return Uri.UnescapeDataString(parts[1].Replace('+', ' ')); }
+                    catch (UriFormatException) { return null; }
                 }
             }
             return null;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace EasyGame.SideScroller.Core
@@ -8,6 +9,7 @@ namespace EasyGame.SideScroller.Core
     /// </summary>
     public sealed class PixelCharacterAnimator : MonoBehaviour
     {
+        private static readonly Dictionary<string, Sprite[]> SequenceCache = new Dictionary<string, Sprite[]>();
         private SpriteRenderer target;
         private string characterFolder;
         private string filePrefix;
@@ -23,6 +25,7 @@ namespace EasyGame.SideScroller.Core
         private float facing = 1f;
         private float speed;
         private float stateStartedAt;
+        private float movementPhase;
 
         public void Initialize(SpriteRenderer targetRenderer, Color tint, string characterFolderName = "Warrior", string spritePrefix = "warrior")
         {
@@ -41,14 +44,14 @@ namespace EasyGame.SideScroller.Core
             ApplyFrame();
         }
 
-        public void SetState(int nextMotion, float nextFacing, float nextSpeed)
+        public void SetState(int nextMotion, float nextFacing, float nextSpeed, bool restart = false)
         {
             if (Mathf.Abs(nextFacing) > 0.01f)
             {
                 facing = Mathf.Sign(nextFacing);
             }
-            speed = nextSpeed;
-            if (motion != nextMotion)
+            speed = Mathf.Max(0f, nextSpeed);
+            if (motion != nextMotion || restart)
             {
                 motion = nextMotion;
                 stateStartedAt = Time.time;
@@ -57,6 +60,13 @@ namespace EasyGame.SideScroller.Core
 
         private void LateUpdate()
         {
+            if (motion == 1)
+            {
+                // Integrate the cycle instead of dividing absolute state age by
+                // a changing interval, which jumped between feet while slowing.
+                movementPhase += Time.deltaTime * Mathf.Lerp(0.55f, 1.6f, Mathf.InverseLerp(0f, 8f, speed));
+                movementPhase %= 0.8f;
+            }
             ApplyFrame();
         }
 
@@ -91,8 +101,7 @@ namespace EasyGame.SideScroller.Core
             {
                 case 1:
                     Sprite[] movement = speed >= 4.5f ? run : walk;
-                    float interval = Mathf.Lerp(0.14f, 0.075f, Mathf.InverseLerp(0f, 8f, speed));
-                    return Loop(movement, elapsed, interval);
+                    return Loop(movement, movementPhase, 0.1f);
                 case 2:
                     return Once(jump, elapsed, 0.075f);
                 case 3:
@@ -114,7 +123,7 @@ namespace EasyGame.SideScroller.Core
             {
                 return null;
             }
-            return frames[Mathf.FloorToInt(elapsed / interval) % frames.Length];
+            return frames[Mathf.FloorToInt(Mathf.Max(0f, elapsed) / interval) % frames.Length];
         }
 
         private static Sprite Once(Sprite[] frames, float elapsed, float interval)
@@ -129,6 +138,11 @@ namespace EasyGame.SideScroller.Core
 
         private Sprite[] LoadSequence(string name, int count)
         {
+            string key = $"{characterFolder}/{filePrefix}_{name}";
+            if (SequenceCache.TryGetValue(key, out Sprite[] cached))
+            {
+                return cached;
+            }
             Sprite[] frames = new Sprite[count];
             for (int index = 0; index < count; index++)
             {
@@ -138,6 +152,7 @@ namespace EasyGame.SideScroller.Core
                     Debug.LogError($"Missing licensed pixel character frame: {filePrefix}_{name}_{index}. Run scripts/install-side-scroller-art.ps1.");
                 }
             }
+            SequenceCache[key] = frames;
             return frames;
         }
     }

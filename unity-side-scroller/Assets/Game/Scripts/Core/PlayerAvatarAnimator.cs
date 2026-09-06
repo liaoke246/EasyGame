@@ -21,7 +21,7 @@ namespace EasyGame.SideScroller.Core
                     break;
                 case PlayerAvatarKind.Slime:
                     slimeAnimator = gameObject.AddComponent<PixelSlimeAnimator>();
-                    slimeAnimator.Initialize(renderer, "blue", true);
+                    slimeAnimator.Initialize(renderer, "blue");
                     break;
                 default:
                     characterAnimator = gameObject.AddComponent<PixelCharacterAnimator>();
@@ -38,14 +38,19 @@ namespace EasyGame.SideScroller.Core
             }
             if (slimeAnimator != null)
             {
-                int slimeMotion = motion switch
-                {
-                    5 => 2,
-                    6 => 3,
-                    0 => 0,
-                    _ => 1,
-                };
-                slimeAnimator.SetState(slimeMotion, facing);
+                slimeAnimator.SetPlayerState(motion, facing);
+            }
+        }
+
+        public void PlayAttack(float facing)
+        {
+            if (characterAnimator != null)
+            {
+                characterAnimator.SetState(4, facing, 0f, true);
+            }
+            if (slimeAnimator != null)
+            {
+                slimeAnimator.SetPlayerState(4, facing, true);
             }
         }
     }

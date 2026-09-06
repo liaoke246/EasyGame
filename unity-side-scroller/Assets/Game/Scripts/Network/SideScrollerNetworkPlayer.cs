@@ -1,4 +1,5 @@
 using EasyGame.SideScroller.Core;
+using EasyGame.SideScroller.Combat;
 using EasyGame.SideScroller.Data;
 using EasyGame.SideScroller.Enemies;
 using EasyGame.SideScroller.UI;
@@ -22,6 +23,7 @@ namespace EasyGame.SideScroller.Network
         [SyncVar] private int deaths;
         [SyncVar] private int facing = 1;
         [SyncVar] private int motion;
+        [SyncVar] private float horizontalSpeed;
         [SyncVar] private bool defeated;
 
         public static SideScrollerNetworkPlayer Local { get; private set; }
@@ -29,6 +31,9 @@ namespace EasyGame.SideScroller.Network
         public int Health => health;
         public int MaxHealth => MaxHealthValue;
         public int Experience => experience;
+        public int Level => level;
+        public int ExperienceToNextLevel => progression.ExperienceForLevel(level);
+        public bool IsMaxLevel => level >= progression.MaxLevel;
         public int Kills => kills;
         public int Deaths => deaths;
         public bool IsDefeated => defeated;
@@ -41,10 +46,19 @@ namespace EasyGame.SideScroller.Network
         private Transform visualRoot;
         private PlayerAvatarAnimator spriteAnimator;
         private PlayerMovementConfig config;
-        private float serverHorizontal;
-        private bool serverJumpHeld;
-        private float serverCoyoteRemaining;
-        private float serverJumpBufferRemaining;
+        private Player.PlayerMotor2D motor;
+        private readonly ServerPlayerInput serverInput = new ServerPlayerInput();
+        private readonly CombatQuery2D combatQuery = new CombatQuery2D();
+        private LevelProgressionConfig progression;
+        private SideScrollerNetworkTransform networkTransform;
+        private uint inputSequence;
+        private bool profileConfigured;
+        private bool attackQueued;
+        private double attackHitsAt = double.PositiveInfinity;
+        private double nextAttackAt;
+        private float attackDirection = 1f;
+        private float presentationAttackUntil;
+        private int presentationAttackFacing = 1;
         private float actionLockedUntil;
         private double nextInputAt;
         private double respawnAt;
@@ -61,6 +75,10 @@ namespace EasyGame.SideScroller.Network
             {
                 config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
             }
+            progression = Resources.Load<LevelProgressionConfig>("Config/LevelProgression");
+            if (progression == null) progression = ScriptableObject.CreateInstance<LevelProgressionConfig>();
+            motor = new Player.PlayerMotor2D(body, bodyCollider, config, ~0);
+            networkTransform = GetComponent<SideScrollerNetworkTransform>();
 
             Transform existingVisual = transform.Find(RuntimePlayerVisual.FeetAnchorName);
             if (Utils.IsHeadless())
@@ -95,6 +113,7 @@ namespace EasyGame.SideScroller.Network
         public override void OnStartServer()
         {
             body.simulated = true;
+            motor.Reset();
             int connectionId = connectionToClient != null ? connectionToClient.connectionId : 0;
             displayName = $"SURVIVOR-{connectionId + 1:00}";
             invulnerableUntil = NetworkTime.time + 1.25d;
@@ -102,11 +121,13 @@ namespace EasyGame.SideScroller.Network
 
         public override void OnStartClient()
         {
+            ConfigureAvatarCollider();
             if (!isServer)
             {
                 body.simulated = false;
             }
             RefreshVisuals();
+            gameObject.name = displayName;
         }
 
         public override void OnStartLocalPlayer()
@@ -142,7 +163,7 @@ namespace EasyGame.SideScroller.Network
                 RefreshVisuals();
             }
 
-            if (isServer && !defeated && transform.position.y < SideWorldBuilder.MapBounds.min.y - 4f)
+            if (isServer && !defeated && body.position.y < SideWorldBuilder.MapBounds.min.y - 4f)
             {
                 ServerDefeat(null);
             }
@@ -158,7 +179,7 @@ namespace EasyGame.SideScroller.Network
             if (defeated)
             {
                 body.linearVelocity = Vector2.zero;
-                serverHorizontal = 0f;
+                serverInput.ClearIntent();
                 if (NetworkTime.time >= respawnAt)
                 {
                     ServerRespawn();
@@ -166,46 +187,29 @@ namespace EasyGame.SideScroller.Network
                 return;
             }
 
-            bool grounded = ProbeGround();
-            serverCoyoteRemaining = grounded ? config.coyoteTime : Mathf.Max(0f, serverCoyoteRemaining - Time.fixedDeltaTime);
-            serverJumpBufferRemaining = Mathf.Max(0f, serverJumpBufferRemaining - Time.fixedDeltaTime);
-
+            serverInput.Expire(NetworkTime.time);
+            motor.Step(serverInput.Horizontal, serverInput.JumpHeld, Time.fixedDeltaTime);
             Vector2 velocity = body.linearVelocity;
-            float targetSpeed = serverHorizontal * config.moveSpeed;
-            float acceleration = Mathf.Abs(targetSpeed) > 0.01f ? config.groundAcceleration : config.groundDeceleration;
-            if (!grounded)
+            horizontalSpeed = Mathf.Round(Mathf.Abs(velocity.x) * 20f) / 20f;
+            if (Mathf.Abs(serverInput.Horizontal) > 0.05f && Time.time >= actionLockedUntil)
             {
-                acceleration *= config.airControl;
-            }
-            velocity.x = Mathf.MoveTowards(velocity.x, targetSpeed, acceleration * Time.fixedDeltaTime);
-
-            if (serverJumpBufferRemaining > 0f && serverCoyoteRemaining > 0f)
-            {
-                velocity.y = config.jumpVelocity;
-                serverJumpBufferRemaining = 0f;
-                serverCoyoteRemaining = 0f;
-                grounded = false;
+                facing = serverInput.Horizontal > 0f ? 1 : -1;
             }
 
-            if (velocity.y < -0.01f)
+            if (attackQueued)
             {
-                velocity.y += Physics2D.gravity.y * body.gravityScale * (config.fallGravityMultiplier - 1f) * Time.fixedDeltaTime;
+                attackQueued = false;
+                BeginAttack();
             }
-            else if (velocity.y > 0.01f && !serverJumpHeld)
+            if (NetworkTime.time >= attackHitsAt)
             {
-                velocity.y += Physics2D.gravity.y * body.gravityScale * (config.lowJumpGravityMultiplier - 1f) * Time.fixedDeltaTime;
-            }
-
-            velocity.y = Mathf.Max(velocity.y, -config.maxFallSpeed);
-            body.linearVelocity = velocity;
-            if (Mathf.Abs(serverHorizontal) > 0.05f)
-            {
-                facing = serverHorizontal > 0f ? 1 : -1;
+                attackHitsAt = double.PositiveInfinity;
+                ResolveAttackHits();
             }
 
             if (Time.time >= actionLockedUntil)
             {
-                motion = !grounded ? (velocity.y >= 0f ? 2 : 3) : (Mathf.Abs(velocity.x) > 0.15f ? 1 : 0);
+                motion = !motor.IsGrounded ? (velocity.y >= 0f ? 2 : 3) : (Mathf.Abs(velocity.x) > 0.15f ? 1 : 0);
             }
         }
 
@@ -213,12 +217,15 @@ namespace EasyGame.SideScroller.Network
         {
             if (defeated)
             {
+                input.ConsumeJumpPressed();
+                input.ConsumeJumpReleased();
+                input.ConsumeAttackPressed();
                 return;
             }
             if (NetworkTime.localTime >= nextInputAt)
             {
                 nextInputAt = NetworkTime.localTime + 1d / 30d;
-                CmdSetMovement(input.Horizontal, input.JumpHeld);
+                CmdSetMovement(input.Horizontal, input.JumpHeld, ++inputSequence);
             }
             if (input.ConsumeJumpPressed())
             {
@@ -232,24 +239,26 @@ namespace EasyGame.SideScroller.Network
         }
 
         [Command(channel = Channels.Unreliable)]
-        private void CmdSetMovement(float horizontal, bool jumpHeld)
+        private void CmdSetMovement(float horizontal, bool jumpHeld, uint sequence)
         {
             if (defeated)
             {
-                serverHorizontal = 0f;
-                serverJumpHeld = false;
+                serverInput.ClearIntent();
                 return;
             }
-            serverHorizontal = Mathf.Clamp(horizontal, -1f, 1f);
-            serverJumpHeld = jumpHeld;
+            serverInput.Receive(horizontal, jumpHeld, sequence, NetworkTime.time);
         }
 
         [Command]
         private void CmdConfigureProfile(string requestedName, PlayerAvatarKind requestedAvatar)
         {
+            if (profileConfigured) return;
+            profileConfigured = true;
             string fallback = displayName;
             displayName = PlayerProfileSelection.SanitizeName(requestedName, fallback);
             avatarKind = PlayerProfileSelection.SanitizeAvatar(requestedAvatar);
+            ConfigureAvatarCollider();
+            gameObject.name = displayName;
         }
 
         [Command]
@@ -259,41 +268,51 @@ namespace EasyGame.SideScroller.Network
             {
                 return;
             }
-            serverJumpBufferRemaining = config.jumpBuffer;
+            motor.QueueJump();
         }
 
         [Command]
         private void CmdRequestAttack()
         {
-            if (defeated || Time.time < actionLockedUntil)
-            {
-                return;
-            }
-            actionLockedUntil = Time.time + 0.25f;
+            if (!defeated && NetworkTime.time >= nextAttackAt && Time.time >= actionLockedUntil)
+                attackQueued = true;
+        }
+
+        [Server]
+        private void BeginAttack()
+        {
+            if (NetworkTime.time < nextAttackAt || Time.time < actionLockedUntil) return;
+            actionLockedUntil = Time.time + CombatTiming2D.AttackDuration;
+            nextAttackAt = NetworkTime.time + CombatTiming2D.AttackCooldown;
+            attackHitsAt = NetworkTime.time + 0.085d;
+            attackDirection = facing;
             motion = 4;
-            ResolveAttackHits();
-            RpcPlayAttack();
+            RpcPlayAttack(facing);
         }
 
         [Server]
         private void ResolveAttackHits()
         {
             Vector2 bodyCenter = ActorGeometry2D.BodyCenter(bodyCollider);
-            Vector2 center = new Vector2(bodyCenter.x + facing * 0.82f, bodyCenter.y);
-            Collider2D[] hits = Physics2D.OverlapBoxAll(center, new Vector2(1.45f, 1.25f), 0f);
-            foreach (Collider2D hit in hits)
+            Vector2 center = new Vector2(bodyCenter.x + attackDirection * 0.82f, bodyCenter.y);
+            var hits = combatQuery.CollectTargets(bodyCollider, center, new Vector2(1.45f, 1.25f));
+            for (int index = 0; index < hits.Count; index++)
             {
-                if (hit.TryGetComponent(out SideScrollerNetworkZombie zombie))
+                Collider2D hit = hits[index];
+                SideScrollerNetworkZombie zombie = hit.GetComponentInParent<SideScrollerNetworkZombie>();
+                if (zombie != null)
                 {
                     zombie.ApplyDamage(30, this);
                     continue;
                 }
-                if (hit.TryGetComponent(out SideScrollerNetworkSlime slime))
+                SideScrollerNetworkSlime slime = hit.GetComponentInParent<SideScrollerNetworkSlime>();
+                if (slime != null)
                 {
                     slime.ApplyDamage(30, this);
                     continue;
                 }
-                if (hit.TryGetComponent(out SideScrollerNetworkPlayer player) && player != this)
+                SideScrollerNetworkPlayer player = hit.GetComponentInParent<SideScrollerNetworkPlayer>();
+                if (player != null && player != this)
                 {
                     player.ApplyDamage(25, this);
                 }
@@ -303,12 +322,14 @@ namespace EasyGame.SideScroller.Network
         [Server]
         public void ApplyDamage(int damage, SideScrollerNetworkPlayer attacker)
         {
-            if (defeated || NetworkTime.time < invulnerableUntil)
+            if (damage <= 0 || defeated || NetworkTime.time < invulnerableUntil)
             {
                 return;
             }
 
             health = Mathf.Max(0, health - Mathf.Max(1, damage));
+            attackHitsAt = double.PositiveInfinity;
+            attackQueued = false;
             if (health > 0)
             {
                 motion = 5;
@@ -322,7 +343,7 @@ namespace EasyGame.SideScroller.Network
         [Server]
         public void AwardMonsterDefeat(int experienceReward)
         {
-            experience += Mathf.Max(0, experienceReward);
+            progression.AddExperience(ref level, ref experience, experienceReward);
         }
 
         [Server]
@@ -337,25 +358,37 @@ namespace EasyGame.SideScroller.Network
             defeated = true;
             deaths++;
             motion = 6;
-            serverHorizontal = 0f;
-            serverJumpHeld = false;
+            serverInput.ClearIntent();
+            motor.Reset();
+            attackQueued = false;
+            attackHitsAt = double.PositiveInfinity;
+            horizontalSpeed = 0f;
             body.linearVelocity = Vector2.zero;
             bodyCollider.enabled = false;
+            body.simulated = false;
             respawnAt = NetworkTime.time + 2.4d;
             if (attacker != null && attacker != this)
             {
                 attacker.kills++;
-                attacker.experience += 35;
+                attacker.AwardMonsterDefeat(35);
             }
         }
 
         [Server]
         private void ServerRespawn()
         {
-            int spawnIndex = connectionToClient != null ? Mathf.Abs(connectionToClient.connectionId) % 4 : 0;
-            transform.position = SideWorldBuilder.PlayerSpawn + new Vector3(spawnIndex * SideWorldBuilder.PlayerSpawnSpacing, 0f, 0f);
+            Transform start = NetworkManager.singleton != null ? NetworkManager.singleton.GetStartPosition() : null;
+            Vector3 destination = start != null ? start.position : SideWorldBuilder.PlayerSpawn;
+            body.position = destination;
+            if (networkTransform != null) networkTransform.ServerTeleport(destination, Quaternion.identity);
+            else transform.position = destination;
             body.linearVelocity = Vector2.zero;
             bodyCollider.enabled = true;
+            body.simulated = true;
+            serverInput.ClearIntent();
+            motor.Reset();
+            actionLockedUntil = 0f;
+            nextAttackAt = NetworkTime.time;
             health = MaxHealthValue;
             defeated = false;
             motion = 0;
@@ -363,11 +396,13 @@ namespace EasyGame.SideScroller.Network
         }
 
         [ClientRpc]
-        private void RpcPlayAttack()
+        private void RpcPlayAttack(int attackFacing)
         {
             if (spriteAnimator != null)
             {
-                spriteAnimator.SetState(4, facing, 0f);
+                presentationAttackFacing = attackFacing;
+                spriteAnimator.PlayAttack(attackFacing);
+                presentationAttackUntil = Time.time + CombatTiming2D.AttackDuration;
             }
         }
 
@@ -375,12 +410,14 @@ namespace EasyGame.SideScroller.Network
         {
             if (spriteAnimator != null)
             {
-                spriteAnimator.SetState(motion, facing, Mathf.Abs(body.linearVelocity.x));
+                int visibleMotion = Time.time < presentationAttackUntil && motion < 5 ? 4 : motion;
+                int visibleFacing = visibleMotion == 4 && Time.time < presentationAttackUntil ? presentationAttackFacing : facing;
+                spriteAnimator.SetState(visibleMotion, visibleFacing, horizontalSpeed);
             }
             else if (animator != null)
             {
                 animator.SetInteger("Motion", motion);
-                animator.SetFloat("Speed", Mathf.Abs(body.linearVelocity.x));
+                animator.SetFloat("Speed", horizontalSpeed);
                 animator.SetFloat("VerticalSpeed", body.linearVelocity.y);
             }
             if (visualRoot != null && spriteAnimator == null)
@@ -389,11 +426,11 @@ namespace EasyGame.SideScroller.Network
                 scale.x = Mathf.Abs(scale.x) * facing;
                 visualRoot.localScale = scale;
             }
-            gameObject.name = $"{displayName}  LV.{level}  HP.{health}  EXP.{experience}";
         }
 
         private void OnAvatarChanged(PlayerAvatarKind previous, PlayerAvatarKind next)
         {
+            ConfigureAvatarCollider();
             if (Utils.IsHeadless())
             {
                 return;
@@ -407,9 +444,10 @@ namespace EasyGame.SideScroller.Network
             spriteAnimator = visualRoot.GetComponent<PlayerAvatarAnimator>();
         }
 
-        private bool ProbeGround()
+        private void ConfigureAvatarCollider()
         {
-            return GroundProbe2D.Check(bodyCollider, config.groundProbeWidth, config.groundProbeDistance, ~0);
+            if (bodyCollider is CapsuleCollider2D capsule)
+                ActorGeometry2D.ConfigurePlayerAvatar(capsule, avatarKind);
         }
 
         private void OnGUI()

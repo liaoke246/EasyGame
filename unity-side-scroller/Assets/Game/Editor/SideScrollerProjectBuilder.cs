@@ -99,6 +99,7 @@ namespace EasyGame.SideScroller.Editor
         {
             string output = CommandLineValue("-serverOutput") ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/NetworkQA/DeadRailsQaServer.exe"));
             PrepareProject();
+            ReleaseVerification.RunRegressionTests();
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? throw new InvalidOperationException("QA server output directory is invalid."));
             BuildPlayerOptions options = new BuildPlayerOptions
             {
@@ -132,6 +133,8 @@ namespace EasyGame.SideScroller.Editor
         {
             PrepareProject();
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            ReleaseVerification.RunRegressionTests();
+            string sourceFingerprint = ReleaseVerification.SourceFingerprint();
             Directory.CreateDirectory(output);
 
             BuildPlayerOptions options = new BuildPlayerOptions
@@ -149,11 +152,14 @@ namespace EasyGame.SideScroller.Editor
             }
 
             Debug.Log($"EasyGame 2D WebGL build completed: {output} ({report.summary.totalSize} bytes)");
+            ReleaseVerification.WriteManifest(output, "WebGL", sourceFingerprint);
         }
 
         private static void BuildDedicatedServer(string output, BuildTarget target)
         {
             PrepareProject();
+            ReleaseVerification.RunRegressionTests();
+            string sourceFingerprint = ReleaseVerification.SourceFingerprint();
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? throw new InvalidOperationException("Dedicated server output directory is invalid."));
             BuildPlayerOptions options = new BuildPlayerOptions
             {
@@ -171,6 +177,7 @@ namespace EasyGame.SideScroller.Editor
             }
 
             Debug.Log($"EasyGame 2D dedicated server completed: {output} ({report.summary.totalSize} bytes)");
+            ReleaseVerification.WriteManifest(Path.GetDirectoryName(output), target.ToString(), sourceFingerprint);
         }
 
         private static void EnsureFolders()
@@ -513,7 +520,7 @@ namespace EasyGame.SideScroller.Editor
         {
             PlayerSettings.companyName = "EasyGame";
             PlayerSettings.productName = "EasyGame: Dead Rails";
-            PlayerSettings.bundleVersion = "0.3.1";
+            PlayerSettings.bundleVersion = "0.4.0";
             PlayerSettings.runInBackground = true;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;

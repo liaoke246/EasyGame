@@ -15,7 +15,7 @@
     "test:animation": "node scripts/animation-invariant-test.mjs",
     "test:combat": "node scripts/combat-geometry-test.mjs",
     "test:unity": "node scripts/unity-project-test.mjs",
-    "test:side-scroller": "node scripts/side-scroller-project-test.mjs",
+    "test:side-scroller": "node scripts/side-scroller-project-test.mjs && node scripts/side-scroller-shell-test.mjs && node scripts/side-scroller-release-test.mjs && node scripts/verify-side-scroller-release.mjs",
     "test:smoke": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {

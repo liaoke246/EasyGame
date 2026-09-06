@@ -1,4 +1,3 @@
-using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Data;
 using UnityEngine;
 
@@ -13,10 +12,9 @@ namespace EasyGame.SideScroller.Player
         private Rigidbody2D body;
         private Collider2D bodyCollider;
         private PlayerInputReader input;
-        private float coyoteRemaining;
-        private float jumpBufferRemaining;
+        private PlayerMotor2D motor;
 
-        public bool IsGrounded { get; private set; }
+        public bool IsGrounded => motor != null && motor.IsGrounded;
         public float HorizontalInput => input != null ? input.Horizontal : 0f;
         public Vector2 Velocity => body != null ? body.linearVelocity : Vector2.zero;
 
@@ -39,10 +37,7 @@ namespace EasyGame.SideScroller.Player
         {
             if (body != null && config != null)
             {
-                body.gravityScale = config.gravityScale;
-                body.freezeRotation = true;
-                body.interpolation = RigidbodyInterpolation2D.Interpolate;
-                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                motor = new PlayerMotor2D(body, bodyCollider, config, groundMask);
             }
         }
 
@@ -53,16 +48,9 @@ namespace EasyGame.SideScroller.Player
                 return;
             }
 
-            IsGrounded = ProbeGround();
-            coyoteRemaining = IsGrounded ? config.coyoteTime : Mathf.Max(0f, coyoteRemaining - Time.deltaTime);
-
             if (input.ConsumeJumpPressed())
             {
-                jumpBufferRemaining = config.jumpBuffer;
-            }
-            else
-            {
-                jumpBufferRemaining = Mathf.Max(0f, jumpBufferRemaining - Time.deltaTime);
+                motor?.QueueJump();
             }
 
             input.ConsumeJumpReleased();
@@ -75,44 +63,12 @@ namespace EasyGame.SideScroller.Player
                 return;
             }
 
-            Vector2 velocity = body.linearVelocity;
-            float targetSpeed = input.Horizontal * config.moveSpeed;
-            float acceleration = Mathf.Abs(targetSpeed) > 0.01f ? config.groundAcceleration : config.groundDeceleration;
-            if (!IsGrounded)
-            {
-                acceleration *= config.airControl;
-            }
-            velocity.x = Mathf.MoveTowards(velocity.x, targetSpeed, acceleration * Time.fixedDeltaTime);
-
-            if (jumpBufferRemaining > 0f && coyoteRemaining > 0f)
-            {
-                velocity.y = config.jumpVelocity;
-                jumpBufferRemaining = 0f;
-                coyoteRemaining = 0f;
-                IsGrounded = false;
-            }
-
-            if (velocity.y < -0.01f)
-            {
-                velocity.y += Physics2D.gravity.y * body.gravityScale * (config.fallGravityMultiplier - 1f) * Time.fixedDeltaTime;
-            }
-            else if (velocity.y > 0.01f && !input.JumpHeld)
-            {
-                velocity.y += Physics2D.gravity.y * body.gravityScale * (config.lowJumpGravityMultiplier - 1f) * Time.fixedDeltaTime;
-            }
-
-            velocity.y = Mathf.Max(velocity.y, -config.maxFallSpeed);
-            body.linearVelocity = velocity;
+            motor?.Step(input.Horizontal, input.JumpHeld, Time.fixedDeltaTime);
         }
 
-        private bool ProbeGround()
+        private void OnDisable()
         {
-            if (bodyCollider == null || config == null)
-            {
-                return false;
-            }
-
-            return GroundProbe2D.Check(bodyCollider, config.groundProbeWidth, config.groundProbeDistance, groundMask);
+            motor?.Reset();
         }
     }
 }

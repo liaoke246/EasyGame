@@ -1,0 +1,30 @@
+{
+    "schemaVersion": 1,
+    "version": "0.4.0",
+    "unityVersion": "6000.3.21f1",
+    "target": "WebGL",
+    "sourceFingerprint": "b25b473b2d95a495c6e41c10d3f0157b104b97b853b6f0bbdaeb619cc9a0a727",
+    "builtAtUtc": "2026-09-06T04:19:55.4223198Z",
+    "files": [
+        {
+            "path": "Build/PrebuiltWebGL.data.unityweb",
+            "sha256": "02e9ebbf10701312b57ce5dc697f877a6cd6e2fa2cc73d663199443b15defcad"
+        },
+        {
+            "path": "Build/PrebuiltWebGL.framework.js.unityweb",
+            "sha256": "d62801a0a8ec4b40594827b1464a14e9bb5553fc8e6eb63242c6d49efed5fd80"
+        },
+        {
+            "path": "Build/PrebuiltWebGL.loader.js",
+            "sha256": "a0564ef3dc7d7c59849dff685921dc6cfc5d5a6ab0cbb1d1ed1107dd073ca614"
+        },
+        {
+            "path": "Build/PrebuiltWebGL.wasm.unityweb",
+            "sha256": "36950586b5f4db66f6684399f679347904b27ee28a842435412e8aecb347d1a5"
+        },
+        {
+            "path": "index.html",
+            "sha256": "b8b8c953a910bf6996a53ed759135661e989c2fb7edf7da5d35249df4c5a40f8"
+        }
+    ]
+}

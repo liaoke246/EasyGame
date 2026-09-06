@@ -49,7 +49,9 @@ assert.match(version, /6000\.3\.21f1/);
 const mirror = await readFile(`${root}/Assets/Mirror/version.txt`, "utf8");
 assert.match(mirror, /96\.11\.0/);
 
-const movement = await readFile(`${root}/Assets/Game/Scripts/Player/PlayerMovement.cs`, "utf8");
+// Structural smoke checks only. Real physics/animation/lifecycle regression
+// runs in Unity before building; do not describe keyword checks as play tests.
+const movement = await readFile(`${root}/Assets/Game/Scripts/Player/PlayerMotor2D.cs`, "utf8");
 assert.match(movement, /Rigidbody2D/);
 assert.match(movement, /coyoteRemaining/);
 assert.match(movement, /jumpBufferRemaining/);
@@ -65,7 +67,7 @@ assert.match(movementConfig, /lowJumpGravityMultiplier: 1\.08/);
 
 const world = await readFile(`${root}/Assets/Game/Scripts/World/SideWorldBuilder.cs`, "utf8");
 assert.match(world, /Tilemap/);
-assert.match(world, /TilemapCollider2D/);
+assert.match(world, /Tile\.ColliderType\.None/);
 assert.match(world, /FillPlatform/);
 assert.match(world, /BuildServerCollision/);
 assert.match(world, /BoxCollider2D/);
@@ -120,7 +122,8 @@ assert.match(slime, /GroundProbe2D\.Check/);
 assert.match(slime, /DealContactDamage/);
 
 const groundProbe = await readFile(`${root}/Assets/Game/Scripts/Core/GroundProbe2D.cs`, "utf8");
-assert.match(groundProbe, /OverlapBoxAll/);
+assert.match(groundProbe, /scene\.Raycast/);
+assert.match(groundProbe, /MinimumGroundNormalY/);
 assert.match(groundProbe, /hit == bodyCollider/);
 
 const actorGeometry = await readFile(`${root}/Assets/Game/Scripts/Core/ActorGeometry2D.cs`, "utf8");
@@ -161,4 +164,4 @@ assert.match(lobby, /href="\/arena\/"/);
 assert.match(lobby, /href="\/side-scroller\/"/);
 assert.match(lobby, /选择作战区域/);
 
-process.stdout.write("Side-scroller invariants passed: isolated Unity project, Mirror pin, Tilemap world, responsive movement, Animator graph, mobile WebGL shell, and dual-game lobby are present.\n");
+process.stdout.write("Side-scroller structural smoke checks passed (not a substitute for Unity runtime regression tests).\n");

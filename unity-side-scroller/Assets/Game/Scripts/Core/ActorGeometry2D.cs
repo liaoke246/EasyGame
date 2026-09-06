@@ -19,14 +19,29 @@ namespace EasyGame.SideScroller.Core
 
         public static void ConfigureHumanoid(CapsuleCollider2D collider)
         {
+            collider.direction = CapsuleDirection2D.Vertical;
             collider.size = HumanoidColliderSize;
             collider.offset = HumanoidColliderOffset;
         }
 
         public static void ConfigureSlime(CapsuleCollider2D collider)
         {
+            collider.direction = CapsuleDirection2D.Horizontal;
             collider.size = SlimeColliderSize;
             collider.offset = SlimeColliderOffset;
+        }
+
+        public static void ConfigurePlayerAvatar(CapsuleCollider2D collider, PlayerAvatarKind avatar)
+        {
+            if (avatar != PlayerAvatarKind.Slime)
+            {
+                ConfigureHumanoid(collider);
+                return;
+            }
+            ConfigureSlime(collider);
+            // All player roots retain the same feet coordinate, including when
+            // profile replication arrives after spawn. Only the silhouette changes.
+            collider.offset = new Vector2(0f, HumanoidFeetLocalY + SlimeColliderSize.y * 0.5f);
         }
 
         public static Vector3 RootPositionForFeet(Vector3 feetPosition, float feetLocalY)
@@ -51,7 +66,9 @@ namespace EasyGame.SideScroller.Core
                 return Vector2.zero;
             }
 
-            return collider.transform.TransformPoint(collider.offset);
+            // Attack queries use the current physics pose, not the interpolated
+            // Transform used for rendering between physics ticks.
+            return collider.bounds.center;
         }
 
         public static Vector3 HeadWorldPosition(Collider2D collider, float padding)
