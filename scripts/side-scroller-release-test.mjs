@@ -34,6 +34,7 @@ async function fixture(t) {
     'Assets/Game/Scripts/Player/Movement.cs': 'public class Movement {}\n',
     'Assets/Game/Editor/Build.cs': 'public class Build {}\n',
     'Assets/WebGLTemplates/SideScroller/index.html': '<html>Ready</html>\n',
+    'Assets/Plugins/WebGL/SkillHud.jslib': 'mergeInto(LibraryManager.library, {});\n',
   };
   for (const [relative, contents] of Object.entries(sources))
     await writeFixtureFile(root, relative, contents);
@@ -74,6 +75,12 @@ test('matching client and server artifacts verify against their source snapshot'
 test('a source edit invalidates previously built client and server artifacts', async t => {
   const { root } = await fixture(t);
   await writeFixtureFile(root, 'Assets/Game/Scripts/Player/Movement.cs', 'public class Movement { public float Speed = 8; }\n');
+  await assert.rejects(verifyRelease(root), /stale build; rebuild Unity from current sources/);
+});
+
+test('a WebGL native bridge edit also invalidates the release fingerprint', async t => {
+  const { root } = await fixture(t);
+  await writeFixtureFile(root, 'Assets/Plugins/WebGL/SkillHud.jslib', 'mergeInto(LibraryManager.library, { changed: function() {} });\n');
   await assert.rejects(verifyRelease(root), /stale build; rebuild Unity from current sources/);
 });
 

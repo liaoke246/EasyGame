@@ -51,6 +51,20 @@
     #right { left: calc(max(16px, env(safe-area-inset-left)) + clamp(70px, 20vw, 100px)); }
     #jump { right: max(16px, env(safe-area-inset-right)); color: #12201d; background: rgba(91,213,178,.8); }
     #attack { right: calc(max(16px, env(safe-area-inset-right)) + clamp(70px, 20vw, 100px)); }
+    #skills { display: none; position: fixed; z-index: 10; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); gap: 7px; }
+    body.game-ready #skills { display: flex; }
+    .skill { position: relative; width: 98px; height: 54px; border: 1px solid #60c9bc; border-radius: 8px; background: #10292beb; color: #e0fff2; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
+    .skill:nth-child(2) { border-color: #a195ee; }
+    .skill:nth-child(3) { border-color: #edb053; }
+    .skill strong, .skill span { display: block; position: relative; z-index: 1; }
+    .skill strong { font-size: 12px; } .skill span { font-size: 11px; margin-top: 4px; }
+    .skill::before { content: ''; position: absolute; inset: 0; background: #03090ccc; transform-origin: bottom; transform: scaleY(var(--cooldown, 0)); border-radius: 7px; pointer-events: none; }
+    .skill[aria-disabled="true"] { color: #9daaa9; }
+    @media (pointer: coarse), (max-width: 900px) {
+      #skills { left: auto; right: max(16px, env(safe-area-inset-right)); bottom: calc(max(16px, env(safe-area-inset-bottom)) + clamp(58px, 17vw, 86px) + 12px); transform: none; gap: 6px; }
+      .skill { width: 56px; height: 52px; }
+      .skill strong { font-size: 10px; white-space: nowrap; }
+    }
     @media (pointer: coarse), (max-width: 900px) { body.game-ready #mobile-controls { display: block; } #back { font-size: 12px; } }
     @media (max-width: 620px) { .profile-card { padding: 20px; } .avatar-grid { gap: 7px; } .avatar-option { min-height: 112px; padding: 12px 6px; } .avatar-note { display: none; } }
     @media (orientation: portrait) { .control { bottom: max(28px, env(safe-area-inset-bottom)); } }
@@ -63,7 +77,7 @@
     <form class="profile-card" id="profile-form">
       <div class="eyebrow">EASYGAME // PLAYER PROFILE</div>
       <h1 id="setup-title">进入森林前线</h1>
-      <p class="intro">输入你的名字，选择男战士、女游侠或蓝史莱姆，与其他玩家一起探索森林。</p>
+      <p class="intro">选择角色探索森林。J 普攻 · K 裂风斩 · L 升龙击 · U 裂地波（落地施放）。怪物红色蓄力提示出现时，移动或跳跃躲开。</p>
       <label class="field-label" for="player-name">玩家名字（英文、数字、空格）</label>
       <input id="player-name" name="playerName" maxlength="14" pattern="[A-Za-z0-9 _\-]{1,14}" title="请输入 1–14 位英文、数字、空格、下划线或短横线" autocomplete="nickname" enterkeyhint="go" placeholder="PLAYER-2048" required>
       <div class="field-label choose-label">选择角色</div>
@@ -86,6 +100,11 @@
     <button id="right" class="control" aria-label="向右">▶</button>
     <button id="attack" class="control" aria-label="攻击">ATK</button>
     <button id="jump" class="control" aria-label="跳跃">JUMP</button>
+  </div>
+  <div id="skills" aria-label="角色技能">
+    <button id="skill1" class="skill" aria-label="裂风斩"><strong>K 裂风斩</strong><span>就绪</span></button>
+    <button id="skill2" class="skill" aria-label="升龙击"><strong>L 升龙击</strong><span>就绪</span></button>
+    <button id="skill3" class="skill" aria-label="裂地波"><strong>U 裂地波</strong><span>就绪</span></button>
   </div>
   <div id="loader" hidden>
     <div class="loader-card">
@@ -188,6 +207,18 @@
     bindHold("#right", "right");
     bindHold("#jump", "jump");
     bindHold("#attack", "attack");
+    bindHold("#skill1", "skill1");
+    bindHold("#skill2", "skill2");
+    bindHold("#skill3", "skill3");
+    window.easygameSkillState = (cleave, rising, nova, defeated) => {
+      [cleave, rising, nova].forEach((remaining, index) => {
+        const button = document.querySelector(`#skill${index + 1}`);
+        const time = Number.isFinite(remaining) ? Math.max(0, remaining) : 0;
+        button.style.setProperty("--cooldown", String(Math.min(1, time / [3, 5, 8][index])));
+        button.setAttribute("aria-disabled", String(Boolean(defeated) || time > 0));
+        button.querySelector("span").textContent = defeated ? "复活中" : time > 0 ? `${time.toFixed(1)}s` : "就绪";
+      });
+    };
     window.addEventListener("blur", resetControls);
     window.addEventListener("pagehide", resetControls);
     document.addEventListener("visibilitychange", () => { if (document.hidden) resetControls(); });

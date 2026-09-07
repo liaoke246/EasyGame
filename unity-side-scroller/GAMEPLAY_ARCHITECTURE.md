@@ -36,6 +36,14 @@ This project follows a server-authoritative 2D action-game layout. The rules bel
 - Local HUD reads synchronized health; only remote players receive an overhead health bar.
 - Every IMGUI overlay restores global GUI state after drawing. XP is consumed into real levels, not merely wrapped by the progress bar.
 
+## Combat actions (0.5.0)
+
+- `CombatActions2D` owns the shared windup/contact/recovery, box size, PvE/PvP damage, impulse and cooldown definitions. `CombatActionClock` rejects invalid IDs, overlapping casts and cooldown bypasses, and consumes contact exactly once. Cancel does not refund a spent cooldown.
+- Monster proximity starts anticipation rather than dealing damage. Direction locks until recovery; the server re-queries targets at contact, so dodging, terrain and interruptions remain meaningful.
+- Attack ID and start timestamp are replicated. Every avatar samples its existing whole-body sprite strip by action phase; no added arm layer, scale animation, or collider movement is used for presentation. Pixel ribbon meshes are visual only.
+- Hitstun/death cancel pending contact. Rising hits modify authoritative rigidbody velocity only after accepted damage; PvP launch is reduced and spawn immunity also blocks the impulse.
+- WebGL buttons share the same mobile input edge path as movement. A minimal `.jslib` bridge sends cooldown state to the accessible HTML hotbar, and is included in source fingerprints. Offline mode previews the same three skills without network targets.
+
 ## Release gates
 
 - Unity WebGL build succeeds with zero C# errors.

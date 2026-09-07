@@ -22,7 +22,15 @@ can be regenerated with **EasyGame 2D > Prepare Project**.
 
 - Move: `A/D` or arrow keys
 - Jump: `Space`, `W`, or up arrow
-- Attack prototype: `J` or left mouse button
+- Basic attack: `J` or left mouse button
+- Cleave / 裂风斩: `K` (3-second cooldown, longer frontal strike)
+- Rising / 升龙击: `L` (5-second cooldown, launches surviving targets)
+- Nova / 裂地波: `U` (8-second cooldown, grounded area strike)
+- WebGL skill buttons support mouse or multitouch and show server-confirmed cooldowns.
+
+Monsters now anticipate, strike and recover instead of dealing instant contact
+damage. Leave the orange/red telegraph before contact or interrupt the attacker.
+See [COMBAT_SKILLS.md](COMBAT_SKILLS.md) for timings and verification.
 
 ## Builds
 

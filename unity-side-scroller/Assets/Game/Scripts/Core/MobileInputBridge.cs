@@ -12,6 +12,8 @@ namespace EasyGame.SideScroller.Core
         private static bool jumpPressed;
         private static bool attackPressed;
         private static bool attackHeld;
+        private static int skillPressed = -1;
+        private static readonly bool[] skillHeld = new bool[3];
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void ResetState()
@@ -22,6 +24,8 @@ namespace EasyGame.SideScroller.Core
             attackHeld = false;
             jumpPressed = false;
             attackPressed = false;
+            skillPressed = -1;
+            Array.Clear(skillHeld, 0, skillHeld.Length);
         }
 
         public void SetMobileControl(string message)
@@ -63,6 +67,13 @@ namespace EasyGame.SideScroller.Core
                 case "reset":
                     ResetState();
                     break;
+                case "skill1":
+                case "skill2":
+                case "skill3":
+                    int index = parts[0][5] - '1';
+                    if (pressed && !skillHeld[index]) skillPressed = index + 1;
+                    skillHeld[index] = pressed;
+                    break;
             }
         }
 
@@ -77,6 +88,13 @@ namespace EasyGame.SideScroller.Core
         {
             bool value = attackPressed;
             attackPressed = false;
+            return value;
+        }
+
+        public static int ConsumeSkillPressed()
+        {
+            int value = skillPressed;
+            skillPressed = -1;
             return value;
         }
 

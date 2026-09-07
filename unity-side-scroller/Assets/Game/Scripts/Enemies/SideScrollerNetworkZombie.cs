@@ -18,6 +18,7 @@ namespace EasyGame.SideScroller.Enemies
         [SyncVar] private int motion = 1;
         [SyncVar] private float animationSpeed;
         [SyncVar] private bool defeated;
+        [SyncVar] private double attackStartedAt;
 
         [SerializeField] private float patrolRadius = 3.5f;
         [SerializeField] private float moveSpeed = 1.35f;
@@ -31,7 +32,8 @@ namespace EasyGame.SideScroller.Enemies
         private double reviveAt;
         private double staggerUntil;
         private double nextContactDamageAt;
-        private readonly CombatQuery2D contactQuery = new CombatQuery2D();
+        private readonly MonsterMelee2D melee = new MonsterMelee2D();
+        private CombatActionView2D actionView;
 
         private void Awake()
         {
@@ -46,6 +48,7 @@ namespace EasyGame.SideScroller.Enemies
             {
                 visualRoot = RuntimePlayerVisual.CreateZombie(transform);
                 spriteAnimator = visualRoot.GetComponent<PixelCharacterAnimator>();
+                actionView = CombatActionView2D.Create(transform);
             }
         }
 
@@ -68,7 +71,13 @@ namespace EasyGame.SideScroller.Enemies
         {
             if (isClient && spriteAnimator != null)
             {
-                spriteAnimator.SetState(motion, facing, animationSpeed);
+                if (motion == 4)
+                {
+                    float elapsed = (float)(NetworkTime.time - attackStartedAt);
+                    spriteAnimator.SetCombatAction((int)CombatActionId.ZombieClaw, elapsed, facing);
+                    actionView.Show((int)CombatActionId.ZombieClaw, facing, elapsed, bodyCollider);
+                }
+                else spriteAnimator.SetState(motion, facing, animationSpeed);
             }
         }
 
@@ -93,6 +102,7 @@ namespace EasyGame.SideScroller.Enemies
                     body.linearVelocity = Vector2.zero;
                     staggerUntil = 0d;
                     nextContactDamageAt = NetworkTime.time + 0.5d;
+                    melee.Clock.Reset();
                     motion = 1;
                 }
                 return;
@@ -105,6 +115,14 @@ namespace EasyGame.SideScroller.Enemies
             }
 
             float patrolOffset = body.position.x - spawnPosition.x;
+            bool groundedForAttack = GroundProbe2D.Check(bodyCollider, 0.72f, 0.12f, Physics2D.DefaultRaycastLayers);
+            if (NetworkTime.time >= staggerUntil && NetworkTime.time >= nextContactDamageAt &&
+                melee.Step((int)CombatActionId.ZombieClaw, bodyCollider, groundedForAttack, NetworkTime.time, ref facing))
+            {
+                motion = 4; animationSpeed = 0f;
+                attackStartedAt = melee.Clock.StartedAt;
+                return;
+            }
             if (patrolOffset >= patrolRadius)
             {
                 facing = -1;
@@ -124,16 +142,12 @@ namespace EasyGame.SideScroller.Enemies
 
             Vector2 velocity = body.linearVelocity;
             bool canMove = groundAhead && NetworkTime.time >= staggerUntil;
-            velocity.x = canMove ? facing * moveSpeed : 0f;
+            velocity.x = NetworkTime.time < staggerUntil ? Mathf.MoveTowards(velocity.x, 0f, 8f * Time.fixedDeltaTime) : canMove ? facing * moveSpeed : 0f;
             body.linearVelocity = velocity;
             animationSpeed = Mathf.Abs(velocity.x);
             if (NetworkTime.time >= staggerUntil)
             {
                 motion = !grounded ? (velocity.y > 0f ? 2 : 3) : canMove ? 1 : 0;
-            }
-            if (NetworkTime.time >= staggerUntil)
-            {
-                DealContactDamage();
             }
         }
 
@@ -146,6 +160,7 @@ namespace EasyGame.SideScroller.Enemies
             }
 
             health = Mathf.Max(0, health - damage);
+            melee.Clock.Cancel();
             if (health > 0)
             {
                 motion = 5;
@@ -164,26 +179,11 @@ namespace EasyGame.SideScroller.Enemies
         }
 
         [Server]
-        private void DealContactDamage()
+        public void ApplyCombatImpulse(Vector2 impulse)
         {
-            if (NetworkTime.time < nextContactDamageAt)
-            {
-                return;
-            }
-
-            Vector2 bodyCenter = ActorGeometry2D.BodyCenter(bodyCollider);
-            Vector2 center = new Vector2(bodyCenter.x + facing * 0.38f, bodyCenter.y);
-            var hits = contactQuery.CollectTargets(bodyCollider, center, new Vector2(0.95f, 1.25f));
-            for (int index = 0; index < hits.Count; index++)
-            {
-                Collider2D hit = hits[index];
-                SideScrollerNetworkPlayer player = hit.GetComponentInParent<SideScrollerNetworkPlayer>();
-                if (player != null && !player.IsDefeated)
-                {
-                    player.ApplyDamage(12, null);
-                    nextContactDamageAt = NetworkTime.time + 0.85d;
-                }
-            }
+            if (defeated || impulse == Vector2.zero) return;
+            body.linearVelocity = new Vector2(impulse.x, Mathf.Max(body.linearVelocity.y, impulse.y));
+            staggerUntil = NetworkTime.time + .28d;
         }
 
         private bool HasGroundAhead(int direction)

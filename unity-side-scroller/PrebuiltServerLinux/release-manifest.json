@@ -1,10 +1,10 @@
 {
     "schemaVersion": 1,
-    "version": "0.4.0",
+    "version": "0.5.0",
     "unityVersion": "6000.3.21f1",
     "target": "StandaloneLinux64",
-    "sourceFingerprint": "b25b473b2d95a495c6e41c10d3f0157b104b97b853b6f0bbdaeb619cc9a0a727",
-    "builtAtUtc": "2026-09-06T04:20:46.0540591Z",
+    "sourceFingerprint": "e2e717eae96084610445bcc37c9b744645b3293e930879ede2fe8c54e0f86e8e",
+    "builtAtUtc": "2026-09-07T14:28:35.8285938Z",
     "files": [
         {
             "path": "DeadRailsServer.x86_64",
@@ -12,11 +12,11 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/Assembly-CSharp.dll",
-            "sha256": "ba63a073752e38d0b050578bed6b9fbe24e013961d463878977cb886476b6dd7"
+            "sha256": "18d01d21a28de87e8a4df00e02ce6edc0a7a4039f9047d69225a21deda46b993"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mirror.Authenticators.dll",
-            "sha256": "84bed83f1d7354528571843e6d88f1f0b3335b9c0b859041ce050273d57ef25a"
+            "sha256": "20afa69f1d22fbcb96e68ba1c8978a52d4dd03e8f2c6f4d2389a6bbd159c7ccf"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mirror.BouncyCastle.Cryptography.dll",
@@ -24,15 +24,15 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mirror.Components.dll",
-            "sha256": "8a277cc8a1f1142f4ae73228dd486dba12ed0e8eab483dbe03ff00685b5e7d8a"
+            "sha256": "ba202291f03babb1fbe9e2b002f534d605a6f1d2787d411406077991d15ac98a"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mirror.Transports.dll",
-            "sha256": "020879e8b2135fa2a3b836e426e6f43ca2e7dee4d8b6e90c121d42d54eb9ed33"
+            "sha256": "10f479713e46d040e73f6bd67cc6548468d6799ec62346af9f99fbe08f56bfdd"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mirror.dll",
-            "sha256": "f7948889b60971d261bb0ca12c48a0e1e86fb9ea69c4a67c07d14b138e688f42"
+            "sha256": "03ef9137459338b4d4cc1af2fbffd7438d59e51e707caca7aa8da6f6d10177ff"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mono.Security.dll",
@@ -44,7 +44,7 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/SimpleWebTransport.dll",
-            "sha256": "9e4474c3182856000675c0e3bf212b00a16cd4be6b762a3b1d5125a24557520b"
+            "sha256": "d4de229bd3466cb58df59dfcd0b710b280114b519e28824324b55491a55e01dd"
         },
         {
             "path": "DeadRailsServer_Data/Managed/System.ComponentModel.Composition.dll",
@@ -120,19 +120,19 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/Telepathy.dll",
-            "sha256": "3305b5176d2c851325481f75baee4a82f5e4954c8195351b2035f90d6d8ab75f"
+            "sha256": "b801ab5db997f72e71d6c7c49e62cd7164058b1fe9ac87c79835e2a51faab564"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Unity.InternalAPIEngineBridge.004.dll",
-            "sha256": "6e0c5d6e986f00e3abf27d00613b52c9b9179c2ae3ac4d2bd0690f567444fa6d"
+            "sha256": "5348536181ac88ab3f4edf87cad47c5a78a35288d9a1c6f574171a1656e75a4b"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Unity.Multiplayer.Center.Common.dll",
-            "sha256": "f041e0b56edbf1c7900e12f49a518a8d77cf1c6ca61c66c7394d1be747f7acc2"
+            "sha256": "d81e7a111dc565b8e61c661c89310bc50f9133630a49824266413e0380aedc6f"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Unity.TextMeshPro.dll",
-            "sha256": "5995f7b5eda5990f4f814ae8d6c2740a7bb8c4e237a6845dd4e86c9bb109ea03"
+            "sha256": "7116f30105462e29d1945c4faf65a6e9474919db111dc700d3c28846842d8ef5"
         },
         {
             "path": "DeadRailsServer_Data/Managed/UnityEngine.AIModule.dll",
@@ -360,7 +360,7 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/UnityEngine.UI.dll",
-            "sha256": "35b179d2393422157abb332ea4c6402726ea346ed3444fbe42be15823f6e2a1c"
+            "sha256": "462e43feb3bccfe311ab014bf35c26f4b6457861a7f995a30cfd8ae4a0f61398"
         },
         {
             "path": "DeadRailsServer_Data/Managed/UnityEngine.UIElementsModule.dll",
@@ -452,7 +452,7 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/kcp2k.dll",
-            "sha256": "2d0586a531e69a3a02acd26207bf6ed4e2391e285138d33e7b89f4158dbae8a9"
+            "sha256": "cdb02537bbb153809500204d6ac5bd56505ef41fbbb024fd90192d2661417b30"
         },
         {
             "path": "DeadRailsServer_Data/Managed/mscorlib.dll",
@@ -568,27 +568,27 @@
         },
         {
             "path": "DeadRailsServer_Data/boot.config",
-            "sha256": "45d8995b910bf7d1ce4ece124d50ff645db8106cf70bfa3af6d116a8f95b8915"
+            "sha256": "5b83f42f0e42360108022da37cbd8f32284100d4c81a877793c48c5ddb88bdd9"
         },
         {
             "path": "DeadRailsServer_Data/globalgamemanagers",
-            "sha256": "ea8d6ada49ff83f26206fa08a2e5e6e76738c988e876102dfcab160fd46a67d8"
+            "sha256": "6b21da5e7c32e15f673c128dfe15f346c108cbfffd4e8b0bb2a5ad8ce9ad4f04"
         },
         {
             "path": "DeadRailsServer_Data/globalgamemanagers.assets",
-            "sha256": "7364b53fd2a7530d3ae05099684cb19407b456c99e1fad445d26f2921034b701"
+            "sha256": "2435bfcb3edbc62a657d03b525115a125b1190057e3ac09f0adb41a01de32b24"
         },
         {
             "path": "DeadRailsServer_Data/level0",
-            "sha256": "aa0242c3640fcc2e39b1a8e4a8c866770880c69aa065d851ae2bfe79f81a5b82"
+            "sha256": "4e9859ea2b5d20e0fa3caa140b40383cdcce054b52a80a6bd3f6210f55d80627"
         },
         {
             "path": "DeadRailsServer_Data/resources.assets",
-            "sha256": "6f7668b62f2d40b504c5e1d1ea2bbd89254e8e06e20f9d48225093f1b0430fb5"
+            "sha256": "d44982a88eb7856f7f9f761418520cd2b3df0124dd5ef82cf26c1a1816b3f640"
         },
         {
             "path": "DeadRailsServer_Data/sharedassets0.assets",
-            "sha256": "0f1d68aa4e99034b806794a1d464cbe7ee8d0dda057e9eb6a2db53d541c0dffb"
+            "sha256": "25f8f030b06a3fb137191a4aa54f68794cc9cd4456ccb7d0c72b52008a86dd9f"
         },
         {
             "path": "UnityPlayer.so",

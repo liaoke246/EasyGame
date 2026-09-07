@@ -29,6 +29,7 @@ namespace EasyGame.SideScroller.Editor
             CombatRegressionTests.Run();
             NetworkRulesRegressionTests.Run();
             LifecycleRegressionTests.Run();
+            SkillRegressionTests.Run();
             Debug.Log("GAMEPLAY REGRESSION SUITE PASSED");
         }
 
@@ -36,9 +37,9 @@ namespace EasyGame.SideScroller.Editor
         {
             string root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
             var inputs = new List<string>();
-            foreach (string folder in new[] { "Assets/Game/Scripts", "Assets/Game/Editor", "Assets/WebGLTemplates/SideScroller" })
+            foreach (string folder in new[] { "Assets/Game/Scripts", "Assets/Game/Editor", "Assets/WebGLTemplates/SideScroller", "Assets/Plugins/WebGL" })
                 inputs.AddRange(Directory.GetFiles(Path.Combine(root, folder), "*", SearchOption.AllDirectories)
-                    .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) || path.EndsWith(".html", StringComparison.Ordinal) || path.EndsWith(".js", StringComparison.Ordinal)));
+                    .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) || path.EndsWith(".html", StringComparison.Ordinal) || path.EndsWith(".js", StringComparison.Ordinal) || path.EndsWith(".jslib", StringComparison.Ordinal)));
             foreach (string file in new[] { "ProjectSettings/ProjectVersion.txt", "Packages/manifest.json", "Packages/packages-lock.json", "Assets/Mirror/version.txt", "Assets/Game/Resources/Config/PlayerMovement.asset", "Assets/Game/Resources/Config/LevelProgression.asset" })
                 inputs.Add(Path.Combine(root, file));
             string list = string.Concat(inputs.Select(path => (path, relative: Path.GetRelativePath(root, path).Replace('\\', '/')))

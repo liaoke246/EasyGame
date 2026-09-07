@@ -35,6 +35,7 @@ class Element {
   }
   setAttribute(key, value) { this.attributes.set(key, value); }
   appendChild(child) { this.children.push(child); }
+  querySelector(selector) { this.selectedChildren ??= new Map(); if (!this.selectedChildren.has(selector)) this.selectedChildren.set(selector, new Element()); return this.selectedChildren.get(selector); }
   focus() { this.focused = true; }
   remove() { this.removed = true; }
   setPointerCapture(id) { this.captured.add(id); }
@@ -45,7 +46,7 @@ class Element {
 }
 
 function page({ url = "https://game.example/side-scroller/", storageDenied = false, historyDenied = false, instantiate } = {}) {
-  const ids = ["unity-canvas", "profile-setup", "profile-form", "player-name", "loader", "progress", "status", "retry-load", "left", "right", "jump", "attack"];
+  const ids = ["unity-canvas", "profile-setup", "profile-form", "player-name", "loader", "progress", "status", "retry-load", "left", "right", "jump", "attack", "skill1", "skill2", "skill3"];
   const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
   elements["retry-load"].hidden = true;
   elements.loader.hidden = true;
@@ -184,4 +185,22 @@ test("blur, hidden tabs and page exits cancel held movement and queued actions",
     assert.equal(app.elements.right.captured.size, 0);
     assert.equal(app.elements.attack.captured.size, 0);
   }
+});
+
+test("skill buttons use independent captured edges and server cooldown / death state", async () => {
+  const app = page();
+  await app.ready();
+  app.elements.left.emit("pointerdown", { pointerId: 1 });
+  app.elements.skill2.emit("pointerdown", { pointerId: 2 });
+  app.elements.skill2.emit("pointerdown", { pointerId: 3 });
+  app.elements.skill2.emit("pointerup", { pointerId: 2 });
+  assert.deepEqual(app.controls(), ["left:1", "skill2:1"]);
+  app.window.easygameSkillState(1.5, 5, 0, 0);
+  assert.equal(app.elements.skill1.style["--cooldown"], "0.5");
+  assert.equal(app.elements.skill2.querySelector("span").textContent, "5.0s");
+  assert.equal(app.elements.skill3.attributes.get("aria-disabled"), "false");
+  app.window.emit("blur");
+  assert.deepEqual(app.controls(), ["left:1", "skill2:1", "left:0", "skill2:0", "reset:1"]);
+  app.window.easygameSkillState(0, 0, 0, 1);
+  assert.equal(app.elements.skill3.querySelector("span").textContent, "复活中");
 });

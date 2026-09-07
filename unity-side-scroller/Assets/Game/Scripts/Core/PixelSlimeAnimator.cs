@@ -15,6 +15,15 @@ namespace EasyGame.SideScroller.Core
         private int motion = -1;
         private float facing = 1f;
         private float stateStartedAt;
+        private int combatAction = -1;
+        private float combatElapsed;
+
+        public void SetCombatAction(int id, float elapsed, float direction)
+        {
+            SetState(7, direction);
+            combatAction = id;
+            combatElapsed = Mathf.Max(0f, elapsed);
+        }
 
         public void Initialize(SpriteRenderer targetRenderer, string color)
         {
@@ -28,6 +37,7 @@ namespace EasyGame.SideScroller.Core
 
         public void SetState(int nextMotion, float nextFacing, bool restart = false)
         {
+            combatAction = -1;
             if (Mathf.Abs(nextFacing) > 0.01f)
             {
                 facing = Mathf.Sign(nextFacing);
@@ -76,7 +86,7 @@ namespace EasyGame.SideScroller.Core
                 4 => Loop(jump, elapsed, 0.082f),
                 5 => jump[Mathf.Clamp(Mathf.FloorToInt(elapsed / 0.08f), 0, 3)],
                 6 => jump[Mathf.Clamp(4 + Mathf.FloorToInt(elapsed / 0.08f), 4, 7)],
-                7 => Once(jump, elapsed, 0.04f),
+                7 => combatAction >= 0 ? jump[Combat.CombatActions2D.Get(combatAction).Frame(combatElapsed, jump.Length)] : Once(jump, elapsed, 0.04f),
                 _ => Loop(idle, elapsed, 0.16f),
             };
             target.color = motion == 2 && Mathf.FloorToInt(elapsed / 0.055f) % 2 == 0

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const hash = data => createHash('sha256').update(data).digest('hex');
-const sourceFolders = ['Assets/Game/Scripts', 'Assets/Game/Editor', 'Assets/WebGLTemplates/SideScroller'];
+const sourceFolders = ['Assets/Game/Scripts', 'Assets/Game/Editor', 'Assets/WebGLTemplates/SideScroller', 'Assets/Plugins/WebGL'];
 const sourceFiles = ['ProjectSettings/ProjectVersion.txt', 'Packages/manifest.json', 'Packages/packages-lock.json',
   'Assets/Mirror/version.txt', 'Assets/Game/Resources/Config/PlayerMovement.asset', 'Assets/Game/Resources/Config/LevelProgression.asset'];
 
@@ -24,7 +24,7 @@ async function filesUnder(root, prefix = '') {
 export async function sourceFingerprint(root) {
   const inputs = [...sourceFiles];
   for (const folder of sourceFolders)
-    inputs.push(...(await filesUnder(root, folder)).filter(file => /\.(cs|html|js)$/.test(file)));
+    inputs.push(...(await filesUnder(root, folder)).filter(file => /\.(cs|html|js|jslib)$/.test(file)));
   let listing = '';
   for (const file of inputs.sort()) {
     // Match C# ReadAllText (BOM removal) and normalize Git's Windows line endings.

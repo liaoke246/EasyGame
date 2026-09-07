@@ -97,7 +97,7 @@ assert.match(animation, /PlayerSpawnMethod\.RoundRobin/);
 const networkPlayer = await readFile(`${root}/Assets/Game/Scripts/Network/SideScrollerNetworkPlayer.cs`, "utf8");
 assert.match(networkPlayer, /\[Command\(channel = Channels\.Unreliable\)\]/);
 assert.match(networkPlayer, /\[SyncVar\]/);
-assert.match(networkPlayer, /\[ClientRpc\]/);
+assert.match(networkPlayer, /\[TargetRpc\]/);
 assert.match(networkPlayer, /if \(!isServer/);
 assert.match(networkPlayer, /ResolveAttackHits/);
 assert.match(networkPlayer, /SideScrollerNetworkSlime/);
@@ -119,7 +119,7 @@ assert.match(zombie, /ApplyDamage/);
 const slime = await readFile(`${root}/Assets/Game/Scripts/Enemies/SideScrollerNetworkSlime.cs`, "utf8");
 assert.match(slime, /NetworkBehaviour/);
 assert.match(slime, /GroundProbe2D\.Check/);
-assert.match(slime, /DealContactDamage/);
+assert.match(slime, /melee\.Step/);
 
 const groundProbe = await readFile(`${root}/Assets/Game/Scripts/Core/GroundProbe2D.cs`, "utf8");
 assert.match(groundProbe, /scene\.Raycast/);

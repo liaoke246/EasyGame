@@ -16,6 +16,8 @@ namespace EasyGame.SideScroller.Player
         private float actionLockedUntil;
         private int actionMotion;
         private float facing = 1f;
+        private int combatAction = -1;
+        private float combatElapsed;
 
         public void Initialize(Animator targetAnimator, PlayerMovement targetMovement, Transform targetVisualRoot)
         {
@@ -39,7 +41,7 @@ namespace EasyGame.SideScroller.Player
             }
 
             float horizontal = movement.HorizontalInput;
-            if (Mathf.Abs(horizontal) > 0.05f)
+            if (Mathf.Abs(horizontal) > 0.05f && Time.time >= actionLockedUntil)
             {
                 facing = Mathf.Sign(horizontal);
             }
@@ -67,7 +69,8 @@ namespace EasyGame.SideScroller.Player
 
             if (spriteAnimator != null)
             {
-                spriteAnimator.SetState(motion, facing, Mathf.Abs(movement.Velocity.x));
+                if (motion == 4 && combatAction >= 0) spriteAnimator.SetCombatAction(combatAction, combatElapsed, (int)facing);
+                else spriteAnimator.SetState(motion, facing, Mathf.Abs(movement.Velocity.x));
             }
             else if (animator != null)
             {
@@ -81,6 +84,14 @@ namespace EasyGame.SideScroller.Player
         {
             actionMotion = 4;
             actionLockedUntil = Mathf.Max(actionLockedUntil, Time.time + duration);
+        }
+
+        public void PlayCombatAction(int id, float elapsed, int direction)
+        {
+            combatAction = id; combatElapsed = elapsed; facing = direction;
+            actionMotion = 4;
+            actionLockedUntil = Time.time + Mathf.Max(0f, Combat.CombatActions2D.Get(id).Duration - elapsed);
+            spriteAnimator?.SetCombatAction(id, elapsed, direction);
         }
 
         public void PlayHit(float duration = 0.18f)

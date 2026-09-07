@@ -9,6 +9,7 @@ namespace EasyGame.SideScroller.Player
         private bool jumpPressed;
         private bool jumpReleased;
         private bool attackPressed;
+        private int skillPressed = -1;
         private bool focused = true;
         private bool paused;
 
@@ -48,6 +49,11 @@ namespace EasyGame.SideScroller.Player
             // already true. Short-circuiting here replays an old tap next frame.
             bool mobileJumpPressed = MobileInputBridge.ConsumeJumpPressed();
             bool mobileAttackPressed = MobileInputBridge.ConsumeAttackPressed();
+            int mobileSkill = MobileInputBridge.ConsumeSkillPressed();
+            if (mobileSkill > 0) skillPressed = mobileSkill;
+            if (Input.GetKeyDown(KeyCode.K)) skillPressed = 1;
+            if (Input.GetKeyDown(KeyCode.L)) skillPressed = 2;
+            if (Input.GetKeyDown(KeyCode.U)) skillPressed = 3;
             if ((jumpNow && !JumpHeld) || mobileJumpPressed)
             {
                 jumpPressed = true;
@@ -90,6 +96,13 @@ namespace EasyGame.SideScroller.Player
             ResetInput();
         }
 
+        public int ConsumeSkillPressed()
+        {
+            int value = skillPressed;
+            skillPressed = -1;
+            return value;
+        }
+
         private void OnApplicationFocus(bool hasFocus)
         {
             focused = hasFocus;
@@ -109,6 +122,7 @@ namespace EasyGame.SideScroller.Player
             jumpPressed = false;
             jumpReleased = false;
             attackPressed = false;
+            skillPressed = -1;
         }
     }
 }

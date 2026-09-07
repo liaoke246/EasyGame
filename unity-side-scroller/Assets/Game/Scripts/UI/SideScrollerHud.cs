@@ -51,10 +51,12 @@ namespace EasyGame.SideScroller.UI
             GUI.Label(new Rect(mission.x + 14f, 51f, 232f, 34f), "PVP ENABLED  //  SLIMES & INFECTED", smallStyle);
             }
 
-            if (!Application.isMobilePlatform)
+            if (!Application.isMobilePlatform && Screen.width > 900)
             {
-                GUI.Label(new Rect(22f, height - 42f, 620f, 24f), "A/D MOVE   SPACE/W JUMP   J/CLICK ATTACK", labelStyle);
+                GUI.Label(new Rect(22f, height - 92f, 660f, 24f), "A/D MOVE   SPACE/W JUMP   J ATTACK   K/L/U SKILLS", labelStyle);
             }
+            if (player != null && !string.IsNullOrEmpty(player.ActionHint))
+                GUI.Label(new Rect(width * .5f - 70f, height - 125f, 200f, 24f), player.ActionHint, titleStyle);
             }
             finally
             {

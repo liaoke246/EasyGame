@@ -53,5 +53,11 @@ namespace EasyGame.SideScroller.Core
                 slimeAnimator.SetPlayerState(4, facing, true);
             }
         }
+
+        public void SetCombatAction(int id, float elapsed, int facing)
+        {
+            characterAnimator?.SetCombatAction(id, elapsed, facing);
+            slimeAnimator?.SetCombatAction(id, elapsed, facing);
+        }
     }
 }

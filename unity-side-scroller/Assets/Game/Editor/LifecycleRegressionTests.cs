@@ -106,7 +106,7 @@ namespace EasyGame.SideScroller.Editor
             }
         }
 
-        private static T Actor<T>(Scene scene, Vector3 position, bool slimeShape) where T : NetworkBehaviour
+        internal static T Actor<T>(Scene scene, Vector3 position, bool slimeShape) where T : NetworkBehaviour
         {
             GameObject root = Object(scene, typeof(T).Name);
             root.transform.position = position;

@@ -15,6 +15,7 @@ namespace EasyGame.SideScroller.Player
         private PlayerMotor2D motor;
 
         public bool IsGrounded => motor != null && motor.IsGrounded;
+        public float ActionMovementScale { get; set; } = 1f;
         public float HorizontalInput => input != null ? input.Horizontal : 0f;
         public Vector2 Velocity => body != null ? body.linearVelocity : Vector2.zero;
 
@@ -50,7 +51,7 @@ namespace EasyGame.SideScroller.Player
 
             if (input.ConsumeJumpPressed())
             {
-                motor?.QueueJump();
+                if (ActionMovementScale >= 1f) motor?.QueueJump();
             }
 
             input.ConsumeJumpReleased();
@@ -63,7 +64,7 @@ namespace EasyGame.SideScroller.Player
                 return;
             }
 
-            motor?.Step(input.Horizontal, input.JumpHeld, Time.fixedDeltaTime);
+            motor?.Step(input.Horizontal * ActionMovementScale, input.JumpHeld, Time.fixedDeltaTime);
         }
 
         private void OnDisable()

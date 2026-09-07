@@ -25,6 +25,11 @@ namespace EasyGame.SideScroller.Network
         [SyncVar] private int motion;
         [SyncVar] private float horizontalSpeed;
         [SyncVar] private bool defeated;
+        [SyncVar] private int activeAction;
+        [SyncVar] private double actionStartedAt;
+        [SyncVar] private double cleaveReadyAt;
+        [SyncVar] private double risingReadyAt;
+        [SyncVar] private double novaReadyAt;
 
         public static SideScrollerNetworkPlayer Local { get; private set; }
         public string DisplayName => displayName;
@@ -38,6 +43,8 @@ namespace EasyGame.SideScroller.Network
         public int Deaths => deaths;
         public bool IsDefeated => defeated;
         public PlayerAvatarKind AvatarKind => avatarKind;
+        public string ActionHint => Time.unscaledTime < hintUntil ? actionHint : string.Empty;
+        public float SkillRemaining(int id) => Mathf.Max(0f, (float)((id == 1 ? cleaveReadyAt : id == 2 ? risingReadyAt : novaReadyAt) - NetworkTime.time));
 
         private Rigidbody2D body;
         private Collider2D bodyCollider;
@@ -53,12 +60,12 @@ namespace EasyGame.SideScroller.Network
         private SideScrollerNetworkTransform networkTransform;
         private uint inputSequence;
         private bool profileConfigured;
-        private bool attackQueued;
-        private double attackHitsAt = double.PositiveInfinity;
-        private double nextAttackAt;
-        private float attackDirection = 1f;
-        private float presentationAttackUntil;
-        private int presentationAttackFacing = 1;
+        private int queuedAction = -1;
+        private readonly CombatActionClock actionClock = new CombatActionClock();
+        private CombatActionView2D actionView;
+        private double staggerUntil;
+        private string actionHint;
+        private float hintUntil;
         private float actionLockedUntil;
         private double nextInputAt;
         private double respawnAt;
@@ -102,6 +109,7 @@ namespace EasyGame.SideScroller.Network
                 visualRoot = existingVisual;
             }
             spriteAnimator = visualRoot != null ? visualRoot.GetComponent<PlayerAvatarAnimator>() : null;
+            if (!Utils.IsHeadless()) actionView = CombatActionView2D.Create(transform);
 
             input.enabled = false;
             body.gravityScale = config.gravityScale;
@@ -156,6 +164,7 @@ namespace EasyGame.SideScroller.Network
             if (isLocalPlayer)
             {
                 SendLocalInput();
+                SkillHudBridge.Publish(SkillRemaining(1), SkillRemaining(2), SkillRemaining(3), defeated);
             }
 
             if (isClient)
@@ -188,7 +197,8 @@ namespace EasyGame.SideScroller.Network
             }
 
             serverInput.Expire(NetworkTime.time);
-            motor.Step(serverInput.Horizontal, serverInput.JumpHeld, Time.fixedDeltaTime);
+            if (NetworkTime.time >= staggerUntil)
+                motor.Step(serverInput.Horizontal * (actionClock.Busy(NetworkTime.time) ? .2f : 1f), serverInput.JumpHeld, Time.fixedDeltaTime);
             Vector2 velocity = body.linearVelocity;
             horizontalSpeed = Mathf.Round(Mathf.Abs(velocity.x) * 20f) / 20f;
             if (Mathf.Abs(serverInput.Horizontal) > 0.05f && Time.time >= actionLockedUntil)
@@ -196,14 +206,14 @@ namespace EasyGame.SideScroller.Network
                 facing = serverInput.Horizontal > 0f ? 1 : -1;
             }
 
-            if (attackQueued)
+            if (queuedAction >= 0)
             {
-                attackQueued = false;
-                BeginAttack();
+                int requested = queuedAction;
+                queuedAction = -1;
+                BeginAttack(requested);
             }
-            if (NetworkTime.time >= attackHitsAt)
+            if (actionClock.ConsumeHit(NetworkTime.time))
             {
-                attackHitsAt = double.PositiveInfinity;
                 ResolveAttackHits();
             }
 
@@ -220,6 +230,7 @@ namespace EasyGame.SideScroller.Network
                 input.ConsumeJumpPressed();
                 input.ConsumeJumpReleased();
                 input.ConsumeAttackPressed();
+                input.ConsumeSkillPressed();
                 return;
             }
             if (NetworkTime.localTime >= nextInputAt)
@@ -232,7 +243,13 @@ namespace EasyGame.SideScroller.Network
                 CmdRequestJump();
             }
             input.ConsumeJumpReleased();
-            if (input.ConsumeAttackPressed())
+            int skill = input.ConsumeSkillPressed();
+            bool attack = input.ConsumeAttackPressed();
+            if (skill >= 1)
+            {
+                CmdRequestSkill(skill);
+            }
+            else if (attack)
             {
                 CmdRequestAttack();
             }
@@ -264,7 +281,7 @@ namespace EasyGame.SideScroller.Network
         [Command]
         private void CmdRequestJump()
         {
-            if (defeated)
+            if (defeated || Time.time < actionLockedUntil)
             {
                 return;
             }
@@ -274,47 +291,80 @@ namespace EasyGame.SideScroller.Network
         [Command]
         private void CmdRequestAttack()
         {
-            if (!defeated && NetworkTime.time >= nextAttackAt && Time.time >= actionLockedUntil)
-                attackQueued = true;
+            if (!defeated && queuedAction < 0 && Time.time >= actionLockedUntil)
+                queuedAction = 0;
+        }
+
+        [Command]
+        private void CmdRequestSkill(int id)
+        {
+            if (!defeated && id >= 1 && CombatActions2D.IsPlayerAction(id) && queuedAction < 0)
+                queuedAction = id;
         }
 
         [Server]
-        private void BeginAttack()
+        private void BeginAttack(int id)
         {
-            if (NetworkTime.time < nextAttackAt || Time.time < actionLockedUntil) return;
-            actionLockedUntil = Time.time + CombatTiming2D.AttackDuration;
-            nextAttackAt = NetworkTime.time + CombatTiming2D.AttackCooldown;
-            attackHitsAt = NetworkTime.time + 0.085d;
-            attackDirection = facing;
+            if (!CombatActions2D.IsPlayerAction(id) || defeated) return;
+            if (Time.time < actionLockedUntil || !actionClock.TryBegin(id, facing, motor.IsGrounded, NetworkTime.time))
+            {
+                if (id > 0 && connectionToClient != null)
+                    TargetActionRejected(connectionToClient, NetworkTime.time < actionClock.ReadyAt(id) ? "COOLDOWN" :
+                        CombatActions2D.Get(id).GroundOnly && !motor.IsGrounded ? "LAND TO CAST" : "RECOVERING");
+                return;
+            }
+            activeAction = id;
+            actionStartedAt = actionClock.StartedAt;
+            actionLockedUntil = Time.time + CombatActions2D.Get(id).Duration;
+            cleaveReadyAt = actionClock.ReadyAt(1);
+            risingReadyAt = actionClock.ReadyAt(2);
+            novaReadyAt = actionClock.ReadyAt(3);
             motion = 4;
-            RpcPlayAttack(facing);
+        }
+
+        [TargetRpc]
+        private void TargetActionRejected(NetworkConnectionToClient target, string reason)
+        {
+            actionHint = reason;
+            hintUntil = Time.unscaledTime + .9f;
         }
 
         [Server]
         private void ResolveAttackHits()
         {
             Vector2 bodyCenter = ActorGeometry2D.BodyCenter(bodyCollider);
-            Vector2 center = new Vector2(bodyCenter.x + attackDirection * 0.82f, bodyCenter.y);
-            var hits = combatQuery.CollectTargets(bodyCollider, center, new Vector2(1.45f, 1.25f));
+            var definition = CombatActions2D.Get(activeAction);
+            Vector2 center = definition.Center(bodyCenter, actionClock.Facing);
+            var hits = combatQuery.CollectTargets(bodyCollider, center, definition.Size);
             for (int index = 0; index < hits.Count; index++)
             {
                 Collider2D hit = hits[index];
+                int knockDirection = activeAction == (int)CombatActionId.Nova ? (hit.bounds.center.x < bodyCenter.x ? -1 : 1) : actionClock.Facing;
+                Vector2 impulse = new Vector2(knockDirection * definition.Impulse.x, definition.Impulse.y);
                 SideScrollerNetworkZombie zombie = hit.GetComponentInParent<SideScrollerNetworkZombie>();
                 if (zombie != null)
                 {
-                    zombie.ApplyDamage(30, this);
+                    zombie.ApplyDamage(definition.Damage, this);
+                    zombie.ApplyCombatImpulse(impulse);
                     continue;
                 }
                 SideScrollerNetworkSlime slime = hit.GetComponentInParent<SideScrollerNetworkSlime>();
                 if (slime != null)
                 {
-                    slime.ApplyDamage(30, this);
+                    slime.ApplyDamage(definition.Damage, this);
+                    slime.ApplyCombatImpulse(impulse);
                     continue;
                 }
                 SideScrollerNetworkPlayer player = hit.GetComponentInParent<SideScrollerNetworkPlayer>();
                 if (player != null && player != this)
                 {
-                    player.ApplyDamage(25, this);
+                    int previousHealth = player.Health;
+                    player.ApplyDamage(definition.PvpDamage, this);
+                    if (player.Health < previousHealth && !player.IsDefeated && impulse != Vector2.zero)
+                    {
+                        player.body.linearVelocity = new Vector2(impulse.x * .65f, Mathf.Max(player.body.linearVelocity.y, impulse.y * .75f));
+                        player.staggerUntil = NetworkTime.time + .22d;
+                    }
                 }
             }
         }
@@ -328,12 +378,13 @@ namespace EasyGame.SideScroller.Network
             }
 
             health = Mathf.Max(0, health - Mathf.Max(1, damage));
-            attackHitsAt = double.PositiveInfinity;
-            attackQueued = false;
+            actionClock.Cancel();
+            queuedAction = -1;
             if (health > 0)
             {
                 motion = 5;
-                actionLockedUntil = Mathf.Max(actionLockedUntil, Time.time + 0.14f);
+                actionLockedUntil = Time.time + 0.16f;
+                staggerUntil = NetworkTime.time + .16d;
                 return;
             }
 
@@ -360,8 +411,8 @@ namespace EasyGame.SideScroller.Network
             motion = 6;
             serverInput.ClearIntent();
             motor.Reset();
-            attackQueued = false;
-            attackHitsAt = double.PositiveInfinity;
+            actionClock.Cancel();
+            queuedAction = -1;
             horizontalSpeed = 0f;
             body.linearVelocity = Vector2.zero;
             bodyCollider.enabled = false;
@@ -388,31 +439,26 @@ namespace EasyGame.SideScroller.Network
             serverInput.ClearIntent();
             motor.Reset();
             actionLockedUntil = 0f;
-            nextAttackAt = NetworkTime.time;
+            actionClock.Reset();
+            cleaveReadyAt = risingReadyAt = novaReadyAt = 0d;
+            staggerUntil = 0d;
             health = MaxHealthValue;
             defeated = false;
             motion = 0;
             invulnerableUntil = NetworkTime.time + 1.25d;
         }
 
-        [ClientRpc]
-        private void RpcPlayAttack(int attackFacing)
-        {
-            if (spriteAnimator != null)
-            {
-                presentationAttackFacing = attackFacing;
-                spriteAnimator.PlayAttack(attackFacing);
-                presentationAttackUntil = Time.time + CombatTiming2D.AttackDuration;
-            }
-        }
-
         private void RefreshVisuals()
         {
             if (spriteAnimator != null)
             {
-                int visibleMotion = Time.time < presentationAttackUntil && motion < 5 ? 4 : motion;
-                int visibleFacing = visibleMotion == 4 && Time.time < presentationAttackUntil ? presentationAttackFacing : facing;
-                spriteAnimator.SetState(visibleMotion, visibleFacing, horizontalSpeed);
+                if (motion == 4)
+                {
+                    float elapsed = (float)(NetworkTime.time - actionStartedAt);
+                    spriteAnimator.SetCombatAction(activeAction, elapsed, facing);
+                    actionView?.Show(activeAction, facing, elapsed, bodyCollider, avatarKind);
+                }
+                else spriteAnimator.SetState(motion, facing, horizontalSpeed);
             }
             else if (animator != null)
             {

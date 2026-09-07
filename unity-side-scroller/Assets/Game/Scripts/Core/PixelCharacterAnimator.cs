@@ -26,6 +26,15 @@ namespace EasyGame.SideScroller.Core
         private float speed;
         private float stateStartedAt;
         private float movementPhase;
+        private int combatAction = -1;
+        private float combatElapsed;
+
+        public void SetCombatAction(int id, float elapsed, float direction)
+        {
+            SetState(4, direction, 0f);
+            combatAction = id;
+            combatElapsed = Mathf.Max(0f, elapsed);
+        }
 
         public void Initialize(SpriteRenderer targetRenderer, Color tint, string characterFolderName = "Warrior", string spritePrefix = "warrior")
         {
@@ -46,6 +55,7 @@ namespace EasyGame.SideScroller.Core
 
         public void SetState(int nextMotion, float nextFacing, float nextSpeed, bool restart = false)
         {
+            combatAction = -1;
             if (Mathf.Abs(nextFacing) > 0.01f)
             {
                 facing = Mathf.Sign(nextFacing);
@@ -107,6 +117,7 @@ namespace EasyGame.SideScroller.Core
                 case 3:
                     return Once(fall, elapsed, 0.09f);
                 case 4:
+                    if (combatAction >= 0) return attack[Combat.CombatActions2D.Get(combatAction).Frame(combatElapsed, attack.Length)];
                     return Once(attack, elapsed, 0.047f);
                 case 5:
                     return idle.Length > 0 ? idle[0] : null;

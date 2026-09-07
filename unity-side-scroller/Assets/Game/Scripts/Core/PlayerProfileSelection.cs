@@ -13,8 +13,8 @@ namespace EasyGame.SideScroller.Core
 
     /// <summary>
     /// Reads the pre-game HTML profile and applies the same validation on the
-    /// client and authoritative server. Avatar choice is cosmetic: every
-    /// player keeps identical movement and combat geometry for fair PvP.
+    /// client and authoritative server. Avatars share movement and skill rules;
+    /// their body hitboxes follow their silhouettes and a common feet anchor.
     /// </summary>
     public static class PlayerProfileSelection
     {
