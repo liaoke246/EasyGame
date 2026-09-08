@@ -12,11 +12,10 @@ namespace EasyGame.SideScroller.Player
         private Rigidbody2D body;
         private Collider2D bodyCollider;
         private PlayerInputReader input;
-        private float coyoteRemaining;
-        private float jumpBufferRemaining;
-        private bool cutJumpRequested;
+        private PlayerMotor2D motor;
 
-        public bool IsGrounded { get; private set; }
+        public bool IsGrounded => motor != null && motor.IsGrounded;
+        public float ActionMovementScale { get; set; } = 1f;
         public float HorizontalInput => input != null ? input.Horizontal : 0f;
         public Vector2 Velocity => body != null ? body.linearVelocity : Vector2.zero;
 
@@ -39,10 +38,7 @@ namespace EasyGame.SideScroller.Player
         {
             if (body != null && config != null)
             {
-                body.gravityScale = config.gravityScale;
-                body.freezeRotation = true;
-                body.interpolation = RigidbodyInterpolation2D.Interpolate;
-                body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                motor = new PlayerMotor2D(body, bodyCollider, config, groundMask);
             }
         }
 
@@ -53,19 +49,12 @@ namespace EasyGame.SideScroller.Player
                 return;
             }
 
-            IsGrounded = ProbeGround();
-            coyoteRemaining = IsGrounded ? config.coyoteTime : Mathf.Max(0f, coyoteRemaining - Time.deltaTime);
-
             if (input.ConsumeJumpPressed())
             {
-                jumpBufferRemaining = config.jumpBuffer;
-            }
-            else
-            {
-                jumpBufferRemaining = Mathf.Max(0f, jumpBufferRemaining - Time.deltaTime);
+                if (ActionMovementScale >= 1f) motor?.QueueJump();
             }
 
-            cutJumpRequested |= input.ConsumeJumpReleased();
+            input.ConsumeJumpReleased();
         }
 
         private void FixedUpdate()
@@ -75,54 +64,12 @@ namespace EasyGame.SideScroller.Player
                 return;
             }
 
-            Vector2 velocity = body.linearVelocity;
-            float targetSpeed = input.Horizontal * config.moveSpeed;
-            float acceleration = Mathf.Abs(targetSpeed) > 0.01f ? config.groundAcceleration : config.groundDeceleration;
-            if (!IsGrounded)
-            {
-                acceleration *= config.airControl;
-            }
-            velocity.x = Mathf.MoveTowards(velocity.x, targetSpeed, acceleration * Time.fixedDeltaTime);
-
-            if (jumpBufferRemaining > 0f && coyoteRemaining > 0f)
-            {
-                velocity.y = config.jumpVelocity;
-                jumpBufferRemaining = 0f;
-                coyoteRemaining = 0f;
-                IsGrounded = false;
-            }
-
-            if (cutJumpRequested && velocity.y > 0f)
-            {
-                velocity.y *= config.jumpCutMultiplier;
-            }
-            cutJumpRequested = false;
-
-            if (velocity.y < -0.01f)
-            {
-                velocity.y += Physics2D.gravity.y * body.gravityScale * (config.fallGravityMultiplier - 1f) * Time.fixedDeltaTime;
-            }
-            else if (velocity.y > 0.01f && !input.JumpHeld)
-            {
-                velocity.y += Physics2D.gravity.y * body.gravityScale * (config.lowJumpGravityMultiplier - 1f) * Time.fixedDeltaTime;
-            }
-
-            velocity.y = Mathf.Max(velocity.y, -config.maxFallSpeed);
-            body.linearVelocity = velocity;
+            motor?.Step(input.Horizontal * ActionMovementScale, input.JumpHeld, Time.fixedDeltaTime);
         }
 
-        private bool ProbeGround()
+        private void OnDisable()
         {
-            if (bodyCollider == null || config == null)
-            {
-                return false;
-            }
-
-            Bounds bounds = bodyCollider.bounds;
-            Vector2 size = new Vector2(bounds.size.x * config.groundProbeWidth, 0.08f);
-            Vector2 origin = new Vector2(bounds.center.x, bounds.min.y - 0.02f);
-            RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, Vector2.down, config.groundProbeDistance, groundMask);
-            return hit.collider != null && hit.collider != bodyCollider;
+            motor?.Reset();
         }
     }
 }

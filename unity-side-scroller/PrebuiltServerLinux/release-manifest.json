@@ -1,0 +1,606 @@
+{
+    "schemaVersion": 1,
+    "version": "0.5.1",
+    "unityVersion": "6000.3.21f1",
+    "target": "StandaloneLinux64",
+    "sourceFingerprint": "5aa06cbfb97befb70d73042d10dc0bd1ee40fb6fa1169aee631e2167d6a409e9",
+    "builtAtUtc": "2026-09-08T04:10:17.1949517Z",
+    "files": [
+        {
+            "path": "DeadRailsServer.x86_64",
+            "sha256": "61c388a1cd661a6230c857fd66de0cec86a1ec497d5f6df1b7f1d585263be19f"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Assembly-CSharp.dll",
+            "sha256": "9dccdac36c4f13becdd65ddcb4e695fb9db2fa40682fcf74945d4ba3b0ead37e"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Mirror.Authenticators.dll",
+            "sha256": "20afa69f1d22fbcb96e68ba1c8978a52d4dd03e8f2c6f4d2389a6bbd159c7ccf"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Mirror.BouncyCastle.Cryptography.dll",
+            "sha256": "860787fa58288910f9ef0b3147ac1df96623d4d7bd7bc309c9161871b0819fcf"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Mirror.Components.dll",
+            "sha256": "ba202291f03babb1fbe9e2b002f534d605a6f1d2787d411406077991d15ac98a"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Mirror.Transports.dll",
+            "sha256": "10f479713e46d040e73f6bd67cc6548468d6799ec62346af9f99fbe08f56bfdd"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Mirror.dll",
+            "sha256": "03ef9137459338b4d4cc1af2fbffd7438d59e51e707caca7aa8da6f6d10177ff"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Mono.Security.dll",
+            "sha256": "d9157a58fc1a0102161b79c5d680b52f4cb29534cdd2860bda9170e8b80d2ed9"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Newtonsoft.Json.dll",
+            "sha256": "a56146202232958f46bd6a28b5a7da166aea123ee0d646735a46e5c341dfbf1f"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/SimpleWebTransport.dll",
+            "sha256": "d4de229bd3466cb58df59dfcd0b710b280114b519e28824324b55491a55e01dd"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.ComponentModel.Composition.dll",
+            "sha256": "98b5ba7092f7c64e0c27c8e535c076a2b0f4f83ce9faec60418445c5d2281329"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Configuration.dll",
+            "sha256": "9477e1d9ff31ef1e527be3954343891679b7f60b850eff491ff911317b772430"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Core.dll",
+            "sha256": "0ad3e5616708fc0b74dcedc1d9a6acf774fd100add713fb2b0f1b11e0f2cd840"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Data.DataSetExtensions.dll",
+            "sha256": "75ee28f8d3f94b2a1cfb87221430783c5382795a39e7dde9551a5911191b2fb1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Data.dll",
+            "sha256": "8ab2ebb034bdafb5b071462652df9c62fb0df9deb7ad6c6eee8d7bc883b61689"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Drawing.dll",
+            "sha256": "34df68bb2fe0376199a47a81cdcd0af129413fc597c65b45767802fdfab9a4a6"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.EnterpriseServices.dll",
+            "sha256": "222c295f3fa70b7b8544352449582068c7d15ad0fd37508e7a7a8a811d23d299"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.IO.Compression.FileSystem.dll",
+            "sha256": "a9bd7914e39a8b99389adfb5d1df5882227366fc7d5882178de4c101da52d039"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.IO.Compression.dll",
+            "sha256": "bb04288b738aa703193e19b154ee065b001c5c327a795ce7adb4878951bbae71"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Net.Http.dll",
+            "sha256": "11cf7a01c1f08629cbe0979e7f195879d011147af91147fa87658a9f4611a29d"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Numerics.dll",
+            "sha256": "cc25bce79e4784cc0dc62bac1da39e128bfb2848cbb38946f8badbbd31a2cb71"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Runtime.Serialization.dll",
+            "sha256": "4e4ec85e04889f529d51cff1c9c193dc4eb50c67600302d7671796922dc5e49b"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Security.dll",
+            "sha256": "f2537ce3de6c23e29d394c10334b64993d5c6ddade45fa555f98c86edf26003d"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.ServiceModel.Internals.dll",
+            "sha256": "7291b15e952cd080b7df0a43d74d856bb77f59d306585248063195eab1317a76"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Transactions.dll",
+            "sha256": "66e610519022738a071b0427d43ca0c68f9ac84ee44ff10d93243a1dbc36a993"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Xml.Linq.dll",
+            "sha256": "371b06a50ed863d6890a17ae7abe7dcce3e9623dce4cc40af1f8d713bf7b7a42"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.Xml.dll",
+            "sha256": "aacffdb637bb1e18533507dec182566f0c288d5a8b705b255e10f0cd59659830"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/System.dll",
+            "sha256": "afb0b59ab5ea986d3b2665faf8d81cae0008d94f61041ae9b1e71e3412742b7d"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Telepathy.dll",
+            "sha256": "b801ab5db997f72e71d6c7c49e62cd7164058b1fe9ac87c79835e2a51faab564"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Unity.InternalAPIEngineBridge.004.dll",
+            "sha256": "5348536181ac88ab3f4edf87cad47c5a78a35288d9a1c6f574171a1656e75a4b"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Unity.Multiplayer.Center.Common.dll",
+            "sha256": "d81e7a111dc565b8e61c661c89310bc50f9133630a49824266413e0380aedc6f"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/Unity.TextMeshPro.dll",
+            "sha256": "7116f30105462e29d1945c4faf65a6e9474919db111dc700d3c28846842d8ef5"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AIModule.dll",
+            "sha256": "9177996634f303f3b708eed4c1f6a060ec46e573708074ae62af909a96f508d3"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AccessibilityModule.dll",
+            "sha256": "85608b93691988776358f00242bea529922d42a2594d261ea358935416609046"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AdaptivePerformanceModule.dll",
+            "sha256": "e802d1e8c751f1169796d1e83c489cae6f282bddab6194dc41142de5b84eecd4"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AndroidJNIModule.dll",
+            "sha256": "d0e9adc6a7e4592309790d1f8854ed3ceb4599bcb9ce4e9214273b4ad1810bab"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AnimationModule.dll",
+            "sha256": "a15b4c723cc8f77489d217be90885ed56481cfb0db29b6ac938affcd9e1df722"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AssetBundleModule.dll",
+            "sha256": "c35105bb353633de81d32c36a6e8d1c8b76685321e155cc4b858d53a1af30df7"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.AudioModule.dll",
+            "sha256": "2312a92ea97f9bb99644d4a81ce02fca99295085abd025551f35bc187b0a666b"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ClothModule.dll",
+            "sha256": "a85f660bb2bdb7feb40c2ac3aaa8517a33c4581bce795e1bba59c485ab77c1a1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ClusterInputModule.dll",
+            "sha256": "977079a566721c38497175b0de039dbc56d8817d06eb33c131253d502224f885"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ClusterRendererModule.dll",
+            "sha256": "f95f2d3ec39540d5176670e3eda60e32b8ad218937858813029238ff36835bdf"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ContentLoadModule.dll",
+            "sha256": "cb726ad2e2c56bff1b2deb7640683f79645dc44c9363c604dd6ae4d33ab29e89"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.CoreModule.dll",
+            "sha256": "87c873332ae6f81894e777009a31fa4ad1c7e72b838ec0cb86b183fecff944f2"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.CrashReportingModule.dll",
+            "sha256": "bd9d21dbc261288453d0e979638e9eee53e2b8ffc4e21e63408bacc5393f70a1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.DSPGraphModule.dll",
+            "sha256": "087615a86a347869695eeb6d894bdc069b775be2a6dc0b27757a82dbf68f4018"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.DirectorModule.dll",
+            "sha256": "2521beec3e6f87739710549372806993cc573e026e7ca29e86277319c06beeaa"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.GIModule.dll",
+            "sha256": "803e505f0649e3d8fe224d543d949bebf5d6ba5637306662eab23d4341562cc1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.GameCenterModule.dll",
+            "sha256": "11837677dfe3ca20e8d0d40e7ebe989b7e4eb615ddd53c8b0b907208cb4e7ef0"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.GraphicsStateCollectionSerializerModule.dll",
+            "sha256": "820ed3e873dc1229b9cc9ae93fc47ae2e1c17797eba5b05668a5f47b0e9f98d2"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.GridModule.dll",
+            "sha256": "296554c368e4030e169a5b7d8b8f1a379be6c119a1682ea0de5b687961b376ac"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.HierarchyCoreModule.dll",
+            "sha256": "20391e75255a1f1de11cd83a80f938f0f70723b183e3e9a1d40e1f94cecc9ada"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.HierarchyModule.dll",
+            "sha256": "dab73a2bf371580952508fafd27e5ff63fd04b13c31480f5e7c351427e309e08"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.HotReloadModule.dll",
+            "sha256": "570e46a9b2d96e9542c7c83dc5e35610588d9a6b4ed39776b11479c7509274c3"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.IMGUIModule.dll",
+            "sha256": "06f1f35a046b2a91a01e08bbff0b997117e40262267ce7dc4d0b381ba33ba3a7"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.IdentifiersModule.dll",
+            "sha256": "694a2b545ef12baa8e4335de0c9e611a0084c3b367bea98156117b1d4deb052d"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ImageConversionModule.dll",
+            "sha256": "10d58cb5fc5dd83e377e34805b07ecad567540ab20cab2ca128c40da0df780d0"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.InputForUIModule.dll",
+            "sha256": "ec223a6c31bee8b703b63ec16a51352b2b87dc55aac4301f519f4afa752b83fb"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.InputLegacyModule.dll",
+            "sha256": "1c8ab23f7880f9309608c893cb417c0c8003058c79938dc6dafc070aa444e8cc"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.InputModule.dll",
+            "sha256": "565e8118d485b94688b4fbd2c04d4e752b20fdb7f8ac282bf93511fb4d19516f"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.JSONSerializeModule.dll",
+            "sha256": "5571dbdf0f940fdec58b2d7ff0d9b22644e9e10517c66aaad2043090b1315d33"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.LocalizationModule.dll",
+            "sha256": "78db071bbf8fe2500412131ff271cd5d9fe5be2059396867069c30f5c44f9256"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.MarshallingModule.dll",
+            "sha256": "b8e75b0b9e9bac361f37967571322b0f993cff08fdda2f871cf855747e0b3257"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.MultiplayerModule.dll",
+            "sha256": "d714ea95700bd819521a2747a9b11ec9b6e1ab4831fb315ba01136d7c8f207eb"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ParticleSystemModule.dll",
+            "sha256": "74128380be30f4f70276cbe19675751f5870f86bf38fc58164e8b316118f1431"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.PerformanceReportingModule.dll",
+            "sha256": "d6a1ffa5a85e4bc5a39a7919e1f68aef0f7c10fd45a7482a5ae4df9e805e3b68"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.Physics2DModule.dll",
+            "sha256": "85e86c396523e5af70a11119b85c7746e4575728bd8c1ade7efc462deb84cbde"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.PhysicsBackendPhysXModule.dll",
+            "sha256": "98cdb3d0189fe4ec09f9805af3f232bd17944c33e1e9e4e67887a201271dc560"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.PhysicsModule.dll",
+            "sha256": "0839dd294c05f6ed63ac34526503ec5031dd94c99d10c3b3a488143c68cced59"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.PropertiesModule.dll",
+            "sha256": "acc90e2f652d5b4c1655561a90eaf25bde50923cdf73055866ca7103503653e9"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.RenderAs2DModule.dll",
+            "sha256": "8a90599e6936d36304ab929f462efab5d140623ea0034de44f6235ea7457aff6"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll",
+            "sha256": "0ef2322220220b8cb704b12a388a444f627baaa63813b3edce61a4753c6e2c02"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ScreenCaptureModule.dll",
+            "sha256": "6579929fb4bc913d49ea7491bbba7f093debb577306fb7d7b30ad9a07bf5deb8"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ShaderRuntimeModule.dll",
+            "sha256": "dc76223b4b2d3b05bd4a45d2f1f062e88362730e504d1d7f85cb95200f9d5f86"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.ShaderVariantAnalyticsModule.dll",
+            "sha256": "8a269afe6a855c881a15de34aaf5acaed81a4bf7eff5180116da3d0be442d719"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.SharedInternalsModule.dll",
+            "sha256": "38f8901c47ae6d8ba497ace7f7d45cd9769c9e793d91e66368a32c67b0c2dcd1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.SpriteMaskModule.dll",
+            "sha256": "9a6972496d7823f8a5139b935744b37aa04c6ca9229501aca281b489c8a0d37c"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.SpriteShapeModule.dll",
+            "sha256": "3ed6913279c329875b5bd3e22342ac03f51f1c5bce5b3f8e3e2cdb5d1c4ef8f1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.StreamingModule.dll",
+            "sha256": "fb9eefacd9a5ff2eda882f7c5bc7242bd3aac09a77360ea148ef550ecfe5aa75"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.SubstanceModule.dll",
+            "sha256": "cd34bd31b4b5613d663dc42748b9b8ee36881f74da7752f9ddeb42bec09f0e71"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.SubsystemsModule.dll",
+            "sha256": "9ebed0657d9fb7708390e12ed0356b4fbe9000afb43969d7d4eec6bc4df3a688"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TLSModule.dll",
+            "sha256": "82184ca037eef47bc13f0a4c8ede4d36d93e4ab799cfb380a3f197bec47c281d"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TerrainModule.dll",
+            "sha256": "93562d9d4c6921968e400f1d4ec12678686b9c7374fef2995b079ed3a12e67c7"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TerrainPhysicsModule.dll",
+            "sha256": "5864065a703f62a0798c1051a612558b39c8ec218092a23532e08411a2eb6d93"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TextCoreFontEngineModule.dll",
+            "sha256": "0de81b5421467fb43681ebc2e797fdcbe67b314b283f738286991d2edf957244"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TextCoreTextEngineModule.dll",
+            "sha256": "526378cad975eb07743b8ef98ec442bb09556d2de9819f93f114fc77c5f873f1"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TextRenderingModule.dll",
+            "sha256": "2696baf25cae7582da6113d729dc9865d30d00e0bb5c3e9f0587bd9e144128a6"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.TilemapModule.dll",
+            "sha256": "d2c38a371371013eaf27991316756ad8a477e3e0f9b0474228b2d12e4f2ab396"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UI.dll",
+            "sha256": "462e43feb3bccfe311ab014bf35c26f4b6457861a7f995a30cfd8ae4a0f61398"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UIElementsModule.dll",
+            "sha256": "77c652b617b2f4059b6fad6c5a3de4dce80c43b4f26ddf89f52fda5b71f0d48e"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UIModule.dll",
+            "sha256": "d39b9ad344cf003232de7ba9b22e71a50103ef05e55b40fb7201821ffc25b892"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UmbraModule.dll",
+            "sha256": "a83520d28d2d7e2c030d9b477fa93c2fd72adf7009d110ecee2e9886f6f69465"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityAnalyticsCommonModule.dll",
+            "sha256": "9a223e6a8f79b9b1d5d797843153d30cdc5c145a880e3df15c6dd573f302b8b8"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityAnalyticsModule.dll",
+            "sha256": "f1e026e3ba851f0c2048102cb30af6ba1b9f4594f4eac3f2274fb8ed63beed4f"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityConnectModule.dll",
+            "sha256": "ef16aee9d4a21ef363556292c44e51862df255fbd3479fdd4683352725dc89ff"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityConsentModule.dll",
+            "sha256": "e54c53dbc80d92348b07b16127a43277f93bf8b524c8dd568084970a58a151be"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityCurlModule.dll",
+            "sha256": "9e4e18c745ceb253b9d6160ec643de8e8fe5a6b283512e882c7400ff9d541ff9"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityWebRequestAssetBundleModule.dll",
+            "sha256": "541da89389244aa596316018833889ef3b0d1ff3a1ccf7eef76e07ad4e2a62d2"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityWebRequestAudioModule.dll",
+            "sha256": "bbf20b0b7ca71849457aff04036a6635a72050a5022ccff56b719e23632f9953"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityWebRequestModule.dll",
+            "sha256": "2dd4c6cc2b24f5d897782ae32700534dc602ebc1f2b77671a1396014ef93fdd0"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityWebRequestTextureModule.dll",
+            "sha256": "db18e89d0b7b0c14c24b7ba61d8db1a2cfc8938dd99bfe7586d55e1faca346a5"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.UnityWebRequestWWWModule.dll",
+            "sha256": "fbda119e736c24486f535e3c82d379b6138a9a2b2f724d9bcd3a044bc240d4c3"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.VFXModule.dll",
+            "sha256": "9a000780a3699ccd293e120b5706ae0f639648e2ddd1028e3c4a9fd93ad53604"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.VRModule.dll",
+            "sha256": "5241c077fb4548c466d66e264de875d90ba89045b30099a314ec6a3af9f3dd79"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.VectorGraphicsModule.dll",
+            "sha256": "b0e4bde27d349c43f95342739e5ceb1d6b373b11a723800b6c74871c9907c8c9"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.VehiclesModule.dll",
+            "sha256": "28207823e9efac1e3e2dd52cff30b81499fe8dc9c2c953a2a7e412f67c5f23ff"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.VideoModule.dll",
+            "sha256": "2f58eeb6458bbb291e007682fae7bc9d9c5c93cea129782402d540eb4251ec47"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.VirtualTexturingModule.dll",
+            "sha256": "28a7d71c6daccdbda3a7da05a3abc8eaaa6085113bcaf0b59f6e5e78fc5f8fff"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.WindModule.dll",
+            "sha256": "2626c74ac93925c0ffcd948fd5b756472708d1e86f81c0f7fc6ad7bfe3a85503"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.XRModule.dll",
+            "sha256": "e2b5033fb8d0026cfd121968c109123ee423afb23ee0c57a9d3cc405d305cb83"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/UnityEngine.dll",
+            "sha256": "ed7b4124043cdeba2fcf61537658c7f7b84268b5e71a1117c2acb03b78e08e13"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/kcp2k.dll",
+            "sha256": "cdb02537bbb153809500204d6ac5bd56505ef41fbbb024fd90192d2661417b30"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/mscorlib.dll",
+            "sha256": "481b0d5a4ffbbda781aa55418cd61b996e59588eceb1d3c99aa218416c88ab5a"
+        },
+        {
+            "path": "DeadRailsServer_Data/Managed/netstandard.dll",
+            "sha256": "bf0b7eac9010b75413e4ec1a07a3453bc6a68eeb8e916fbed7c1f2777841f7c7"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/2.0/Browsers/Compat.browser",
+            "sha256": "8a1082057ac5681dcd4e9c227ed7fb8eb42ac1618963b5de3b65739dd77e2741"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/2.0/DefaultWsdlHelpGenerator.aspx",
+            "sha256": "751861040b69ea63a3827507b7c8da9c7f549dc181c1c8af4b7ca78cc97d710a"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/2.0/machine.config",
+            "sha256": "e91782a27fa39fc6c1d6ee8b08529f5d35052310d0006034b878eb04b8f2af30"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/2.0/settings.map",
+            "sha256": "49c6160f9d54af4270a3b4e997fc4a8301f79b9e2070118fa46ddbcbbc44f9a2"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/2.0/web.config",
+            "sha256": "cf2b54339e069b9e42f7d6795eecbf562c50c1011f4ca8f65f578fe52d97ff92"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.0/Browsers/Compat.browser",
+            "sha256": "8a1082057ac5681dcd4e9c227ed7fb8eb42ac1618963b5de3b65739dd77e2741"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.0/DefaultWsdlHelpGenerator.aspx",
+            "sha256": "751861040b69ea63a3827507b7c8da9c7f549dc181c1c8af4b7ca78cc97d710a"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.0/machine.config",
+            "sha256": "e60aec2c5115d65b3acb3c55ea21576dbd770f579166c017125571e46ae560ed"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.0/settings.map",
+            "sha256": "ce1db1ad8a9512073164e3eccdc193f7eda036e1a9733caec4635de21b2865c8"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.0/web.config",
+            "sha256": "e38bb8cc68fe5b4edecdfd288d094b9e8ced7629039b2a347682aba0d8bd7492"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.5/Browsers/Compat.browser",
+            "sha256": "8a1082057ac5681dcd4e9c227ed7fb8eb42ac1618963b5de3b65739dd77e2741"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.5/DefaultWsdlHelpGenerator.aspx",
+            "sha256": "751861040b69ea63a3827507b7c8da9c7f549dc181c1c8af4b7ca78cc97d710a"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.5/machine.config",
+            "sha256": "ee950004b576fb28dc85f4b0435ed04bf96612de2e8b53be84d07afe85a0de6c"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.5/settings.map",
+            "sha256": "ce1db1ad8a9512073164e3eccdc193f7eda036e1a9733caec4635de21b2865c8"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/4.5/web.config",
+            "sha256": "c4cbddd4fd9347b58cc5a72b36dc4ba1ad2bb699e65869d05cd3fb9865f0d824"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/browscap.ini",
+            "sha256": "4ddd50f31fb968f30bedefc253a46dc3f2890192d05cdaa9e0a64a056eee807e"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/config",
+            "sha256": "b12f4e32436f1b417451eb5f69433433ae1f732b0c9e80b039073e1b6daa24da"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/etc/mono/mconfig/config.xml",
+            "sha256": "0c56e34c69124510fa8c19e7b4c2ca6c1c4ff460ae19f798dd0ca035809e396d"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/x86_64/libMonoPosixHelper.so",
+            "sha256": "2a1014074bbfdc0b151d0a0fa830a1fcdb281eb2660d68667e05e489c4516aed"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/x86_64/libmono-native.so",
+            "sha256": "291744dd9192ffb47e2f4f56037192787ba712c618be9144f58bee5831144276"
+        },
+        {
+            "path": "DeadRailsServer_Data/MonoBleedingEdge/x86_64/libmonobdwgc-2.0.so",
+            "sha256": "ef78998d272456345b025b41c71bd3fd294da19d963e68f1a1e00c907eacb20b"
+        },
+        {
+            "path": "DeadRailsServer_Data/Resources/UnityPlayer.png",
+            "sha256": "7ea94a5d57a58d58c52618e592fd73d9f8487e6026b2531ae2e7b4ee440367b4"
+        },
+        {
+            "path": "DeadRailsServer_Data/Resources/unity default resources",
+            "sha256": "32b58bdb9cf090212b46a8ca7436dcdae89e4ef43e9d55a835233c21d1347734"
+        },
+        {
+            "path": "DeadRailsServer_Data/RuntimeInitializeOnLoads.json",
+            "sha256": "89ce1fea4e12659b59589f122985e6aae687bd22a8b210751da9e7f85f8e6901"
+        },
+        {
+            "path": "DeadRailsServer_Data/ScriptingAssemblies.json",
+            "sha256": "f175027ae58e36fc3f9349def03eb5b1b67020f1692afacc3934a54930f0d52e"
+        },
+        {
+            "path": "DeadRailsServer_Data/app.info",
+            "sha256": "bc426db882cd8f9a652e4191465bdb259a154fdd3df845bc46284bc219b8b9e3"
+        },
+        {
+            "path": "DeadRailsServer_Data/boot.config",
+            "sha256": "0ca2e7dd4e2bfc234fa2b90c900b6fb998a76df6f52e8bd5c7c7485135421c2e"
+        },
+        {
+            "path": "DeadRailsServer_Data/globalgamemanagers",
+            "sha256": "bf1c03c35cbf6748fb64b25f7aaa0cd5c60543a68d522edf8e7ca6c3b4d93d86"
+        },
+        {
+            "path": "DeadRailsServer_Data/globalgamemanagers.assets",
+            "sha256": "2435bfcb3edbc62a657d03b525115a125b1190057e3ac09f0adb41a01de32b24"
+        },
+        {
+            "path": "DeadRailsServer_Data/level0",
+            "sha256": "87a1b632cdc4b62ed6224e693ed7779af1ac061767e8a752b172f719ab8b3e67"
+        },
+        {
+            "path": "DeadRailsServer_Data/resources.assets",
+            "sha256": "d44982a88eb7856f7f9f761418520cd2b3df0124dd5ef82cf26c1a1816b3f640"
+        },
+        {
+            "path": "DeadRailsServer_Data/sharedassets0.assets",
+            "sha256": "25f8f030b06a3fb137191a4aa54f68794cc9cd4456ccb7d0c72b52008a86dd9f"
+        },
+        {
+            "path": "UnityPlayer.so",
+            "sha256": "1a150df04a5c4d4bf9628a3f8bcc8055bcda898238d81cb9796af18733f4de84"
+        },
+        {
+            "path": "libdecor-0.so.0",
+            "sha256": "c624974348a9c91034a17430fa684119d8bb71d828cd8921e54198a7c9c57eef"
+        },
+        {
+            "path": "libdecor-cairo.so",
+            "sha256": "4a2c5bb1399eed40528e5d34049694d6409ec24e60b41f89264d423fa7058a3a"
+        }
+    ]
+}

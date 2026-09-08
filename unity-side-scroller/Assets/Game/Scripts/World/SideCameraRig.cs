@@ -16,6 +16,7 @@ namespace EasyGame.SideScroller.World
         {
             target = followTarget;
             worldBounds = bounds;
+            smoothVelocity = Vector3.zero;
             SnapToTarget();
         }
 
@@ -55,10 +56,15 @@ namespace EasyGame.SideScroller.World
         {
             float halfHeight = sceneCamera != null ? sceneCamera.orthographicSize : 6f;
             float halfWidth = sceneCamera != null ? halfHeight * sceneCamera.aspect : 10f;
-            position.x = Mathf.Clamp(position.x, worldBounds.min.x + halfWidth, worldBounds.max.x - halfWidth);
-            position.y = Mathf.Clamp(position.y, worldBounds.min.y + halfHeight, worldBounds.max.y - halfHeight);
+            position.x = ClampAxis(position.x, worldBounds.min.x, worldBounds.max.x, halfWidth);
+            position.y = ClampAxis(position.y, worldBounds.min.y, worldBounds.max.y, halfHeight);
             position.z = -10f;
             return position;
+        }
+
+        public static float ClampAxis(float position, float min, float max, float halfView)
+        {
+            return max - min <= halfView * 2f ? (min + max) * 0.5f : Mathf.Clamp(position, min + halfView, max - halfView);
         }
     }
 }

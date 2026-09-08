@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using EasyGame.SideScroller.Core;
 using EasyGame.SideScroller.Data;
+using EasyGame.SideScroller.Enemies;
 using EasyGame.SideScroller.Network;
 using EasyGame.SideScroller.Player;
 using EasyGame.SideScroller.UI;
@@ -24,15 +25,21 @@ namespace EasyGame.SideScroller.Editor
         private const string LevelConfigPath = "Assets/Game/Resources/Config/LevelProgression.asset";
         private const string ControllerPath = "Assets/Game/Resources/Player/PlayerPrototype.controller";
         private const string NetworkPlayerPrefabPath = "Assets/Game/Prefabs/NetworkPlayer.prefab";
+        private const string NetworkZombiePrefabPath = "Assets/Game/Prefabs/NetworkZombie.prefab";
+        private const string NetworkSlimePrefabPath = "Assets/Game/Prefabs/NetworkSlime.prefab";
 
         [MenuItem("EasyGame 2D/Prepare Project")]
         public static void PrepareProject()
         {
             EnsureFolders();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ConfigureThirdPartyArt();
             CreateConfigAssets();
             CreateAnimatorController();
             GameObject networkPlayerPrefab = CreateNetworkPlayerPrefab();
-            CreateScene(networkPlayerPrefab);
+            GameObject networkZombiePrefab = CreateNetworkZombiePrefab();
+            GameObject networkSlimePrefab = CreateNetworkSlimePrefab();
+            CreateScene(networkPlayerPrefab, networkZombiePrefab, networkSlimePrefab);
             ConfigurePlayerSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -88,6 +95,27 @@ namespace EasyGame.SideScroller.Editor
             BuildDedicatedServer(output, BuildTarget.StandaloneWindows64);
         }
 
+        public static void BuildWindowsNetworkQaCommandLine()
+        {
+            string output = CommandLineValue("-serverOutput") ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/NetworkQA/DeadRailsQaServer.exe"));
+            PrepareProject();
+            ReleaseVerification.RunRegressionTests();
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? throw new InvalidOperationException("QA server output directory is invalid."));
+            BuildPlayerOptions options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = output,
+                target = BuildTarget.StandaloneWindows64,
+                subtarget = (int)StandaloneBuildSubtarget.Player,
+                options = BuildOptions.CleanBuildCache,
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new InvalidOperationException($"EasyGame 2D network QA build failed: {report.summary.result} ({report.summary.totalErrors} errors)");
+            }
+        }
+
         [MenuItem("EasyGame 2D/Build Linux Dedicated Server")]
         public static void BuildLinuxServerFromMenu()
         {
@@ -105,6 +133,8 @@ namespace EasyGame.SideScroller.Editor
         {
             PrepareProject();
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            ReleaseVerification.RunRegressionTests();
+            string sourceFingerprint = ReleaseVerification.SourceFingerprint();
             Directory.CreateDirectory(output);
 
             BuildPlayerOptions options = new BuildPlayerOptions
@@ -122,11 +152,14 @@ namespace EasyGame.SideScroller.Editor
             }
 
             Debug.Log($"EasyGame 2D WebGL build completed: {output} ({report.summary.totalSize} bytes)");
+            ReleaseVerification.WriteManifest(output, "WebGL", sourceFingerprint);
         }
 
         private static void BuildDedicatedServer(string output, BuildTarget target)
         {
             PrepareProject();
+            ReleaseVerification.RunRegressionTests();
+            string sourceFingerprint = ReleaseVerification.SourceFingerprint();
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? throw new InvalidOperationException("Dedicated server output directory is invalid."));
             BuildPlayerOptions options = new BuildPlayerOptions
             {
@@ -144,6 +177,7 @@ namespace EasyGame.SideScroller.Editor
             }
 
             Debug.Log($"EasyGame 2D dedicated server completed: {output} ({report.summary.totalSize} bytes)");
+            ReleaseVerification.WriteManifest(Path.GetDirectoryName(output), target.ToString(), sourceFingerprint);
         }
 
         private static void EnsureFolders()
@@ -157,6 +191,7 @@ namespace EasyGame.SideScroller.Editor
                 "Assets/Game/Prefabs",
                 "Assets/Game/Resources/Config",
                 "Assets/Game/Resources/Player",
+                "Assets/Game/Resources/ThirdParty/GandalfHardcore",
                 "Assets/Game/Scripts/Core",
                 "Assets/Game/Scripts/Player",
                 "Assets/Game/Scripts/Combat",
@@ -173,6 +208,51 @@ namespace EasyGame.SideScroller.Editor
             foreach (string folder in folders)
             {
                 Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(Application.dataPath) ?? string.Empty, folder));
+            }
+        }
+
+        private static void ConfigureThirdPartyArt()
+        {
+            string artRoot = "Assets/Game/Resources/ThirdParty/GandalfHardcore";
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { artRoot }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                {
+                    continue;
+                }
+
+                const float pixelsPerUnit = 32f;
+                bool usesFeetAnchor = path.Contains("/Characters/") || path.Contains("/Enemies/Slime/");
+                Vector2 requiredPivot = new Vector2(0.5f, 0f);
+                TextureImporterSettings spriteSettings = new TextureImporterSettings();
+                importer.ReadTextureSettings(spriteSettings);
+                bool changed = importer.textureType != TextureImporterType.Sprite
+                    || importer.spriteImportMode != SpriteImportMode.Single
+                    || !Mathf.Approximately(importer.spritePixelsPerUnit, pixelsPerUnit)
+                    || importer.mipmapEnabled
+                    || importer.filterMode != FilterMode.Point
+                    || importer.textureCompression != TextureImporterCompression.Uncompressed
+                    || usesFeetAnchor && (spriteSettings.spriteAlignment != (int)SpriteAlignment.Custom || spriteSettings.spritePivot != requiredPivot);
+                if (!changed)
+                {
+                    continue;
+                }
+
+                if (usesFeetAnchor)
+                {
+                    spriteSettings.spriteAlignment = (int)SpriteAlignment.Custom;
+                    spriteSettings.spritePivot = requiredPivot;
+                    importer.SetTextureSettings(spriteSettings);
+                }
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = pixelsPerUnit;
+                importer.mipmapEnabled = false;
+                importer.filterMode = FilterMode.Point;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
             }
         }
 
@@ -297,8 +377,7 @@ namespace EasyGame.SideScroller.Editor
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
-            collider.size = new Vector2(0.72f, 1.48f);
-            collider.offset = new Vector2(0f, 0.02f);
+            ActorGeometry2D.ConfigureHumanoid(collider);
             collider.sharedMaterial = new PhysicsMaterial2D("Network Player Material") { friction = 0f, bounciness = 0f };
 
             PlayerInputReader input = root.AddComponent<PlayerInputReader>();
@@ -322,7 +401,69 @@ namespace EasyGame.SideScroller.Editor
             return prefab;
         }
 
-        private static void CreateScene(GameObject networkPlayerPrefab)
+        private static GameObject CreateNetworkZombiePrefab()
+        {
+            GameObject root = new GameObject("Network Zombie");
+            root.AddComponent<NetworkIdentity>();
+            Rigidbody2D body = root.AddComponent<Rigidbody2D>();
+            body.mass = 1f;
+            body.gravityScale = 3.15f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
+            ActorGeometry2D.ConfigureHumanoid(collider);
+            collider.sharedMaterial = new PhysicsMaterial2D("Zombie Material") { friction = 0f, bounciness = 0f };
+
+            SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
+            networkTransform.target = root.transform;
+            networkTransform.syncDirection = SyncDirection.ServerToClient;
+            networkTransform.syncInterval = 1f / 20f;
+            networkTransform.updateMethod = UpdateMethod.FixedUpdate;
+            networkTransform.syncPosition = true;
+            networkTransform.syncRotation = false;
+            networkTransform.syncScale = false;
+            networkTransform.coordinateSpace = CoordinateSpace.World;
+            root.AddComponent<SideScrollerNetworkZombie>();
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, NetworkZombiePrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static GameObject CreateNetworkSlimePrefab()
+        {
+            GameObject root = new GameObject("Network Slime");
+            root.AddComponent<NetworkIdentity>();
+            Rigidbody2D body = root.AddComponent<Rigidbody2D>();
+            body.mass = 0.7f;
+            body.gravityScale = 3.15f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            CapsuleCollider2D collider = root.AddComponent<CapsuleCollider2D>();
+            ActorGeometry2D.ConfigureSlime(collider);
+            collider.sharedMaterial = new PhysicsMaterial2D("Slime Material") { friction = 0f, bounciness = 0f };
+
+            SideScrollerNetworkTransform networkTransform = root.AddComponent<SideScrollerNetworkTransform>();
+            networkTransform.target = root.transform;
+            networkTransform.syncDirection = SyncDirection.ServerToClient;
+            networkTransform.syncInterval = 1f / 20f;
+            networkTransform.updateMethod = UpdateMethod.FixedUpdate;
+            networkTransform.syncPosition = true;
+            networkTransform.syncRotation = false;
+            networkTransform.syncScale = false;
+            networkTransform.coordinateSpace = CoordinateSpace.World;
+            root.AddComponent<SideScrollerNetworkSlime>();
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, NetworkSlimePrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void CreateScene(GameObject networkPlayerPrefab, GameObject networkZombiePrefab, GameObject networkSlimePrefab)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject root = new GameObject("SideScroller Game", typeof(SideScrollerBootstrap), typeof(SideWorldBuilder));
@@ -348,17 +489,22 @@ namespace EasyGame.SideScroller.Editor
             SideScrollerNetworkManager manager = networkObject.AddComponent<SideScrollerNetworkManager>();
             manager.transport = transport;
             manager.playerPrefab = networkPlayerPrefab;
+            manager.ZombiePrefab = networkZombiePrefab;
+            manager.SlimePrefab = networkSlimePrefab;
+            manager.spawnPrefabs.Add(networkZombiePrefab);
+            manager.spawnPrefabs.Add(networkSlimePrefab);
             manager.maxConnections = 4;
+            manager.playerSpawnMethod = PlayerSpawnMethod.RoundRobin;
             manager.autoCreatePlayer = true;
             manager.dontDestroyOnLoad = false;
             manager.sendRate = 30;
             manager.headlessStartMode = HeadlessStartOptions.AutoStartServer;
             networkObject.AddComponent<NetworkStatusHud>();
 
-            CreateStartPosition("Player Spawn A", new Vector3(-7f, -2.15f, 0f));
-            CreateStartPosition("Player Spawn B", new Vector3(-5.5f, -2.15f, 0f));
-            CreateStartPosition("Player Spawn C", new Vector3(-4f, -2.15f, 0f));
-            CreateStartPosition("Player Spawn D", new Vector3(-2.5f, -2.15f, 0f));
+            CreateStartPosition("Player Spawn A", SideWorldBuilder.PlayerSpawn);
+            CreateStartPosition("Player Spawn B", SideWorldBuilder.PlayerSpawn + new Vector3(SideWorldBuilder.PlayerSpawnSpacing, 0f, 0f));
+            CreateStartPosition("Player Spawn C", SideWorldBuilder.PlayerSpawn + new Vector3(SideWorldBuilder.PlayerSpawnSpacing * 2f, 0f, 0f));
+            CreateStartPosition("Player Spawn D", SideWorldBuilder.PlayerSpawn + new Vector3(SideWorldBuilder.PlayerSpawnSpacing * 3f, 0f, 0f));
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -374,7 +520,7 @@ namespace EasyGame.SideScroller.Editor
         {
             PlayerSettings.companyName = "EasyGame";
             PlayerSettings.productName = "EasyGame: Dead Rails";
-            PlayerSettings.bundleVersion = "0.1.0";
+            PlayerSettings.bundleVersion = "0.5.1";
             PlayerSettings.runInBackground = true;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;

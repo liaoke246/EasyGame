@@ -6,8 +6,37 @@ namespace EasyGame.SideScroller.World
 {
     public sealed class SideWorldBuilder : MonoBehaviour
     {
-        public static readonly Bounds MapBounds = new Bounds(new Vector3(54f, 1f, 0f), new Vector3(136f, 20f, 4f));
-        public static readonly Vector3 PlayerSpawn = new Vector3(-7f, -2.15f, 0f);
+        private const int WorldStartX = -14;
+        private const int WorldEndX = 122;
+        private const int FloorSurfaceRow = -4;
+        private const int FloorBottomRow = -6;
+
+        private static readonly PlatformDefinition[] Platforms =
+        {
+            new PlatformDefinition(-8, 7, -1),
+            new PlatformDefinition(9, 10, 0),
+            new PlatformDefinition(12, 20, 1),
+            new PlatformDefinition(22, 23, 0),
+            new PlatformDefinition(25, 32, -1),
+            new PlatformDefinition(34, 36, 0),
+            new PlatformDefinition(38, 48, 2),
+            new PlatformDefinition(50, 52, 1),
+            new PlatformDefinition(54, 61, 0),
+            new PlatformDefinition(63, 65, 1),
+            new PlatformDefinition(67, 76, 2),
+            new PlatformDefinition(78, 80, 0),
+            new PlatformDefinition(82, 91, -1),
+            new PlatformDefinition(94, 96, 0),
+            new PlatformDefinition(98, 108, 1),
+            new PlatformDefinition(110, 112, 0),
+            new PlatformDefinition(114, 116, -1),
+        };
+
+        public static readonly Bounds MapBounds = new Bounds(new Vector3(54.5f, 1f, 0f), new Vector3(137f, 20f, 4f));
+        public const float FloorSurfaceY = FloorSurfaceRow + 1f;
+        public const float PlayerSpawnSpacing = 2.25f;
+        public static readonly Vector3 PlayerSpawnFeet = new Vector3(-7f, FloorSurfaceY, 0f);
+        public static readonly Vector3 PlayerSpawn = ActorGeometry2D.RootPositionForFeet(PlayerSpawnFeet, ActorGeometry2D.HumanoidFeetLocalY);
 
         private bool built;
 
@@ -21,6 +50,7 @@ namespace EasyGame.SideScroller.World
             built = true;
             CreateBackground();
             CreateTilemap();
+            CreateCollision();
             CreateLandmarks();
         }
 
@@ -32,32 +62,34 @@ namespace EasyGame.SideScroller.World
             }
 
             built = true;
-            CreateServerRectangle("Ground Collision", new Vector2(54f, -5f), new Vector2(137f, 3f));
-            CreateServerPlatform("Platform -2 to 7", -2, 7, -1);
-            CreateServerPlatform("Platform 12 to 20", 12, 20, 1);
-            CreateServerPlatform("Platform 25 to 32", 25, 32, -1);
-            CreateServerPlatform("Platform 38 to 48", 38, 48, 2);
-            CreateServerPlatform("Platform 54 to 61", 54, 61, 0);
-            CreateServerPlatform("Platform 67 to 76", 67, 76, 2);
-            CreateServerPlatform("Platform 82 to 91", 82, 91, -1);
-            CreateServerPlatform("Platform 98 to 108", 98, 108, 1);
+            CreateCollision();
+        }
+
+        // Both the visual client/offline scene and dedicated server create the
+        // same continuous collision surfaces. Tile sprites never define physics.
+        private void CreateCollision()
+        {
+            float groundWidth = WorldEndX - WorldStartX + 1f;
+            float groundHeight = FloorSurfaceRow - FloorBottomRow + 1f;
+            CreateServerRectangle(
+                "Ground Collision",
+                new Vector2((WorldStartX + WorldEndX + 1f) * 0.5f, (FloorBottomRow + FloorSurfaceRow + 1f) * 0.5f),
+                new Vector2(groundWidth, groundHeight));
+            foreach (PlatformDefinition platform in Platforms)
+            {
+                CreateServerPlatform(platform);
+            }
         }
 
         private static void CreateBackground()
         {
-            CreateRectangle("Sky", new Vector3(54f, 1f, 4f), new Vector3(136f, 20f, 1f), new Color(0.055f, 0.105f, 0.15f), -20);
-            CreateRectangle("Distant City", new Vector3(54f, -0.2f, 3f), new Vector3(136f, 5.2f, 1f), new Color(0.09f, 0.16f, 0.19f), -15);
-
-            for (int index = 0; index < 14; index++)
-            {
-                float x = -8f + index * 10f;
-                float height = 2.2f + (index % 4) * 0.75f;
-                CreateRectangle($"Building {index + 1}", new Vector3(x, -0.6f + height * 0.5f, 2f), new Vector3(6.8f, height, 1f), new Color(0.12f, 0.2f, 0.22f), -13);
-                for (int window = 0; window < 3; window++)
-                {
-                    CreateRectangle($"Window {index + 1}-{window + 1}", new Vector3(x - 2f + window * 2f, 0.15f, 1.8f), new Vector3(0.38f, 0.2f, 1f), new Color(0.72f, 0.54f, 0.2f, 0.55f), -12);
-                }
-            }
+            const float backgroundY = 0.72f;
+            const float backgroundScale = 1.18f;
+            CreateRepeatedBackground("Sky", "background-5", backgroundY, backgroundScale, 5f, -30);
+            CreateRepeatedBackground("Mountains", "background-4", backgroundY, backgroundScale, 4.8f, -29);
+            CreateRepeatedBackground("Distant Pines", "background-3", backgroundY, backgroundScale, 4.6f, -28);
+            CreateRepeatedBackground("Middle Pines", "background-2", backgroundY, backgroundScale, 4.4f, -27);
+            CreateRepeatedBackground("Foreground Pines", "background-1", backgroundY, backgroundScale, 4.2f, -26);
         }
 
         private static void CreateTilemap()
@@ -66,78 +98,162 @@ namespace EasyGame.SideScroller.World
             Grid grid = gridObject.GetComponent<Grid>();
             grid.cellSize = Vector3.one;
 
-            GameObject mapObject = new GameObject("Collision Tilemap", typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
-            mapObject.transform.SetParent(gridObject.transform, false);
-            Tilemap tilemap = mapObject.GetComponent<Tilemap>();
-            TilemapRenderer renderer = mapObject.GetComponent<TilemapRenderer>();
-            renderer.sortingOrder = 0;
+            GameObject groundObject = new GameObject("Ground Tilemap", typeof(Tilemap), typeof(TilemapRenderer));
+            groundObject.transform.SetParent(gridObject.transform, false);
+            Tilemap groundMap = groundObject.GetComponent<Tilemap>();
+            groundObject.GetComponent<TilemapRenderer>().sortingOrder = 0;
 
+            GameObject platformObject = new GameObject("Platform Artwork Tilemap", typeof(Tilemap), typeof(TilemapRenderer));
+            platformObject.transform.SetParent(gridObject.transform, false);
+            Tilemap platformMap = platformObject.GetComponent<Tilemap>();
+            platformObject.GetComponent<TilemapRenderer>().sortingOrder = 1;
             Tile ground = ScriptableObject.CreateInstance<Tile>();
             ground.name = "Runtime Ground Tile";
-            ground.sprite = RuntimeSpriteFactory.White;
-            ground.color = new Color(0.24f, 0.31f, 0.22f);
-            ground.colliderType = Tile.ColliderType.Grid;
+            ground.sprite = LoadWorldSprite("ground-fill");
+            ground.color = Color.white;
+            ground.colliderType = Tile.ColliderType.None;
 
             Tile surface = ScriptableObject.CreateInstance<Tile>();
             surface.name = "Runtime Surface Tile";
-            surface.sprite = RuntimeSpriteFactory.White;
-            surface.color = new Color(0.43f, 0.52f, 0.28f);
-            surface.colliderType = Tile.ColliderType.Grid;
+            surface.sprite = LoadWorldSprite("ground-top");
+            surface.color = Color.white;
+            surface.colliderType = Tile.ColliderType.None;
 
-            for (int x = -14; x <= 122; x++)
+            Tile platformLeft = CreateRuntimeTile("Platform Left", "ground-left");
+            Tile platformMiddle = CreateRuntimeTile("Platform Middle", "ground-top");
+            Tile platformRight = CreateRuntimeTile("Platform Right", "ground-right");
+
+            for (int x = WorldStartX; x <= WorldEndX; x++)
             {
-                tilemap.SetTile(new Vector3Int(x, -4, 0), surface);
-                tilemap.SetTile(new Vector3Int(x, -5, 0), ground);
-                tilemap.SetTile(new Vector3Int(x, -6, 0), ground);
+                groundMap.SetTile(new Vector3Int(x, FloorSurfaceRow, 0), surface);
+                for (int y = FloorBottomRow; y < FloorSurfaceRow; y++)
+                {
+                    groundMap.SetTile(new Vector3Int(x, y, 0), ground);
+                }
             }
 
-            FillPlatform(tilemap, surface, -2, 7, -1);
-            FillPlatform(tilemap, surface, 12, 20, 1);
-            FillPlatform(tilemap, surface, 25, 32, -1);
-            FillPlatform(tilemap, surface, 38, 48, 2);
-            FillPlatform(tilemap, surface, 54, 61, 0);
-            FillPlatform(tilemap, surface, 67, 76, 2);
-            FillPlatform(tilemap, surface, 82, 91, -1);
-            FillPlatform(tilemap, surface, 98, 108, 1);
+            foreach (PlatformDefinition platform in Platforms)
+            {
+                FillPlatform(platformMap, platformLeft, platformMiddle, platformRight, platform.StartX, platform.EndX, platform.Row);
+            }
         }
 
-        private static void FillPlatform(Tilemap map, Tile tile, int startX, int endX, int y)
+        private static void FillPlatform(Tilemap map, Tile left, Tile middle, Tile right, int startX, int endX, int y)
         {
             for (int x = startX; x <= endX; x++)
             {
-                map.SetTile(new Vector3Int(x, y, 0), tile);
+                map.SetTile(new Vector3Int(x, y, 0), x == startX ? left : x == endX ? right : middle);
             }
         }
 
-        private static void CreateServerPlatform(string name, int startX, int endX, int y)
+        private void CreateServerPlatform(PlatformDefinition platform)
         {
-            float width = endX - startX + 1f;
-            CreateServerRectangle(name, new Vector2((startX + endX) * 0.5f, y), new Vector2(width, 1f));
+            float width = platform.EndX - platform.StartX + 1f;
+            Vector2 center = new Vector2((platform.StartX + platform.EndX + 1f) * 0.5f, platform.Row + 0.5f);
+            GameObject collision = new GameObject($"Platform {platform.StartX} to {platform.EndX}", typeof(BoxCollider2D), typeof(PlatformEffector2D));
+            collision.transform.SetParent(transform, false);
+            collision.transform.position = center;
+            BoxCollider2D collider = collision.GetComponent<BoxCollider2D>();
+            collider.size = new Vector2(width, 1f);
+            collider.usedByEffector = true;
+            PlatformEffector2D effector = collision.GetComponent<PlatformEffector2D>();
+            effector.useOneWay = true;
+            effector.useOneWayGrouping = true;
+            effector.useSideFriction = false;
+            effector.useSideBounce = false;
+            effector.surfaceArc = 170f;
         }
 
-        private static void CreateServerRectangle(string name, Vector2 position, Vector2 size)
+        private void CreateServerRectangle(string name, Vector2 position, Vector2 size)
         {
             GameObject collision = new GameObject(name, typeof(BoxCollider2D));
+            collision.transform.SetParent(transform, false);
             collision.transform.position = position;
             collision.GetComponent<BoxCollider2D>().size = size;
         }
 
         private static void CreateLandmarks()
         {
-            CreateRectangle("Safe Zone Beacon", new Vector3(-8.5f, -2.25f, -0.1f), new Vector3(0.18f, 2.4f, 1f), new Color(0.28f, 0.9f, 0.72f), 2);
-            CreateRectangle("Street Exit Beacon", new Vector3(118f, -2.25f, -0.1f), new Vector3(0.18f, 2.4f, 1f), new Color(0.95f, 0.52f, 0.19f), 2);
+            CreateProp("Safe Camp", "small-tent", new Vector3(-10.3f, -2.5f, -0.1f), 3);
+            CreateProp("Ruined Shrine", "angel-statue", new Vector3(118.5f, -2.5f, -0.1f), 3);
+
+            float[] treePositions = { -12f, 10f, 22f, 35f, 50f, 64f, 79f, 94f, 109f, 121f };
+            foreach (float x in treePositions)
+            {
+                CreateProp($"Pine {x}", "large-pine-tree", new Vector3(x, -0.75f, 0.2f), -2);
+            }
+
+            float[] grassPositions = { -5f, 7f, 20f, 33f, 48f, 62f, 78f, 92f, 108f };
+            foreach (float x in grassPositions)
+            {
+                CreateProp($"Tall Grass {x}", "tall-grass", new Vector3(x, -3f, -0.05f), 2);
+            }
         }
 
-        private static GameObject CreateRectangle(string name, Vector3 position, Vector3 scale, Color color, int order)
+        private static Tile CreateRuntimeTile(string name, string spriteName)
         {
+            Tile tile = ScriptableObject.CreateInstance<Tile>();
+            tile.name = name;
+            tile.sprite = LoadWorldSprite(spriteName);
+            tile.color = Color.white;
+            tile.colliderType = Tile.ColliderType.None;
+            return tile;
+        }
+
+        private static Sprite LoadWorldSprite(string name)
+        {
+            return Resources.Load<Sprite>($"ThirdParty/GandalfHardcore/World/{name}");
+        }
+
+        private static void CreateRepeatedBackground(string name, string spriteName, float y, float scale, float z, int order)
+        {
+            Sprite sprite = Resources.Load<Sprite>($"ThirdParty/GandalfHardcore/World/Backgrounds/{spriteName}");
+            if (sprite == null)
+            {
+                Debug.LogError($"Missing licensed pixel background sprite: {spriteName}. Run scripts/install-side-scroller-art.ps1.");
+                return;
+            }
+
+            float width = sprite.bounds.size.x * scale;
+            int count = Mathf.CeilToInt(137f / width) + 2;
+            for (int index = 0; index < count; index++)
+            {
+                GameObject layer = new GameObject($"{name} {index + 1}");
+                layer.transform.position = new Vector3(-14f + index * width, y, z);
+                layer.transform.localScale = Vector3.one * scale;
+                SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
+                renderer.sprite = sprite;
+                renderer.sortingOrder = order;
+            }
+        }
+
+        private static void CreateProp(string name, string spriteName, Vector3 position, int order)
+        {
+            Sprite sprite = LoadWorldSprite(spriteName);
+            if (sprite == null)
+            {
+                return;
+            }
+
             GameObject item = new GameObject(name);
             item.transform.position = position;
-            item.transform.localScale = scale;
             SpriteRenderer renderer = item.AddComponent<SpriteRenderer>();
-            renderer.sprite = RuntimeSpriteFactory.White;
-            renderer.color = color;
+            renderer.sprite = sprite;
             renderer.sortingOrder = order;
-            return item;
+        }
+
+        private readonly struct PlatformDefinition
+        {
+            public PlatformDefinition(int startX, int endX, int row)
+            {
+                StartX = startX;
+                EndX = endX;
+                Row = row;
+            }
+
+            public int StartX { get; }
+            public int EndX { get; }
+            public int Row { get; }
         }
     }
 }

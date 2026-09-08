@@ -12,15 +12,19 @@ namespace EasyGame.SideScroller.Player
         private Animator animator;
         private PlayerMovement movement;
         private Transform visualRoot;
+        private Core.PlayerAvatarAnimator spriteAnimator;
         private float actionLockedUntil;
         private int actionMotion;
         private float facing = 1f;
+        private int combatAction = -1;
+        private float combatElapsed;
 
         public void Initialize(Animator targetAnimator, PlayerMovement targetMovement, Transform targetVisualRoot)
         {
             animator = targetAnimator;
             movement = targetMovement;
             visualRoot = targetVisualRoot;
+            spriteAnimator = visualRoot != null ? visualRoot.GetComponent<Core.PlayerAvatarAnimator>() : null;
         }
 
         private void Awake()
@@ -31,18 +35,18 @@ namespace EasyGame.SideScroller.Player
 
         private void Update()
         {
-            if (animator == null || movement == null)
+            if (movement == null)
             {
                 return;
             }
 
             float horizontal = movement.HorizontalInput;
-            if (Mathf.Abs(horizontal) > 0.05f)
+            if (Mathf.Abs(horizontal) > 0.05f && Time.time >= actionLockedUntil)
             {
                 facing = Mathf.Sign(horizontal);
             }
 
-            if (visualRoot != null)
+            if (visualRoot != null && spriteAnimator == null)
             {
                 Vector3 scale = visualRoot.localScale;
                 scale.x = Mathf.Abs(scale.x) * facing;
@@ -63,15 +67,31 @@ namespace EasyGame.SideScroller.Player
                 motion = Mathf.Abs(movement.Velocity.x) > 0.15f ? 1 : 0;
             }
 
-            animator.SetInteger(MotionId, motion);
-            animator.SetFloat(SpeedId, Mathf.Abs(movement.Velocity.x));
-            animator.SetFloat(VerticalSpeedId, movement.Velocity.y);
+            if (spriteAnimator != null)
+            {
+                if (motion == 4 && combatAction >= 0) spriteAnimator.SetCombatAction(combatAction, combatElapsed, (int)facing);
+                else spriteAnimator.SetState(motion, facing, Mathf.Abs(movement.Velocity.x));
+            }
+            else if (animator != null)
+            {
+                animator.SetInteger(MotionId, motion);
+                animator.SetFloat(SpeedId, Mathf.Abs(movement.Velocity.x));
+                animator.SetFloat(VerticalSpeedId, movement.Velocity.y);
+            }
         }
 
         public void PlayAttack(float duration = 0.22f)
         {
             actionMotion = 4;
             actionLockedUntil = Mathf.Max(actionLockedUntil, Time.time + duration);
+        }
+
+        public void PlayCombatAction(int id, float elapsed, int direction)
+        {
+            combatAction = id; combatElapsed = elapsed; facing = direction;
+            actionMotion = 4;
+            actionLockedUntil = Time.time + Mathf.Max(0f, Combat.CombatActions2D.Get(id).Duration - elapsed);
+            spriteAnimator?.SetCombatAction(id, elapsed, direction);
         }
 
         public void PlayHit(float duration = 0.18f)
