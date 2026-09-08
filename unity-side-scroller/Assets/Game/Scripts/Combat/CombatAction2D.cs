@@ -45,6 +45,7 @@ namespace EasyGame.SideScroller.Combat
     {
         public const int PlayerActionCount = 4;
         public const int Count = 6;
+        public const float MonsterAimCommitLead = .12f;
         private static readonly CombatActionDefinition[] Definitions =
         {
             new CombatActionDefinition(.085f, .075f, .14f, .34f, .82f, 0f, new Vector2(1.45f, 1.25f), 30, 25, Vector2.zero),
@@ -72,6 +73,17 @@ namespace EasyGame.SideScroller.Combat
         public double StartedAt { get; private set; }
         public bool Busy(double now) => Action >= 0 && now < StartedAt + CombatActions2D.Get(Action).Duration;
         public double ReadyAt(int id) => CombatActions2D.IsValid(id) ? readyAt[id] : double.PositiveInfinity;
+
+        // Monsters may follow a dodge during early anticipation, but the last
+        // 120 ms of the warning and the entire strike/recovery are committed.
+        // Changing aim never restarts the animation or its damage/cooldown clock.
+        public bool TrackDuringWindup(int facing, double now)
+        {
+            if (Action < CombatActions2D.PlayerActionCount || !Busy(now) || now < StartedAt ||
+                now >= StartedAt + Mathf.Max(0f, CombatActions2D.Get(Action).Windup - CombatActions2D.MonsterAimCommitLead)) return false;
+            Facing = facing < 0 ? -1 : 1;
+            return true;
+        }
 
         public bool TryBegin(int id, int facing, bool grounded, double now)
         {

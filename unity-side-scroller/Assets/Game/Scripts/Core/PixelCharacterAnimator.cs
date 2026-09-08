@@ -10,6 +10,9 @@ namespace EasyGame.SideScroller.Core
     public sealed class PixelCharacterAnimator : MonoBehaviour
     {
         private static readonly Dictionary<string, Sprite[]> SequenceCache = new Dictionary<string, Sprite[]>();
+        private static Material combatMaterial;
+        private static readonly int SeparateSlashId = Shader.PropertyToID("_SeparateSlash");
+        private MaterialPropertyBlock spriteProperties;
         private SpriteRenderer target;
         private string characterFolder;
         private string filePrefix;
@@ -39,6 +42,14 @@ namespace EasyGame.SideScroller.Core
         public void Initialize(SpriteRenderer targetRenderer, Color tint, string characterFolderName = "Warrior", string spritePrefix = "warrior")
         {
             target = targetRenderer;
+            var shader = Resources.Load<Shader>("Effects/CombatSprite");
+            if (shader != null)
+            {
+                if (combatMaterial == null) combatMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                target.sharedMaterial = combatMaterial;
+                spriteProperties = new MaterialPropertyBlock();
+            }
+            else Debug.LogError("Missing CombatSprite shader; authored VFX cannot be separated.");
             baseTint = tint;
             characterFolder = $"ThirdParty/GandalfHardcore/Characters/{characterFolderName}";
             filePrefix = spritePrefix;
@@ -89,6 +100,12 @@ namespace EasyGame.SideScroller.Core
 
             float elapsed = Time.time - stateStartedAt;
             target.sprite = FrameForMotion(elapsed);
+            if (spriteProperties != null)
+            {
+                target.GetPropertyBlock(spriteProperties);
+                spriteProperties.SetFloat(SeparateSlashId, target.sprite == attack[4] || target.sprite == attack[5] ? 1f : 0f);
+                target.SetPropertyBlock(spriteProperties);
+            }
             target.color = motion == 5 && Mathf.FloorToInt(elapsed / 0.055f) % 2 == 0
                 ? Color.Lerp(baseTint, Color.white, 0.72f)
                 : baseTint;

@@ -20,6 +20,7 @@ namespace EasyGame.SideScroller.Editor
         {
             CheckClocksAndInput();
             CheckServerCombat();
+            CheckPresentation();
             Debug.Log("SKILL_REGRESSION_PASS: 6 action timelines; 3 skill inputs; telegraph/dodge/single-hit/interrupt/death; skill damage, PvP, launch, cooldown and all avatar action frames.");
         }
 
@@ -125,6 +126,8 @@ namespace EasyGame.SideScroller.Editor
 
                 // Actual monster component enters the attack motion, and its
                 // shared server query resolves only at the strike timestamp.
+                CheckMonsterTurning(zombie, caster, 4);
+                CheckMonsterTurning(slime, caster, 5);
                 CheckMonster(zombie, caster, 4, 4);
                 CheckMonster(slime, caster, 5, 7);
 
@@ -140,6 +143,14 @@ namespace EasyGame.SideScroller.Editor
                         foreach (var component in visual.GetComponents<MonoBehaviour>())
                             component.GetType().GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(component, null);
                         Check(visual.GetComponentInChildren<SpriteRenderer>().sprite != null, "every skill phase uses a real frame");
+                        if (avatar != PlayerAvatarKind.Slime)
+                        {
+                            var renderer = visual.GetComponentInChildren<SpriteRenderer>();
+                            Check(renderer.sharedMaterial.shader.name == "EasyGame/Combat Sprite", "character uses authored-slash separation shader");
+                            var properties = new MaterialPropertyBlock(); renderer.GetPropertyBlock(properties);
+                            bool bakedFx = renderer.sprite.name.EndsWith("attack_4", StringComparison.Ordinal) || renderer.sprite.name.EndsWith("attack_5", StringComparison.Ordinal);
+                            Check((properties.GetFloat("_SeparateSlash") > .5f) == bakedFx, "separate baked VFX on both contact and recovery tail frames");
+                        }
                         Check(visual.localPosition == anchor && Mathf.Abs(visual.localScale.x) == 1f && visual.localScale.y == 1f, "skill preserves feet and body scale");
                     }
                     UnityEngine.Object.DestroyImmediate(visual.gameObject);
@@ -186,6 +197,86 @@ namespace EasyGame.SideScroller.Editor
             if (monster is SideScrollerNetworkZombie z) z.ApplyDamage(1000, victim);
             if (monster is SideScrollerNetworkSlime s) s.ApplyDamage(1000, victim);
             Check(!body.enabled && !melee.Clock.ConsumeHit(now + 1d), "dead monsters cannot finish attacks");
+        }
+
+        private static void CheckMonsterTurning(NetworkBehaviour monster, SideScrollerNetworkPlayer victim, int id)
+        {
+            var body = monster.GetComponent<Collider2D>();
+            var melee = Field<MonsterMelee2D>(monster, "melee");
+            var action = CombatActions2D.Get(id);
+            var victimBody = victim.GetComponent<Rigidbody2D>();
+            Vector2 right = new Vector2(body.bounds.center.x + .72f, SideWorldBuilder.PlayerSpawn.y);
+            Vector2 left = new Vector2(body.bounds.center.x - .72f, SideWorldBuilder.PlayerSpawn.y);
+            Set(victim, "health", 100); Set(victim, "invulnerableUntil", -1d);
+            melee.Clock.Reset(); int facing = 1;
+            victimBody.position = right; Physics2D.SyncTransforms();
+            Check(melee.Step(id, body, true, 100d, ref facing) && facing == 1, "monster starts toward nearby player");
+            victimBody.position = left; Physics2D.SyncTransforms();
+            Check(melee.Step(id, body, true, 100.08d, ref facing) && facing == -1, "early windup tracks player crossing behind");
+            Check(melee.Clock.StartedAt == 100d && Math.Abs(melee.Clock.ReadyAt(id) - 100d - action.Cooldown) < .001d, "turning never restarts windup or cooldown");
+            victimBody.position = right; Physics2D.SyncTransforms();
+            melee.Step(id, body, true, 100d + action.Windup - .04d, ref facing);
+            Check(facing == -1, "red committed telegraph cannot whip around");
+            melee.Step(id, body, true, 100d + action.Windup + .005d, ref facing);
+            Check(facing == -1, "contact direction matches committed warning");
+            if (id == 4) Check(victim.Health == 100, "crossing behind committed directional claw dodges it");
+            Check(!melee.Step(id, body, true, 100d + action.Duration + .01d, ref facing) && facing == 1 && melee.HasTarget,
+                "recovery end retargets behind even while attack is cooling down");
+            victimBody.position = left; Physics2D.SyncTransforms();
+            Check(melee.Step(id, body, true, 100d + action.Cooldown + .01d, ref facing) && facing == -1, "next attack re-acquires opposite side");
+
+            // Exercise real patrol code, not just the isolated melee helper.
+            melee.Clock.Reset(); melee.Clock.TryBegin(id, 1, true, NetworkTime.time);
+            typeof(CombatActionClock).GetProperty("StartedAt").SetValue(melee.Clock, NetworkTime.time - action.Duration - .01d);
+            Vector3 oldSpawn = Field<Vector3>(monster, "spawnPosition");
+            Set(monster, "spawnPosition", monster.transform.position - Vector3.right * 20f);
+            Set(monster, "nextContactDamageAt", -1d); Set(monster, "staggerUntil", -1d);
+            Invoke(monster, "FixedUpdate");
+            Check(Field<int>(monster, "facing") == -1 && Field<int>(monster, "motion") == 0 && Mathf.Abs(body.attachedRigidbody.linearVelocity.x) < .001f,
+                "engaged monster faces player and waits; patrol must not override cooldown facing");
+            Set(monster, "spawnPosition", oldSpawn);
+            victimBody.position = right + Vector2.right * 5f; Physics2D.SyncTransforms();
+            melee.Clock.Reset(); melee.Step(id, body, true, NetworkTime.time, ref facing);
+            Check(!melee.HasTarget, "lost target releases engagement");
+        }
+
+        private static void CheckPresentation()
+        {
+            var shader = Resources.Load<Shader>("Effects/CombatSprite");
+            Check(shader != null && !UnityEditor.ShaderUtil.ShaderHasError(shader), "combat sprite shader imports without errors");
+            var actor = new GameObject("Combat presentation QA");
+            try
+            {
+                var body = actor.AddComponent<BoxCollider2D>(); body.size = new Vector2(.7f, 1.6f);
+                var view = CombatActionView2D.Create(actor.transform);
+                Physics2D.SyncTransforms();
+                foreach (var avatar in new[] { PlayerAvatarKind.Warrior, PlayerAvatarKind.Ranger, PlayerAvatarKind.Slime })
+                for (int id = 0; id < CombatActions2D.Count; id++)
+                foreach (int direction in new[] { -1, 1 })
+                {
+                    var action = CombatActions2D.Get(id);
+                    foreach (float age in new[] { action.Windup * .5f, action.Windup + .002f, action.Windup + action.Active, action.Duration - .01f })
+                    {
+                        view.Show(id, direction, age, body, avatar); Invoke(view, "LateUpdate");
+                        var filter = view.GetComponent<MeshFilter>();
+                        if (id == 0 && age < action.Windup) continue;
+                        Check(filter != null && filter.sharedMesh.vertexCount > 0 && filter.sharedMesh.vertexCount < 8192, "every effect phase renders within fixed mesh budget");
+                        foreach (Vector3 point in filter.sharedMesh.vertices)
+                            Check(!float.IsNaN(point.x) && !float.IsNaN(point.y) && !float.IsInfinity(point.x) && !float.IsInfinity(point.y), "finite effect geometry");
+                    }
+                    view.Show(id, direction, action.Duration + .1f, body, avatar); Invoke(view, "LateUpdate");
+                    Check(!view.GetComponent<MeshRenderer>().enabled, "expired network action hides its visual");
+                }
+                Check(view.GetComponentsInChildren<Collider2D>().Length == 0, "visual effects never introduce hitboxes");
+                view.ConfirmImpact(new Vector2(3f, 2f), 1, 1, PlayerAvatarKind.Ranger); Invoke(view, "LateUpdate");
+                Check(view.GetComponent<MeshRenderer>().enabled, "confirmed impact renders outside cast lifetime");
+                Vector3 before = view.GetComponent<MeshFilter>().sharedMesh.bounds.center + view.transform.position;
+                actor.transform.position += Vector3.right * 2f; Invoke(view, "LateUpdate");
+                Vector3 after = view.GetComponent<MeshFilter>().sharedMesh.bounds.center + view.transform.position;
+                Check(Vector3.Distance(before, after) < .025f, "hit sparks stay at world contact point when attacker moves");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(actor); }
+            Debug.Log("COMBAT_POLISH_PASS: monster rear tracking, commit lock, cooldown facing; finite layered VFX, expiry and world-space confirmed impacts.");
         }
 
         private static GameObject Object(Scene scene, string name) { var item = new GameObject(name); SceneManager.MoveGameObjectToScene(item, scene); return item; }

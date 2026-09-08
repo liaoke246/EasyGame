@@ -520,7 +520,7 @@ namespace EasyGame.SideScroller.Editor
         {
             PlayerSettings.companyName = "EasyGame";
             PlayerSettings.productName = "EasyGame: Dead Rails";
-            PlayerSettings.bundleVersion = "0.5.0";
+            PlayerSettings.bundleVersion = "0.5.1";
             PlayerSettings.runInBackground = true;
             PlayerSettings.defaultScreenWidth = 1280;
             PlayerSettings.defaultScreenHeight = 720;

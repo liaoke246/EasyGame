@@ -35,6 +35,7 @@ async function fixture(t) {
     'Assets/Game/Editor/Build.cs': 'public class Build {}\n',
     'Assets/WebGLTemplates/SideScroller/index.html': '<html>Ready</html>\n',
     'Assets/Plugins/WebGL/SkillHud.jslib': 'mergeInto(LibraryManager.library, {});\n',
+    'Assets/Game/Resources/Effects/CombatSprite.shader': 'Shader "Fixture" {}\n',
   };
   for (const [relative, contents] of Object.entries(sources))
     await writeFixtureFile(root, relative, contents);
@@ -81,6 +82,12 @@ test('a source edit invalidates previously built client and server artifacts', a
 test('a WebGL native bridge edit also invalidates the release fingerprint', async t => {
   const { root } = await fixture(t);
   await writeFixtureFile(root, 'Assets/Plugins/WebGL/SkillHud.jslib', 'mergeInto(LibraryManager.library, { changed: function() {} });\n');
+  await assert.rejects(verifyRelease(root), /stale build; rebuild Unity from current sources/);
+});
+
+test('a combat shader edit invalidates the release fingerprint', async t => {
+  const { root } = await fixture(t);
+  await writeFixtureFile(root, 'Assets/Game/Resources/Effects/CombatSprite.shader', 'Shader "Changed" {}\n');
   await assert.rejects(verifyRelease(root), /stale build; rebuild Unity from current sources/);
 });
 

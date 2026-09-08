@@ -12,6 +12,7 @@ namespace EasyGame.SideScroller.Enemies
     public sealed class SideScrollerNetworkSlime : NetworkBehaviour
     {
         private const int MaxHealth = 45;
+        public int Health => health;
         private static readonly string[] VariantNames = { "GREEN SLIME", "BLUE SLIME", "RED SLIME" };
         private static readonly string[] VariantAssets = { "green", "blue", "red" };
         private static readonly Color[] VariantColors = { new Color(0.3f, 0.85f, 0.4f), new Color(0.26f, 0.62f, 0.95f), new Color(0.95f, 0.3f, 0.25f) };
@@ -128,6 +129,13 @@ namespace EasyGame.SideScroller.Enemies
                 motion = 7;
                 attackStartedAt = melee.Clock.StartedAt;
                 nextHopAt = NetworkTime.time + .6d;
+                return;
+            }
+            if (melee.HasTarget && grounded && !staggered && NetworkTime.time >= nextContactDamageAt)
+            {
+                body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
+                motion = 0;
+                nextHopAt = NetworkTime.time + .35d;
                 return;
             }
             if (grounded && !staggered && NetworkTime.time >= nextHopAt)

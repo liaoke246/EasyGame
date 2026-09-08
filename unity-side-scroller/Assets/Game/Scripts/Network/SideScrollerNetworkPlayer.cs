@@ -339,20 +339,25 @@ namespace EasyGame.SideScroller.Network
             for (int index = 0; index < hits.Count; index++)
             {
                 Collider2D hit = hits[index];
+                Vector2 impactPoint = hit.bounds.center;
                 int knockDirection = activeAction == (int)CombatActionId.Nova ? (hit.bounds.center.x < bodyCenter.x ? -1 : 1) : actionClock.Facing;
                 Vector2 impulse = new Vector2(knockDirection * definition.Impulse.x, definition.Impulse.y);
                 SideScrollerNetworkZombie zombie = hit.GetComponentInParent<SideScrollerNetworkZombie>();
                 if (zombie != null)
                 {
+                    int before = zombie.Health;
                     zombie.ApplyDamage(definition.Damage, this);
                     zombie.ApplyCombatImpulse(impulse);
+                    if (zombie.Health < before) RpcCombatImpact(impactPoint, activeAction, knockDirection);
                     continue;
                 }
                 SideScrollerNetworkSlime slime = hit.GetComponentInParent<SideScrollerNetworkSlime>();
                 if (slime != null)
                 {
+                    int before = slime.Health;
                     slime.ApplyDamage(definition.Damage, this);
                     slime.ApplyCombatImpulse(impulse);
+                    if (slime.Health < before) RpcCombatImpact(impactPoint, activeAction, knockDirection);
                     continue;
                 }
                 SideScrollerNetworkPlayer player = hit.GetComponentInParent<SideScrollerNetworkPlayer>();
@@ -360,6 +365,7 @@ namespace EasyGame.SideScroller.Network
                 {
                     int previousHealth = player.Health;
                     player.ApplyDamage(definition.PvpDamage, this);
+                    if (player.Health < previousHealth) RpcCombatImpact(impactPoint, activeAction, knockDirection);
                     if (player.Health < previousHealth && !player.IsDefeated && impulse != Vector2.zero)
                     {
                         player.body.linearVelocity = new Vector2(impulse.x * .65f, Mathf.Max(player.body.linearVelocity.y, impulse.y * .75f));
@@ -367,6 +373,12 @@ namespace EasyGame.SideScroller.Network
                     }
                 }
             }
+        }
+
+        [ClientRpc]
+        private void RpcCombatImpact(Vector2 point, int id, int direction)
+        {
+            actionView?.ConfirmImpact(point, id, direction, avatarKind);
         }
 
         [Server]

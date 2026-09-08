@@ -12,6 +12,7 @@ namespace EasyGame.SideScroller.Enemies
     public sealed class SideScrollerNetworkZombie : NetworkBehaviour
     {
         private const int MaxHealth = 60;
+        public int Health => health;
 
         [SyncVar] private int health = MaxHealth;
         [SyncVar] private int facing = -1;
@@ -121,6 +122,12 @@ namespace EasyGame.SideScroller.Enemies
             {
                 motion = 4; animationSpeed = 0f;
                 attackStartedAt = melee.Clock.StartedAt;
+                return;
+            }
+            if (melee.HasTarget && groundedForAttack && NetworkTime.time >= staggerUntil && NetworkTime.time >= nextContactDamageAt)
+            {
+                body.linearVelocity = new Vector2(0f, body.linearVelocity.y);
+                motion = 0; animationSpeed = 0f;
                 return;
             }
             if (patrolOffset >= patrolRadius)

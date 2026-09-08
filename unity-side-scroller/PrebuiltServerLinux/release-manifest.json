@@ -1,10 +1,10 @@
 {
     "schemaVersion": 1,
-    "version": "0.5.0",
+    "version": "0.5.1",
     "unityVersion": "6000.3.21f1",
     "target": "StandaloneLinux64",
-    "sourceFingerprint": "e2e717eae96084610445bcc37c9b744645b3293e930879ede2fe8c54e0f86e8e",
-    "builtAtUtc": "2026-09-07T14:28:35.8285938Z",
+    "sourceFingerprint": "5aa06cbfb97befb70d73042d10dc0bd1ee40fb6fa1169aee631e2167d6a409e9",
+    "builtAtUtc": "2026-09-08T04:10:17.1949517Z",
     "files": [
         {
             "path": "DeadRailsServer.x86_64",
@@ -12,7 +12,7 @@
         },
         {
             "path": "DeadRailsServer_Data/Managed/Assembly-CSharp.dll",
-            "sha256": "18d01d21a28de87e8a4df00e02ce6edc0a7a4039f9047d69225a21deda46b993"
+            "sha256": "9dccdac36c4f13becdd65ddcb4e695fb9db2fa40682fcf74945d4ba3b0ead37e"
         },
         {
             "path": "DeadRailsServer_Data/Managed/Mirror.Authenticators.dll",
@@ -568,11 +568,11 @@
         },
         {
             "path": "DeadRailsServer_Data/boot.config",
-            "sha256": "5b83f42f0e42360108022da37cbd8f32284100d4c81a877793c48c5ddb88bdd9"
+            "sha256": "0ca2e7dd4e2bfc234fa2b90c900b6fb998a76df6f52e8bd5c7c7485135421c2e"
         },
         {
             "path": "DeadRailsServer_Data/globalgamemanagers",
-            "sha256": "6b21da5e7c32e15f673c128dfe15f346c108cbfffd4e8b0bb2a5ad8ce9ad4f04"
+            "sha256": "bf1c03c35cbf6748fb64b25f7aaa0cd5c60543a68d522edf8e7ca6c3b4d93d86"
         },
         {
             "path": "DeadRailsServer_Data/globalgamemanagers.assets",
@@ -580,7 +580,7 @@
         },
         {
             "path": "DeadRailsServer_Data/level0",
-            "sha256": "4e9859ea2b5d20e0fa3caa140b40383cdcce054b52a80a6bd3f6210f55d80627"
+            "sha256": "87a1b632cdc4b62ed6224e693ed7779af1ac061767e8a752b172f719ab8b3e67"
         },
         {
             "path": "DeadRailsServer_Data/resources.assets",
